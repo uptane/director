@@ -55,3 +55,4 @@ build docker image:
   variables:
     ARTIFACTORY_REPO: ota-docker-dev-horw
     SERVICE_NAME: director-v2
+    BUILD_NAME: ota-docker-director
