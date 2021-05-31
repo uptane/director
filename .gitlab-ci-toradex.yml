@@ -1,6 +1,16 @@
 stages:
   - test
   - build image
+  - deploy-dev2
+  - test-dev2
+  - deploy-stable
+  - test-stable
+  - start-deploy-pilot
+  - deploy-pilot
+  - test-pilot
+  - start-deploy-prod
+  - deploy-prod
+  - test-prod
 
 variables:
   DOCKER_TLS_CERTDIR: ""
@@ -13,6 +23,7 @@ variables:
   SBT_OPTS: "-sbt-launch-dir .sbt/launchers -sbt-dir .sbt -ivy .ivy2 -Dsbt.color=true -Dscala.color=true"
   ARTIFACTORY_USERNAME: cicd-innovation
   ARTIFACTORY_URL: https://artifactory-horw.int.toradex.com/artifactory
+  SERVICE: director
 
 default:
   cache:
@@ -56,3 +67,8 @@ build docker image:
     ARTIFACTORY_REPO: ota-docker-dev-horw
     SERVICE_NAME: director-v2
     BUILD_NAME: ota-docker-director
+
+include:
+  - project: 'rd/platform/deploy-env'
+    ref: master
+    file: '/gitlab/deploy-core.yml'
