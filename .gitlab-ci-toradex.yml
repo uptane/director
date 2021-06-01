@@ -1,16 +1,7 @@
 stages:
   - test
   - build image
-  - deploy-dev2
-  - test-dev2
-  - deploy-stable
-  - test-stable
-  - start-deploy-pilot
-  - deploy-pilot
-  - test-pilot
-  - start-deploy-prod
-  - deploy-prod
-  - test-prod
+  - deploy
 
 variables:
   DOCKER_TLS_CERTDIR: ""
