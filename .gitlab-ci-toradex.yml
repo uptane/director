@@ -1,6 +1,7 @@
 stages:
   - test
   - build image
+  - deploy
 
 variables:
   DOCKER_TLS_CERTDIR: ""
@@ -13,6 +14,7 @@ variables:
   SBT_OPTS: "-sbt-launch-dir .sbt/launchers -sbt-dir .sbt -ivy .ivy2 -Dsbt.color=true -Dscala.color=true"
   ARTIFACTORY_USERNAME: cicd-innovation
   ARTIFACTORY_URL: https://artifactory-horw.int.toradex.com/artifactory
+  SERVICE: director
 
 default:
   cache:
@@ -45,6 +47,9 @@ test:
 include:
   - project: rd/innovation/continuous-delivery/ci-container-build
     file: gitlab-ci-templates/jfrog-sbt-docker-publish.yaml
+  - project: 'rd/platform/deploy-env'
+    ref: master
+    file: '/gitlab/deploy-core-service.yml'
 
 build docker image:
   stage: build image
