@@ -62,4 +62,4 @@ build docker image:
 include:
   - project: 'rd/platform/deploy-env'
     ref: master
-    file: '/gitlab/deploy-core.yml'
+    file: '/gitlab/deploy-core-service.yml'
