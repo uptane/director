@@ -47,6 +47,9 @@ test:
 include:
   - project: rd/innovation/continuous-delivery/ci-container-build
     file: gitlab-ci-templates/jfrog-sbt-docker-publish.yaml
+  - project: 'rd/platform/deploy-env'
+    ref: master
+    file: '/gitlab/deploy-core-service.yml'
 
 build docker image:
   stage: build image
@@ -58,8 +61,3 @@ build docker image:
     ARTIFACTORY_REPO: ota-docker-dev-horw
     SERVICE_NAME: director-v2
     BUILD_NAME: ota-docker-director
-
-include:
-  - project: 'rd/platform/deploy-env'
-    ref: master
-    file: '/gitlab/deploy-core-service.yml'
