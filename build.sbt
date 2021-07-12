@@ -4,10 +4,6 @@ scalaVersion := "2.12.10"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Ypartial-unification")
 
-resolvers += "ATS Releases" at "https://nexus.ota.here.com/content/repositories/releases"
-
-resolvers += "ATS Snapshots" at "https://nexus.ota.here.com/content/repositories/snapshots"
-
 libraryDependencies ++= {
   val akkaV = "2.6.5"
   val akkaHttpV = "10.1.12"
@@ -34,7 +30,6 @@ libraryDependencies ++= {
     "io.github.uptane" %% "libats-http-tracing" % libatsV,
     "io.github.uptane" %% "libats-slick" % libatsV,
     "io.github.uptane" %% "libats-logging" % libatsV,
-    "io.github.uptane" %% "libats-auth" % libatsV,
     "io.github.uptane" %% "libtuf" % tufV,
     "io.github.uptane" %% "libtuf-server" % tufV,
 
