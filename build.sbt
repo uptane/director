@@ -1,12 +1,8 @@
 name := "director-v2"
-organization := "com.advancedtelematic"
+organization := "io.github.uptane"
 scalaVersion := "2.12.10"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Ypartial-unification")
-
-resolvers += "ATS Releases" at "https://nexus.ota.here.com/content/repositories/releases"
-
-resolvers += "ATS Snapshots" at "https://nexus.ota.here.com/content/repositories/snapshots"
 
 resolvers += "Artifactory Realm" at "https://artifactory-horw.int.toradex.com/artifactory/ota-sbt-dev-horw"
 
@@ -15,8 +11,8 @@ libraryDependencies ++= {
   val akkaHttpV = "10.1.12"
   val scalaTestV = "3.0.8"
   val bouncyCastleV = "1.59"
-  val tufV = "0.7.1-6-gd36661d"
-  val libatsV = "0.4.0-8-g8c1c7f3"
+  val tufV = "0.7.3-11-g4e7ccc6"
+  val libatsV = "0.4.0-16-g6a1abdf"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -26,19 +22,18 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
     "org.scalatest"     %% "scalatest" % scalaTestV % Test,
-    "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
+    "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
 
-    "com.advancedtelematic" %% "libats" % libatsV,
-    "com.advancedtelematic" %% "libats-messaging" % libatsV,
-    "com.advancedtelematic" %% "libats-messaging-datatype" % libatsV,
-    "com.advancedtelematic" %% "libats-metrics-akka" % libatsV,
-    "com.advancedtelematic" %% "libats-metrics-prometheus" % libatsV,
-    "com.advancedtelematic" %% "libats-http-tracing" % libatsV,
-    "com.advancedtelematic" %% "libats-slick" % libatsV,
-    "com.advancedtelematic" %% "libats-logging" % libatsV,
-    "com.advancedtelematic" %% "libats-auth" % libatsV,
-    "com.advancedtelematic" %% "libtuf" % tufV,
-    "com.advancedtelematic" %% "libtuf-server" % tufV,
+    "io.github.uptane" %% "libats" % libatsV,
+    "io.github.uptane" %% "libats-messaging" % libatsV,
+    "io.github.uptane" %% "libats-messaging-datatype" % libatsV,
+    "io.github.uptane" %% "libats-metrics-akka" % libatsV,
+    "io.github.uptane" %% "libats-metrics-prometheus" % libatsV,
+    "io.github.uptane" %% "libats-http-tracing" % libatsV,
+    "io.github.uptane" %% "libats-slick" % libatsV,
+    "io.github.uptane" %% "libats-logging" % libatsV,
+    "io.github.uptane" %% "libtuf" % tufV,
+    "io.github.uptane" %% "libtuf-server" % tufV,
 
     "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleV,
     "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleV,
