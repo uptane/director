@@ -10,4 +10,4 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-license-report" % "1.2.0")
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.0")
 
-addSbtPlugin("com.github.mwz" % "sbt-sonar" % "2.1.0")
+addSbtPlugin("com.github.mwz" % "sbt-sonar" % "2.1.1")
