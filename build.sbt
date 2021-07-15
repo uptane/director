@@ -7,7 +7,7 @@ scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Yparti
 resolvers += "Artifactory Realm" at "https://artifactory-horw.int.toradex.com/artifactory/ota-sbt-dev-horw"
 
 libraryDependencies ++= {
-  val akkaV = "2.6.5"
+  val akkaV = "2.6.15"
   val akkaHttpV = "10.1.12"
   val scalaTestV = "3.0.8"
   val bouncyCastleV = "1.59"
