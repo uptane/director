@@ -11,7 +11,9 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.scalacheck.Gen
 import org.scalactic.source.Position
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{FunSuite, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 trait NamespacedTests {
   def withRandomNamespace[T](fn: Namespace => T): T =
@@ -25,7 +27,7 @@ trait NamespacedTests {
 
 object NamespacedTests extends NamespacedTests
 
-abstract class DirectorSpec extends FunSuite
+abstract class DirectorSpec extends AnyFunSuite
   with Matchers
   with ScalaFutures
   with NamespacedTests
