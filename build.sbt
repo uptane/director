@@ -8,7 +8,7 @@ resolvers += "Artifactory Realm" at "https://artifactory-horw.int.toradex.com/ar
 
 libraryDependencies ++= {
   val akkaV = "2.6.5"
-  val akkaHttpV = "10.1.12"
+  val akkaHttpV = "10.1.14"
   val scalaTestV = "3.0.9"
   val bouncyCastleV = "1.59"
   val tufV = "0.7.3-11-g4e7ccc6"
