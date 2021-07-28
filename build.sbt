@@ -40,7 +40,7 @@ libraryDependencies ++= {
 
     "org.scala-lang.modules" %% "scala-async" % "0.9.6",
 
-    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.6"
+    "org.mariadb.jdbc" % "mariadb-java-client" % "2.7.3"
   )
 }
 
