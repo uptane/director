@@ -6,10 +6,10 @@ import akka.actor.ActorSystem
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.test.DatabaseSpec
 import com.advancedtelematic.libtuf.data.ClientDataType.SnapshotRole
-import org.scalatest.AsyncFunSuite
 
 import scala.async.Async.{async, await}
 import scala.concurrent.ExecutionContext
+import org.scalatest.funsuite.AsyncFunSuite
 
 class SignedRoleMigrationSpec extends AsyncFunSuite with DatabaseSpec {
 

@@ -1,6 +1,6 @@
 name := "director-v2"
 organization := "io.github.uptane"
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.14"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Ypartial-unification")
 
@@ -8,8 +8,8 @@ resolvers += "Artifactory Realm" at "https://artifactory-horw.int.toradex.com/ar
 
 libraryDependencies ++= {
   val akkaV = "2.6.5"
-  val akkaHttpV = "10.1.14"
-  val scalaTestV = "3.0.9"
+  val akkaHttpV = "10.1.12"
+  val scalaTestV = "3.2.9"
   val bouncyCastleV = "1.59"
   val tufV = "0.7.3-11-g4e7ccc6"
   val libatsV = "0.4.0-16-g6a1abdf"
@@ -22,7 +22,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
     "org.scalatest"     %% "scalatest" % scalaTestV % Test,
-    "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
+    "org.scalacheck" %% "scalacheck" % "1.13.5" % Test,
 
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
@@ -40,7 +40,7 @@ libraryDependencies ++= {
 
     "org.scala-lang.modules" %% "scala-async" % "0.9.6",
 
-    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.1"
+    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.6"
   )
 }
 
