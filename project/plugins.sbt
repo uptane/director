@@ -10,6 +10,6 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-license-report" % "1.2.0")
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.8.2")
 
-addSbtPlugin("com.github.mwz" % "sbt-sonar" % "2.1.1")
+addSbtPlugin("com.github.mwz" % "sbt-sonar" % "2.2.0")
 
 addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.4.8")
