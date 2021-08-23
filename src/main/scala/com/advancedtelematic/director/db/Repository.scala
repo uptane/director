@@ -2,7 +2,6 @@ package com.advancedtelematic.director.db
 
 import java.time.Instant
 import java.util.UUID
-
 import cats.Show
 import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, AutoUpdateDefinitionId, DbSignedRole, Device, Ecu, EcuTarget, EcuTargetId, HardwareUpdate, ProcessedAssignment}
 import com.advancedtelematic.director.db.DeviceRepository.DeviceCreateResult
@@ -426,6 +425,16 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
       .update(true)
 
     DBIO.seq(activeIO, deleteIO)
+  }
+
+  def currentTargets(ns: Namespace, devices: Set[DeviceId]): Future[Seq[(DeviceId, EcuIdentifier, EcuTarget)]] = {
+    val io = Schema.activeEcus
+      .filter(_.deviceId.inSet(devices)).filter(_.namespace === ns)
+      .join(Schema.ecuTargets).on { (l, r) => l.installedTarget === r.id }
+      .map { case (l, r) => (l.deviceId, l.ecuSerial, r) }
+      .result
+
+    db.run(io)
   }
 }
 

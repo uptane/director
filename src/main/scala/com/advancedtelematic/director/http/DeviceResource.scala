@@ -1,7 +1,6 @@
 package com.advancedtelematic.director.http
 
 import java.time.Instant
-
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directive, Directive0, Directive1, Route}
 import cats.data.Validated.{Invalid, Valid}
@@ -27,12 +26,14 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.Json
 import slick.jdbc.MySQLProfile.api._
 
+
 import scala.async.Async._
 import scala.concurrent.{ExecutionContext, Future}
 
 class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient, val ecuReplacementAllowed: Boolean)
                     (implicit val db: Database, val ec: ExecutionContext, messageBusPublisher: MessageBusPublisher)
   extends DeviceRepositorySupport
+    with EcuRepositorySupport
     with RepoNamespaceRepositorySupport
     with DbSignedRoleRepositorySupport
     with NamespaceRepoId
