@@ -26,7 +26,8 @@ import com.advancedtelematic.director.repo.DeviceRoleGeneration
 import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
 import com.advancedtelematic.libtuf.data.ClientDataType.RootRole
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
+import com.advancedtelematic.director.data.ClientDataType._
 
 class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient)
                    (implicit val db: Database, val ec: ExecutionContext, messageBusPublisher: MessageBusPublisher)
@@ -44,6 +45,18 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
   val deviceRegistration = new DeviceRegistration(keyserverClient)
   val repositoryCreation = new RepositoryCreation(keyserverClient)
   val deviceRoleGeneration = new DeviceRoleGeneration(keyserverClient)
+
+  private def findDevicesCurrentTarget(ns: Namespace, devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
+    val defaultResult = devices.map { deviceId => deviceId -> List.empty[EcuTarget] }.toMap
+
+    ecuRepository.currentTargets(ns, devices.toSet).map { existing =>
+      val result = existing.foldLeft(defaultResult) { case (acc, (deviceId, ecuId, target)) =>
+        acc + (deviceId -> (target.toClient(ecuId) +: acc(deviceId)))
+      }
+
+      DevicesCurrentTarget(result)
+    }
+  }
 
   def repoRoute(ns: Namespace): Route =
     pathPrefix("repo") {
@@ -140,6 +153,11 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                         }
                     }
                   }
+                }
+              },
+              (post & path("list-installed-targets")) {
+                entity(as[Seq[DeviceId]]) { devices =>
+                  complete(findDevicesCurrentTarget(ns, devices))
                 }
               },
               get {

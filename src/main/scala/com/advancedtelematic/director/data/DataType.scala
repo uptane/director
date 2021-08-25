@@ -182,4 +182,12 @@ object ClientDataType {
   implicit class DevicePaginationOps(value: PaginationResult[(Instant, DbDataType.Device)]) {
     def toClient: PaginationResult[Device] = value.map { case (createdAt, device) => device.toClient(createdAt) }
   }
+
+  case class EcuTarget(ecuId: EcuIdentifier, checksum: Checksum, filename: TargetFilename)
+
+  implicit class EcuTargetOps(value: DbDataType.EcuTarget) {
+    def toClient(ecuId: EcuIdentifier): EcuTarget = EcuTarget(ecuId, value.checksum, value.filename)
+  }
+
+  case class DevicesCurrentTarget(values: Map[DeviceId, Seq[EcuTarget]])
 }

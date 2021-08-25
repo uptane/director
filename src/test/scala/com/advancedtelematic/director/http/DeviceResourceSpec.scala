@@ -1,5 +1,6 @@
 package com.advancedtelematic.director.http
 
+import com.advancedtelematic.director.data.ClientDataType
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option._
 import cats.syntax.show._
