@@ -6,13 +6,22 @@ scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Yparti
 
 resolvers += "Artifactory Realm" at "https://artifactory-horw.int.toradex.com/artifactory/ota-sbt-dev-horw"
 
+resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
+resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
+
+// lazy val libtuf_server = ProjectRef(file("/home/simao/ats/ota-tuf"), "libtuf_server")
+
+// dependsOn(libtuf_server)
+
+Global / bloopAggregateSourceDependencies := true
+
 libraryDependencies ++= {
-  val akkaV = "2.6.5"
-  val akkaHttpV = "10.1.12"
+  val akkaV = "2.6.15"
+  val akkaHttpV = "10.2.6"
   val scalaTestV = "3.2.9"
   val bouncyCastleV = "1.59"
-  val tufV = "0.7.3-11-g4e7ccc6"
-  val libatsV = "0.4.0-16-g6a1abdf"
+  val tufV = "0.9.0"
+  val libatsV = "1.0.2"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -38,13 +47,13 @@ libraryDependencies ++= {
     "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleV,
     "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleV,
 
-    "org.scala-lang.modules" %% "scala-async" % "0.9.6",
+    "org.scala-lang.modules" %% "scala-async" % "0.10.0",
 
     "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.6"
   )
 }
 
-scalacOptions in Compile ++= Seq(
+Compile / scalacOptions ++= Seq(
   "-deprecation",
     "-feature",
   "-Xlog-reflective-calls",
@@ -52,7 +61,7 @@ scalacOptions in Compile ++= Seq(
   "-Ypartial-unification"
 )
 
-testOptions in Test ++= Seq(
+Test / testOptions ++= Seq(
   Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),
   Tests.Argument(TestFrameworks.ScalaTest, "-oDS")
 )
@@ -63,7 +72,7 @@ buildInfoOptions += BuildInfoOption.ToMap
 
 buildInfoOptions += BuildInfoOption.BuildTime
 
-mainClass in Compile := Some("com.advancedtelematic.director.Boot")
+Compile / mainClass := Some("com.advancedtelematic.director.Boot")
 
 import com.typesafe.sbt.packager.docker._
 import sbt.Keys._
@@ -73,15 +82,15 @@ import com.typesafe.sbt.SbtGit.git
 import com.typesafe.sbt.SbtNativePackager.autoImport._
 import com.typesafe.sbt.packager.linux.LinuxPlugin.autoImport._
 
-dockerRepository in Docker := Some("advancedtelematic")
+dockerRepository := Some("advancedtelematic")
 
-packageName in Docker := packageName.value
+Docker / packageName := packageName.value
 
 dockerUpdateLatest := true
 
 dockerAliases ++= Seq(dockerAlias.value.withTag(git.gitHeadCommit.value))
 
-defaultLinuxInstallLocation in Docker := s"/opt/${moduleName.value}"
+Docker / defaultLinuxInstallLocation := s"/opt/${moduleName.value}"
 
 dockerCommands := Seq(
   Cmd("FROM", "advancedtelematic/alpine-jre:adoptopenjdk-jre8u262-b10"),

@@ -12,7 +12,7 @@ import com.advancedtelematic.director.data.Codecs._
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.GeneratorOps._
 import com.advancedtelematic.director.data.Generators._
-import com.advancedtelematic.director.db.{DbSignedRoleRepositorySupport, RepoNamespaceRepositorySupport}
+import com.advancedtelematic.director.db.{DbDeviceRoleRepositorySupport, RepoNamespaceRepositorySupport}
 import com.advancedtelematic.director.http.AdminResources.RegisterDeviceResult
 import com.advancedtelematic.director.util._
 import com.advancedtelematic.libats.codecs.CirceCodecs._
@@ -97,7 +97,7 @@ trait AdminResources {
 class AdminResourceSpec extends DirectorSpec
   with RouteResourceSpec
   with RepoNamespaceRepositorySupport
-  with DbSignedRoleRepositorySupport with AdminResources with RepositorySpec with DeviceResources with DeviceManifestSpec {
+  with DbDeviceRoleRepositorySupport with AdminResources with RepositorySpec with DeviceResources with DeviceManifestSpec {
 
   testWithNamespace("can register a device") { implicit ns =>
     createRepoOk()

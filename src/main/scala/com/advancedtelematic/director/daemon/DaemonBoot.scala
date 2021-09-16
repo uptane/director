@@ -31,10 +31,12 @@ object DaemonBoot extends BootApp
 
   startListener[DeleteDeviceRequest](new DeleteDeviceRequestListener, new MetricsBusMonitor(metricRegistry, "director-v2-delete-device-request"))
 
-  val routes = versionHeaders(version) {
-    prometheusMetricsRoutes ~
-      DbHealthResource(versionMap, healthMetrics = Seq(new BusListenerMetrics(metricRegistry))).route
-  }
+  def main(args: Array[String]): Unit = {
+    val routes = versionHeaders(version) {
+      prometheusMetricsRoutes ~
+        DbHealthResource(versionMap, healthMetrics = Seq(new BusListenerMetrics(metricRegistry))).route
+    }
 
-  Http().bindAndHandle(routes, host, port)
+    Http().newServerAt(host, port).bindFlow(routes)
+  }
 }

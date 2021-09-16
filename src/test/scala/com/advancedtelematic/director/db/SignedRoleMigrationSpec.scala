@@ -1,17 +1,16 @@
 package com.advancedtelematic.director.db
 
 import java.util.UUID
-
 import akka.actor.ActorSystem
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.test.DatabaseSpec
+import com.advancedtelematic.libats.test.MysqlDatabaseSpec
 import com.advancedtelematic.libtuf.data.ClientDataType.SnapshotRole
 
 import scala.async.Async.{async, await}
 import scala.concurrent.ExecutionContext
 import org.scalatest.funsuite.AsyncFunSuite
 
-class SignedRoleMigrationSpec extends AsyncFunSuite with DatabaseSpec {
+class SignedRoleMigrationSpec extends AsyncFunSuite with MysqlDatabaseSpec {
 
   implicit val system: ActorSystem = ActorSystem(this.getClass.getSimpleName)
 
@@ -19,7 +18,7 @@ class SignedRoleMigrationSpec extends AsyncFunSuite with DatabaseSpec {
 
   val subject = new SignedRoleMigration("director1_test")
 
-  val dbSignedRoleRepository = new DbSignedRoleRepository()
+  val dbSignedRoleRepository = new DbDeviceRoleRepository()
 
   test("signed roles are migrated") {
     val deviceId = DeviceId(UUID.fromString("00000095-1454-40a5-b54e-caeb117f7aab"))

@@ -17,14 +17,15 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf.data.TufCodecs._
-import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetName, ValidKeyId}
+import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetName, ValidKeyId, ValidTargetFilename}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import slick.jdbc.MySQLProfile.api._
 import PaginationParametersDirectives._
-import com.advancedtelematic.director.repo.DeviceRoleGeneration
+import com.advancedtelematic.director.data.DataType.AdminRoleName.AdminRoleNamePathMatcher
+import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates}
 import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
-import com.advancedtelematic.libtuf.data.ClientDataType.RootRole
+import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, RootRole}
 
 import scala.concurrent.{ExecutionContext, Future}
 import com.advancedtelematic.director.data.ClientDataType._
@@ -38,13 +39,15 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
     with DeviceRepositorySupport
     with AutoUpdateDefinitionRepositorySupport {
 
-  private val EcuIdPath = Segment.flatMap(EcuIdentifier(_).toOption)
+  private val EcuIdPath = Segment.flatMap(EcuIdentifier.from(_).toOption)
   private val KeyIdPath = Segment.flatMap(_.refineTry[ValidKeyId].toOption)
   private val TargetNamePath: PathMatcher1[TargetName] = Segment.map(TargetName.apply)
+  private val TargetFilenamePath = Segments.flatMap { _.mkString("/").refineTry[ValidTargetFilename].toOption }
 
   val deviceRegistration = new DeviceRegistration(keyserverClient)
   val repositoryCreation = new RepositoryCreation(keyserverClient)
   val deviceRoleGeneration = new DeviceRoleGeneration(keyserverClient)
+  val offlineUpdates = new OfflineUpdates(keyserverClient)
 
   private def findDevicesCurrentTarget(ns: Namespace, devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
     val defaultResult = devices.map { deviceId => deviceId -> List.empty[EcuTarget] }.toMap
@@ -90,6 +93,28 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
             }
           }
         }
+      } ~
+      (path("offline-updates" / AdminRoleNamePathMatcher / TargetFilenamePath) & UserRepoId(ns)){ (offlineTargetName, targetName, repoId) =>
+        (put & entity(as[ClientTargetItem])) { clientTarget =>
+          val f = offlineUpdates.addOrReplace(repoId, offlineTargetName, targetName, clientTarget)
+          complete(f.map(_ => StatusCodes.OK))
+        } ~
+        delete {
+          val f = offlineUpdates.delete(repoId, offlineTargetName, targetName)
+          complete(f.map(_ => StatusCodes.OK))
+        }
+      } ~
+      (path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") & UserRepoId(ns)) { (offlineTargetName, repoId) =>
+        get {
+          val f = offlineUpdates.findLatestTargets(repoId, offlineTargetName)
+          complete(f)
+        }
+      } ~
+      (path("offline-snapshot.json") & UserRepoId(ns)) { repoId =>
+        get {
+          val f = offlineUpdates.findLatestSnapshot(repoId)
+          complete(f)
+        }
       }
     }
 
@@ -121,7 +146,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
         complete(f)
       } ~
       (path("targets.json") & put) {
-        complete(deviceRoleGeneration.forceTargetsRefresh(ns, device).map(_ => StatusCodes.Accepted))
+        complete(deviceRoleGeneration.forceTargetsRefresh(device).map(_ => StatusCodes.Accepted))
       }
     }
 

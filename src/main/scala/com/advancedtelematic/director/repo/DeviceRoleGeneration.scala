@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.repo
 
-import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, DbSignedRoleRepositorySupport, DeviceRepositorySupport, EcuTargetsRepositorySupport}
+import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, DbDeviceRoleRepositorySupport, DeviceRepositorySupport, EcuTargetsRepositorySupport}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientDataType.{TargetsRole, TufRole}
@@ -13,7 +13,7 @@ import slick.jdbc.MySQLProfile.api._
 import scala.concurrent.{ExecutionContext, Future}
 
 class DeviceRoleGeneration(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext)
-  extends AssignmentsRepositorySupport with DbSignedRoleRepositorySupport with EcuTargetsRepositorySupport with DeviceRepositorySupport {
+  extends AssignmentsRepositorySupport with DbDeviceRoleRepositorySupport with EcuTargetsRepositorySupport with DeviceRepositorySupport {
 
   import scala.async.Async._
 
@@ -21,13 +21,13 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(implicit val db: Da
 
   private val roleGeneration = (ns: Namespace, device: DeviceId) => {
     val itemsProvider = new DeviceTargetProvider(ns, device)
-    val signedRoleProvider = new DeviceSignedRoleProvider(ns, device)
+    val signedRoleProvider = new DeviceSignedRoleProvider(device)
     new SignedRoleGeneration(keyserverClient, itemsProvider, signedRoleProvider)
   }
 
   private val roleRefresher = (ns: Namespace, device: DeviceId) => {
     val itemsProvider = new DeviceTargetProvider(ns, device)
-    val signedRoleProvider = new DeviceSignedRoleProvider(ns, device)
+    val signedRoleProvider = new DeviceSignedRoleProvider(device)
     new RepoRoleRefresh(keyserverClient, signedRoleProvider, itemsProvider)
   }
 
@@ -46,7 +46,7 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(implicit val db: Da
     }
   }
 
-  def forceTargetsRefresh(ns: Namespace, deviceId: DeviceId): Future[Unit] = {
+  def forceTargetsRefresh(deviceId: DeviceId): Future[Unit] = {
     _log.info(s"Forcing refresh of metadata for $deviceId")
     deviceRepository.setMetadataOutdated(deviceId, outdated = true)
   }
