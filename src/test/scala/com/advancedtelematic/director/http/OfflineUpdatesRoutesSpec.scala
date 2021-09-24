@@ -19,6 +19,7 @@ import eu.timepit.refined.api.Refined
 import slick.jdbc.MySQLProfile.api._
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId._
 import cats.syntax.show._
+import com.advancedtelematic.director.data.Codecs._
 
 class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
   with RepoNamespaceRepositorySupport
@@ -31,11 +32,15 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
     val sql = sql"update admin_roles set expires_at = '1970-01-01 00:00:00' where repo_id = (select repo_id from repo_namespaces where namespace = '#${ns.get}') and role = '#${tufRole.roleType.toString}'"
     db.run(sql.asUpdate).futureValue
   }
+  
+  val GenOfflineUpdateRequest = GenTarget.map { case (filename, t) =>
+    OfflineUpdateRequest(Map(filename -> t))
+  }
 
-  testWithRepo("can add + retrieve an offline target") { implicit ns =>
-    val (targetFilename, clientTarget) = GenTarget.generate
+  testWithRepo("can add + retrieve an offline update") { implicit ns =>
+    val req = GenOfflineUpdateRequest.generate
 
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename"), clientTarget).namespaced ~> routes ~> check {
+    Post(apiUri(s"admin/repo/offline-updates/emea"), req).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -44,20 +49,51 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
 
       val resp = responseAs[SignedPayload[OfflineUpdatesRole]]
 
-      resp.signed.targets shouldBe Map(targetFilename -> clientTarget)
+      resp.signed.targets shouldBe req.values
     }
   }
 
-  testWithRepo("adding a new target keeps old targets") { implicit ns =>
-    val (targetFilename0, clientTarget0) = GenTarget.generate
+  testWithRepo("can add + retrieve an offline update by version") { implicit ns =>
+    val req = GenOfflineUpdateRequest.generate
 
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename0"), clientTarget0).namespaced ~> routes ~> check {
+    Post(apiUri(s"admin/repo/offline-updates/emea"), req).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
-    val (targetFilename1, clientTarget1) = GenTarget.generate
+    Get(apiUri("admin/repo/offline-updates/1.emea.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[SignedPayload[OfflineUpdatesRole]]
 
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename1"), clientTarget1).namespaced ~> routes ~> check {
+      resp.signed.targets shouldBe req.values
+      resp.signed.version shouldBe 1
+    }
+  }
+
+  testWithRepo("can retrieve an offline snapshot by version") { implicit ns =>
+    val req = GenOfflineUpdateRequest.generate
+
+    Post(apiUri(s"admin/repo/offline-updates/emea"), req).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    Get(apiUri("admin/repo/1.offline-snapshot.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
+      resp.signed.version shouldBe 1
+    }
+  }
+
+
+  testWithRepo("adding a new target overwrites old targets") { implicit ns =>
+    val req0 = GenOfflineUpdateRequest.generate
+
+    Post(apiUri(s"admin/repo/offline-updates/emea"), req0).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    val req1 = GenOfflineUpdateRequest.generate
+
+    Post(apiUri(s"admin/repo/offline-updates/emea"), req1).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -66,7 +102,7 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
 
       val resp = responseAs[SignedPayload[OfflineUpdatesRole]]
 
-      resp.signed.targets shouldBe Map(targetFilename0 -> clientTarget0, targetFilename1 -> clientTarget1)
+      resp.signed.targets shouldBe req1.values
     }
   }
 
@@ -78,16 +114,16 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
   }
 
   testWithRepo("offline-snapshot.json is updated when targets change") { implicit ns =>
-    val (targetFilename0, clientTarget0) = GenTarget.generate
+    val clientTarget0 = GenOfflineUpdateRequest.generate
 
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename0"), clientTarget0).namespaced ~> routes ~> check {
+    Post(apiUri(s"admin/repo/offline-updates/emea"), clientTarget0).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
     val offlineUpdate = Get(apiUri("admin/repo/offline-updates/emea.json")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       val resp = responseAs[SignedPayload[OfflineUpdatesRole]]
-      resp.signed.targets shouldBe Map(targetFilename0 -> clientTarget0)
+      resp.signed.targets shouldBe clientTarget0.values
 
       resp
     }
@@ -108,20 +144,16 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
     }
   }
 
-  testWithRepo("deletes target") { implicit ns =>
-    val (targetFilename0, clientTarget0) = GenTarget.generate
+  testWithRepo("using an empty map deletes all targets") { implicit ns =>
+    val req0 = GenOfflineUpdateRequest.generate
 
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename0"), clientTarget0).namespaced ~> routes ~> check {
+    Post(apiUri(s"admin/repo/offline-updates/emea"), req0).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
-    val (targetFilename1, clientTarget1) = GenTarget.generate
+    val emptyReq = OfflineUpdateRequest(Map.empty)
 
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename1"), clientTarget1).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-    }
-
-    Delete(apiUri(s"admin/repo/offline-updates/emea/$targetFilename0")).namespaced ~> routes ~> check {
+    Post(apiUri(s"admin/repo/offline-updates/emea"), emptyReq).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -129,40 +161,22 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
       status shouldBe StatusCodes.OK
 
       val resp = responseAs[SignedPayload[OfflineUpdatesRole]]
-      resp.signed.targets.get(targetFilename0) shouldNot be(defined)
-
-      resp.signed.targets.get(targetFilename1) shouldBe defined
+      resp.signed.targets shouldBe empty
     }
 
     Get(apiUri("admin/repo/offline-snapshot.json")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
-      resp.signed.version shouldBe 3
-    }
-  }
-
-  testWithRepo("returns 404 on DELETE an nonexistent target"){ implicit ns =>
-    val (targetFilename0, clientTarget0) = GenTarget.generate
-
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename0"), clientTarget0).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-    }
-
-    Delete(apiUri(s"admin/repo/offline-updates/emea/$targetFilename0")).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-    }
-
-    Delete(apiUri(s"admin/repo/offline-updates/emea/$targetFilename0")).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.NotFound
+      resp.signed.version shouldBe 2
     }
   }
 
   testWithRepo("device can get offline updates metadata") { implicit ns =>
     val deviceId = registerDeviceOk()
 
-    val (targetFilename0, clientTarget0) = GenTarget.generate
+    val req0 = GenOfflineUpdateRequest.generate
 
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename0"), clientTarget0).namespaced ~> routes ~> check {
+    Post(apiUri(s"admin/repo/offline-updates/emea"), req0).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -180,38 +194,10 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
     }
   }
 
-  testWithRepo("offline-targets/*.json is refreshed if expires") { implicit ns =>
-    val (targetFilename, clientTarget) = GenTarget.generate
-
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename"), clientTarget).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-    }
-
-    val expiresAt = Get(apiUri("admin/repo/offline-updates/emea.json")).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-
-      val resp = responseAs[SignedPayload[OfflineUpdatesRole]]
-
-      resp.signed.version shouldBe 1
-      resp.signed.expires
-    }
-
-    forceRoleExpire[OfflineUpdatesRole](ns)
-    Thread.sleep(1000) // Needed because times are truncated to seconds in json
-
-    Get(apiUri("admin/repo/offline-updates/emea.json")).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-      val resp = responseAs[SignedPayload[OfflineUpdatesRole]]
-
-      resp.signed.version shouldBe 2
-      resp.signed.expires.isAfter(expiresAt) shouldBe true
-    }
-  }
-
   testWithRepo("offline-snapshot.json is refreshed if expires") { implicit ns =>
-    val (targetFilename, clientTarget) = GenTarget.generate
+    val req = GenOfflineUpdateRequest.generate
 
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename"), clientTarget).namespaced ~> routes ~> check {
+    Post(apiUri(s"admin/repo/offline-updates/emea"), req).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -230,48 +216,6 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
       val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
       resp.signed.version shouldBe 2
       resp.signed.expires.isAfter(expiresAt) shouldBe true
-    }
-  }
-
-  // This will cause problems if:
-  //
-  // 1. the client gets an offline-snapshot.json, which didn't expire
-  // 2. gets emea.json, which expired
-  // 3. server refreshes emea.json, which triggers an offline-snapshot.json refresh
-  // 4. the json file obtained in 1. is now outdated and invalid, so the metadata validation will fail
-  //
-  // However, since these are offline updates only, we can control the order this metadata is downloaded,
-  // and therefore this is not an issue in this implementation
-  testWithRepo("offline-snapshot.json is refreshed when offline-targets-*.json expires") { implicit ns =>
-    val (targetFilename, clientTarget) = GenTarget.generate
-
-    Put(apiUri(s"admin/repo/offline-updates/emea/$targetFilename"), clientTarget).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-    }
-
-    Get(apiUri("admin/repo/offline-snapshot.json")).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-
-      val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
-
-      resp.signed.version shouldBe 1
-    }
-
-    forceRoleExpire[OfflineUpdatesRole](ns)
-    Thread.sleep(1000) // Needed because times are truncated to seconds in json
-
-    Get(apiUri("admin/repo/offline-updates/emea.json")).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-      val resp = responseAs[SignedPayload[OfflineUpdatesRole]]
-
-      resp.signed.version shouldBe 2
-    }
-
-    Get(apiUri("admin/repo/offline-snapshot.json")).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.OK
-      val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
-
-      resp.signed.version shouldBe 2
     }
   }
 }

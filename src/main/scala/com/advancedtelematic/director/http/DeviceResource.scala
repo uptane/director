@@ -97,7 +97,7 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
         } ~
         path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") { offlineTargetName =>
           get {
-            val f = offlineUpdates.findLatestTargets(repoId, offlineTargetName)
+            val f = offlineUpdates.findLatestUpdates(repoId, offlineTargetName)
             complete(f)
           }
         } ~

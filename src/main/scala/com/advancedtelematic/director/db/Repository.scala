@@ -318,6 +318,8 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
   }
 
   def markRegenerated(deviceRepository: DeviceRepository)(deviceId: DeviceId): Future[Unit] = db.run {
+    val q = Schema.assignments.returning(Schema.assignments.map(_.ecuTargetId))
+
     Schema.assignments.filter(_.deviceId === deviceId).map(_.inFlight).update(true).map(_ => ())
       .andThen { deviceRepository.setMetadataOutdatedAction(Set(deviceId), outdated = false) }
       .transactionally
@@ -468,6 +470,15 @@ protected[db] class DbOfflineUpdatesRepository()(implicit val db: Database, val 
       .filter(_.repoId === repoId)
       .filter(_.role === role)
       .result
+  }
+
+  def findByVersion(repoId: RepoId, role: RoleType, name: AdminRoleName, version: Int): Future[DbAdminRole] = db.run {
+    adminRoles
+      .filter(_.repoId === repoId)
+      .filter(_.role === role)
+      .filter(_.version === version)
+      .result
+      .failIfNotSingle(Errors.MissingAdminRole(repoId, name))
   }
 
   def findLatest(repoId: RepoId, role: RoleType, name: AdminRoleName): Future[DbAdminRole] =

@@ -7,7 +7,6 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.PathMatcher
 import cats.implicits._
 import com.advancedtelematic.director.data.DataType.AdminRoleName
-import com.advancedtelematic.director.data.DbDataType.DbAdminRole.EXPIRE_AHEAD
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.UptaneDataType.{Hashes, TargetImage}
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, Namespace, ValidChecksum}
@@ -52,13 +51,8 @@ object DbDataType {
     def asEcuAndHardwareId: EcuAndHardwareId = EcuAndHardwareId(ecuSerial, hardwareId.value)
   }
 
-  object DbAdminRole {
-    // Roles are marked as expired `EXPIRE_AHEAD` before the actual expire date
-    val EXPIRE_AHEAD =  Duration.ofHours(1)
-  }
-
   final case class DbAdminRole(repoId: RepoId, role: RoleType, name: AdminRoleName, checksum: Checksum, length: Long, version: Int, expires: Instant, content: JsonSignedPayload) {
-    def isExpired = expires.isBefore(Instant.now.plus(EXPIRE_AHEAD))
+    def isExpired(expireAhead: Duration) = expires.isBefore(Instant.now.plus(expireAhead))
   }
 
   implicit class DbAdminRoleToSignedPayload(value: DbAdminRole) {
