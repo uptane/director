@@ -1,8 +1,11 @@
 package com.advancedtelematic.director.repo
 
+import com.advancedtelematic.director.data.DbDataType.Assignment
 import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, DbDeviceRoleRepositorySupport, DeviceRepositorySupport, EcuTargetsRepositorySupport}
-import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
+import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceUpdateInFlight
 import com.advancedtelematic.libtuf.data.ClientDataType.{TargetsRole, TufRole}
 import com.advancedtelematic.libtuf.data.TufDataType.{JsonSignedPayload, RepoId}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
@@ -10,6 +13,7 @@ import com.advancedtelematic.libtuf_server.repo.server._
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
 
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
 class DeviceRoleGeneration(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext)
@@ -31,18 +35,18 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(implicit val db: Da
     new RepoRoleRefresh(keyserverClient, signedRoleProvider, itemsProvider)
   }
 
-  def findFreshTargets(ns: Namespace, repoId: RepoId, deviceId: DeviceId): Future[JsonSignedPayload] = async {
+  def findFreshTargets(ns: Namespace, repoId: RepoId, deviceId: DeviceId): Future[(JsonSignedPayload, Seq[Assignment])] = async {
     val isOutdated = await(deviceRepository.metadataIsOutdated(ns, deviceId))
 
     if(isOutdated) {
       _log.info(s"targets for $deviceId is outdated")
       val t = await(roleGeneration(ns, deviceId).regenerateAllSignedRoles(repoId))
-      await(assignmentsRepository.markRegenerated(deviceRepository)(deviceId))
-      t
+      val regenerated = await(assignmentsRepository.markRegenerated(deviceRepository)(deviceId))
+      t -> regenerated
     } else { // return existing/refreshed targets
       implicit val refresher = roleRefresher(ns, deviceId)
       val targets = await(roleGeneration(ns, deviceId).findRole[TargetsRole](repoId))
-      targets.content
+      targets.content -> Seq.empty
     }
   }
 

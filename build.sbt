@@ -9,19 +9,15 @@ resolvers += "Artifactory Realm" at "https://artifactory-horw.int.toradex.com/ar
 resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
 resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
 
-// lazy val libtuf_server = ProjectRef(file("/home/simao/ats/ota-tuf"), "libtuf_server")
-
-// dependsOn(libtuf_server)
-
 Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
-  val akkaV = "2.6.15"
+  val akkaV = "2.6.16"
   val akkaHttpV = "10.2.6"
   val scalaTestV = "3.2.9"
   val bouncyCastleV = "1.59"
   val tufV = "0.9.0"
-  val libatsV = "1.0.2"
+  val libatsV = "1.1.0"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
