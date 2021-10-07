@@ -44,12 +44,14 @@ object Boot extends BootApp
 
   Security.addProvider(new BouncyCastleProvider())
 
-  val routes: Route =
-    DbHealthResource(versionMap, dependencies = Seq(new ServiceHealthCheck(tufUri))).route ~
-    (logRequestResult("directorv2-request-result" -> requestLogLevel) & versionHeaders(version) & requestMetrics(metricRegistry) & logResponseMetrics(projectName) & tracing.traceRequests) { implicit requestTracing =>
-      prometheusMetricsRoutes ~
-        new DirectorRoutes(keyserverClient, allowEcuReplacement).routes
-    }
+  def main(args: Array[String]): Unit = {
+    val routes: Route =
+      DbHealthResource(versionMap, dependencies = Seq(new ServiceHealthCheck(tufUri))).route ~
+        (logRequestResult("directorv2-request-result" -> requestLogLevel) & versionHeaders(version) & requestMetrics(metricRegistry) & logResponseMetrics(projectName) & tracing.traceRequests) { implicit requestTracing =>
+          prometheusMetricsRoutes ~
+            new DirectorRoutes(keyserverClient, allowEcuReplacement).routes
+        }
 
-  Http().bindAndHandle(withConnectionMetrics(routes, metricRegistry), host, port)
+    Http().newServerAt(host, port).bindFlow(withConnectionMetrics(routes, metricRegistry))
+  }
 }

@@ -40,7 +40,7 @@ class DeviceResourceSpec extends DirectorSpec
 
   def forceRoleExpire[T](deviceId: DeviceId)(implicit tufRole: TufRole[T]): Unit = {
     import slick.jdbc.MySQLProfile.api._
-    val sql = sql"update signed_roles set expires_at = '1970-01-01 00:00:00' where device_id = '#${deviceId.show}' and role = '#${tufRole.typeStr}'"
+    val sql = sql"update device_roles set expires_at = '1970-01-01 00:00:00' where device_id = '#${deviceId.show}' and role = '#${tufRole.roleType.toString}'"
     db.run(sql.asUpdate).futureValue
   }
 

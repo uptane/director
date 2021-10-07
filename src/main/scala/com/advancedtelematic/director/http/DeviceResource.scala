@@ -7,17 +7,18 @@ import cats.data.Validated.{Invalid, Valid}
 import cats.implicits._
 import com.advancedtelematic.director.data.AdminDataType.RegisterDevice
 import com.advancedtelematic.director.data.Codecs._
+import com.advancedtelematic.director.data.DataType.AdminRoleName.AdminRoleNamePathMatcher
 import com.advancedtelematic.director.data.Messages.{DeviceManifestReported, _}
 import com.advancedtelematic.director.db._
 import com.advancedtelematic.director.manifest.{DeviceManifestProcess, ManifestCompiler}
-import com.advancedtelematic.director.repo.DeviceRoleGeneration
+import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateEvent}
 import com.advancedtelematic.libtuf.data.ClientCodecs._
-import com.advancedtelematic.libtuf.data.ClientDataType.{SnapshotRole, TimestampRole}
+import com.advancedtelematic.libtuf.data.ClientDataType.{OfflineSnapshotRole, OfflineUpdatesRole, SnapshotRole, TimestampRole}
 import com.advancedtelematic.libtuf.data.TufCodecs._
 import com.advancedtelematic.libtuf.data.TufDataType.{RoleType, SignedPayload}
 import com.advancedtelematic.libtuf_server.data.Marshalling.JsonRoleTypeMetaPath
@@ -35,7 +36,7 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
   extends DeviceRepositorySupport
     with EcuRepositorySupport
     with RepoNamespaceRepositorySupport
-    with DbSignedRoleRepositorySupport
+    with DbDeviceRoleRepositorySupport
     with NamespaceRepoId
     with RootFetching {
 
@@ -44,6 +45,7 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
   val deviceRegistration = new DeviceRegistration(keyserverClient)
   val deviceManifestProcess = new DeviceManifestProcess()
   val deviceRoleGeneration = new DeviceRoleGeneration(keyserverClient)
+  val offlineUpdates = new OfflineUpdates(keyserverClient)
 
   def deviceRegisterAllowed(deviceId: DeviceId): Directive0 = {
     if (ecuReplacementAllowed) {
@@ -93,21 +95,33 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
             complete(fetchRoot(ns, version.some))
           }
         } ~
-          path(JsonRoleTypeMetaPath) {
-            case RoleType.ROOT =>
-              logDevice(ns, device) {
-                complete(fetchRoot(ns, version = None))
-              }
-            case RoleType.TARGETS =>
-              val f = deviceRoleGeneration.findFreshTargets(ns, repoId, device)
-              complete(f)
-            case RoleType.SNAPSHOT =>
-              val f = deviceRoleGeneration.findFreshDeviceRole[SnapshotRole](ns, repoId, device)
-              complete(f)
-            case RoleType.TIMESTAMP =>
-              val f = deviceRoleGeneration.findFreshDeviceRole[TimestampRole](ns, repoId, device)
-              complete(f)
+        path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") { offlineTargetName =>
+          get {
+            val f = offlineUpdates.findLatestUpdates(repoId, offlineTargetName)
+            complete(f)
           }
+        } ~
+        path("offline-snapshot.json") {
+          get {
+            val f = offlineUpdates.findLatestSnapshot(repoId)
+            complete(f)
+          }
+        } ~
+        path(JsonRoleTypeMetaPath) {
+          case RoleType.ROOT =>
+            logDevice(ns, device) {
+              complete(fetchRoot(ns, version = None))
+            }
+          case RoleType.TARGETS =>
+            val f = deviceRoleGeneration.findFreshTargets(ns, repoId, device)
+            complete(f)
+          case RoleType.SNAPSHOT =>
+            val f = deviceRoleGeneration.findFreshDeviceRole[SnapshotRole](ns, repoId, device)
+            complete(f)
+          case RoleType.TIMESTAMP =>
+            val f = deviceRoleGeneration.findFreshDeviceRole[TimestampRole](ns, repoId, device)
+            complete(f)
+        }
       }
     }
   }

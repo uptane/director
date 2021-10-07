@@ -8,6 +8,8 @@ import com.advancedtelematic.libtuf.data.TufCodecs._
 import UptaneDataType._
 import io.circe._
 import AdminDataType._
+import com.advancedtelematic.director.http.OfflineUpdateRequest
+import com.advancedtelematic.libtuf.data.ClientCodecs._
 
 object Codecs {
   import DeviceRequest._
@@ -59,8 +61,8 @@ object Codecs {
   implicit val decoderTargetUpdateRequest: Decoder[TargetUpdateRequest] = deriveDecoder
   implicit val encoderTargetUpdateRequest: Encoder[TargetUpdateRequest] = deriveEncoder
 
-  implicit val multiTargetUpdateCreatedEncoder: Encoder[MultiTargetUpdate] = deriveEncoder
-  implicit val multiTargetUpdateCreatedDecoder: Decoder[MultiTargetUpdate] = deriveDecoder
+  implicit val multiTargetUpdateEncoder: Encoder[MultiTargetUpdate] = deriveEncoder
+  implicit val multiTargetUpdateDecoder: Decoder[MultiTargetUpdate] = deriveDecoder
 
   implicit val assignUpdateRequestEncoder: Encoder[AssignUpdateRequest] = deriveEncoder
   implicit val assignUpdateRequestDecoder: Decoder[AssignUpdateRequest] = deriveDecoder
@@ -85,5 +87,8 @@ object Codecs {
   implicit val clientDeviceCodec: Codec[ClientDataType.Device] = deriveCodec
   implicit val clientEcuTargetCodec: Codec[ClientDataType.EcuTarget] = deriveCodec
   implicit val clientDevicesCurrentTarget: Codec[ClientDataType.DevicesCurrentTarget] = deriveCodec
+
+  implicit val offlineUpdateRequestEncoder: Encoder[OfflineUpdateRequest] = io.circe.generic.semiauto.deriveEncoder[OfflineUpdateRequest]
+  implicit val offlineUpdateRequestDecoder: Decoder[OfflineUpdateRequest] = io.circe.generic.semiauto.deriveDecoder[OfflineUpdateRequest]
 }
 
