@@ -5,7 +5,7 @@ import java.util.UUID
 import cats.Show
 import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, AutoUpdateDefinitionId, DbAdminRole, DbDeviceRole, Device, Ecu, EcuTarget, EcuTargetId, HardwareUpdate, ProcessedAssignment}
 import com.advancedtelematic.director.db.DeviceRepository.DeviceCreateResult
-import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, MissingEntityId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
@@ -22,6 +22,7 @@ import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement}
 import com.advancedtelematic.libats.slick.db.SlickAnyVal._
+import com.advancedtelematic.libats.slick.db.SlickUrnMapper._
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric._
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, RepoId, RoleType, TargetFilename, TargetName}
@@ -317,12 +318,16 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
     Schema.assignments.filter(_.deviceId === deviceId).sortBy(_.createdAt.reverse).map(_.createdAt).result.headOption
   }
 
-  def markRegenerated(deviceRepository: DeviceRepository)(deviceId: DeviceId): Future[Unit] = db.run {
-    val q = Schema.assignments.returning(Schema.assignments.map(_.ecuTargetId))
+  def markRegenerated(deviceRepository: DeviceRepository)(deviceId: DeviceId): Future[Seq[Assignment]] = db.run {
+    val deviceAssignments = Schema.assignments.filter(_.deviceId === deviceId)
 
-    Schema.assignments.filter(_.deviceId === deviceId).map(_.inFlight).update(true).map(_ => ())
-      .andThen { deviceRepository.setMetadataOutdatedAction(Set(deviceId), outdated = false) }
-      .transactionally
+    val io = for {
+      assignments <- deviceAssignments.forUpdate.result
+      _ <- deviceAssignments.map(_.inFlight).update(true)
+      _ <- deviceRepository.setMetadataOutdatedAction(Set(deviceId), outdated = false)
+    } yield assignments
+
+    io.transactionally
   }
 
   def processCancellation(ns: Namespace, deviceIds: Seq[DeviceId]): Future[Seq[Assignment]] = {

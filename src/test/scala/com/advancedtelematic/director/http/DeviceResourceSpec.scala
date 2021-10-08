@@ -618,6 +618,23 @@ class DeviceResourceSpec extends DirectorSpec
     deviceSeenMsg.map(_.namespace) should contain(ns)
   }
 
+  testWithRepo("publishes DeviceUpdateInFlight message") { implicit  ns =>
+    val regDev = registerAdminDeviceOk()
+    val targetUpdate = GenTargetUpdateRequest.generate
+    val correlationId = GenCorrelationId.generate
+
+    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId, targetUpdate.some, correlationId.some)
+
+    fetchRoleOk[TargetsRole](regDev.deviceId)
+
+    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+      msg.deviceUuid === regDev.deviceId
+    }.map(_.asInstanceOf[DeviceUpdateInFlight]).value
+
+    reportMsg.namespace shouldBe ns
+    reportMsg.correlationId shouldBe correlationId
+  }
+
   testWithRepo("publishes DeviceUpdateCompleted message") { implicit  ns =>
     val regDev = registerAdminDeviceOk()
     val targetUpdate = GenTargetUpdateRequest.generate
