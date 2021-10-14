@@ -19,6 +19,7 @@ import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuMan
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.director.data.Codecs._
 import com.advancedtelematic.director.data.UptaneDataType.Image
+import com.typesafe.config.{Config, ConfigFactory}
 
 trait ResourceSpec extends ScalatestRouteTest with MysqlDatabaseSpec with Settings {
   self: Suite =>
