@@ -113,6 +113,33 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
     }
   }
 
+  testWithRepo("offline-snapshot.json keeps old offline updates") { implicit ns =>
+    val clientTarget0 = GenOfflineUpdateRequest.generate
+
+    Post(apiUri(s"admin/repo/offline-updates/emea"), clientTarget0).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    Post(apiUri(s"admin/repo/offline-updates/au"), clientTarget0).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    Get(apiUri("admin/repo/offline-snapshot.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
+
+      val metaPathEmea = Refined.unsafeApply[String, ValidMetaPath]("emea.json")
+      val metaPathAu = Refined.unsafeApply[String, ValidMetaPath]("au.json")
+
+      val metaItem = resp.signed.meta(metaPathEmea)
+      metaItem.length should be > 0L
+
+      val metaItemAu = resp.signed.meta(metaPathAu)
+      metaItemAu.length should be > 0L
+    }
+  }
+
+
   testWithRepo("offline-snapshot.json is updated when targets change") { implicit ns =>
     val clientTarget0 = GenOfflineUpdateRequest.generate
 
