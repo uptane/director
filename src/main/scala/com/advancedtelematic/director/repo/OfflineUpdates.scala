@@ -79,7 +79,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
 
     val savedRolesMeta = await(dbAdminRolesRepository.findAll(repoId, RoleType.OFFLINE_UPDATES)).map { adminRole =>
       val (_, metaItem) = adminRole.toSignedRole[OfflineUpdatesRole].asMetaRole
-      name.asMetaPath -> metaItem
+      adminRole.name.asMetaPath -> metaItem
     }.toMap
 
     val signedUpdates = await(sign(repoId, updates))
