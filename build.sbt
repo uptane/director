@@ -12,12 +12,12 @@ resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/reposi
 Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
-  val akkaV = "2.6.16"
+  val akkaV = "2.6.17"
   val akkaHttpV = "10.2.6"
   val scalaTestV = "3.2.9"
   val bouncyCastleV = "1.59"
-  val tufV = "0.9.0"
-  val libatsV = "1.1.0"
+  val tufV = "0.8.1-26-gbdfd97a-SNAPSHOT"
+  val libatsV = "2.0.3"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -62,11 +62,14 @@ Test / testOptions ++= Seq(
   Tests.Argument(TestFrameworks.ScalaTest, "-oDS")
 )
 
-enablePlugins(BuildInfoPlugin, GitVersioning, JavaAppPackaging)
-
+buildInfoObject := "AppBuildInfo"
+buildInfoPackage := "com.advancedtelematic.director"
+buildInfoUsePackageAsPath := true
+buildInfoOptions += BuildInfoOption.Traits("com.advancedtelematic.libats.boot.VersionInfoProvider")
 buildInfoOptions += BuildInfoOption.ToMap
-
 buildInfoOptions += BuildInfoOption.BuildTime
+
+enablePlugins(BuildInfoPlugin, GitVersioning, JavaAppPackaging)
 
 Compile / mainClass := Some("com.advancedtelematic.director.Boot")
 
@@ -100,13 +103,3 @@ dockerCommands := Seq(
 )
 
 fork := true
-
-sonarProperties ++= Map(
-  "sonar.projectName" -> "OTA Connect Director",
-  "sonar.projectKey" -> "ota-connect-director",
-  "sonar.host.url" -> "http://sonar.in.here.com",
-  "sonar.links.issue" -> "https://saeljira.it.here.com/projects/OTA/issues",
-  "sonar.links.scm" -> "https://main.gitlab.in.here.com/olp/edge/ota/connect/back-end/director",
-  "sonar.links.ci" -> "https://main.gitlab.in.here.com/olp/edge/ota/connect/back-end/director/pipelines",
-  "sonar.projectVersion" -> version.value,
-  "sonar.language" -> "scala")
