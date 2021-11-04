@@ -43,7 +43,7 @@ libraryDependencies ++= {
     "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleV,
     "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleV,
 
-    "org.scala-lang.modules" %% "scala-async" % "0.10.0",
+    "org.scala-lang.modules" %% "scala-async" % "1.0.1",
 
     "org.mariadb.jdbc" % "mariadb-java-client" % "3.0.5"
   )
