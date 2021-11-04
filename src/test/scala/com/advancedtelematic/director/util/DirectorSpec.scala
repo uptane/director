@@ -1,12 +1,12 @@
 package com.advancedtelematic.director.util
 
 import java.security.Security
-
 import akka.http.scaladsl.model.{HttpRequest, headers}
 import com.advancedtelematic.director.data.GeneratorOps._
 import com.advancedtelematic.director.http.AdminResources
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.test.InstantMatchers
+import com.typesafe.config.{Config, ConfigFactory}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.scalacheck.Gen
 import org.scalactic.source.Position
@@ -35,6 +35,8 @@ abstract class DirectorSpec extends AnyFunSuite
   with DefaultPatience {
 
   Security.addProvider(new BouncyCastleProvider())
+
+  val testDbConfig: Config = ConfigFactory.load().getConfig("ats.director-v2.database")
 
   def testWithNamespace(testName: String, testArgs: Tag*)(testFun: Namespace => Any)
                        (implicit pos: Position): Unit = {

@@ -1,18 +1,23 @@
 name := "director-v2"
 organization := "io.github.uptane"
-scalaVersion := "2.12.14"
+scalaVersion := "2.12.15"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Ypartial-unification")
 
 resolvers += "Artifactory Realm" at "https://artifactory-horw.int.toradex.com/artifactory/ota-sbt-dev-horw"
 
+resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
+resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
+
+Global / bloopAggregateSourceDependencies := true
+
 libraryDependencies ++= {
-  val akkaV = "2.6.5"
-  val akkaHttpV = "10.1.12"
+  val akkaV = "2.6.17"
+  val akkaHttpV = "10.2.6"
   val scalaTestV = "3.2.9"
   val bouncyCastleV = "1.59"
-  val tufV = "0.7.3-11-g4e7ccc6"
-  val libatsV = "0.4.0-16-g6a1abdf"
+  val tufV = "0.8.1-26-gbdfd97a-SNAPSHOT"
+  val libatsV = "2.0.3"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -22,7 +27,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
     "org.scalatest"     %% "scalatest" % scalaTestV % Test,
-    "org.scalacheck" %% "scalacheck" % "1.13.5" % Test,
+    "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,
 
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
@@ -38,13 +43,13 @@ libraryDependencies ++= {
     "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleV,
     "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleV,
 
-    "org.scala-lang.modules" %% "scala-async" % "0.9.6",
+    "org.scala-lang.modules" %% "scala-async" % "0.10.0",
 
-    "org.mariadb.jdbc" % "mariadb-java-client" % "2.7.3"
+    "org.mariadb.jdbc" % "mariadb-java-client" % "2.7.4"
   )
 }
 
-scalacOptions in Compile ++= Seq(
+Compile / scalacOptions ++= Seq(
   "-deprecation",
     "-feature",
   "-Xlog-reflective-calls",
@@ -52,18 +57,21 @@ scalacOptions in Compile ++= Seq(
   "-Ypartial-unification"
 )
 
-testOptions in Test ++= Seq(
+Test / testOptions ++= Seq(
   Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),
   Tests.Argument(TestFrameworks.ScalaTest, "-oDS")
 )
 
-enablePlugins(BuildInfoPlugin, GitVersioning, JavaAppPackaging)
-
+buildInfoObject := "AppBuildInfo"
+buildInfoPackage := "com.advancedtelematic.director"
+buildInfoUsePackageAsPath := true
+buildInfoOptions += BuildInfoOption.Traits("com.advancedtelematic.libats.boot.VersionInfoProvider")
 buildInfoOptions += BuildInfoOption.ToMap
-
 buildInfoOptions += BuildInfoOption.BuildTime
 
-mainClass in Compile := Some("com.advancedtelematic.director.Boot")
+enablePlugins(BuildInfoPlugin, GitVersioning, JavaAppPackaging)
+
+Compile / mainClass := Some("com.advancedtelematic.director.Boot")
 
 import com.typesafe.sbt.packager.docker._
 import sbt.Keys._
@@ -73,15 +81,15 @@ import com.typesafe.sbt.SbtGit.git
 import com.typesafe.sbt.SbtNativePackager.autoImport._
 import com.typesafe.sbt.packager.linux.LinuxPlugin.autoImport._
 
-dockerRepository in Docker := Some("advancedtelematic")
+dockerRepository := Some("advancedtelematic")
 
-packageName in Docker := packageName.value
+Docker / packageName := packageName.value
 
 dockerUpdateLatest := true
 
 dockerAliases ++= Seq(dockerAlias.value.withTag(git.gitHeadCommit.value))
 
-defaultLinuxInstallLocation in Docker := s"/opt/${moduleName.value}"
+Docker / defaultLinuxInstallLocation := s"/opt/${moduleName.value}"
 
 dockerCommands := Seq(
   Cmd("FROM", "advancedtelematic/alpine-jre:adoptopenjdk-jre8u262-b10"),
@@ -95,13 +103,3 @@ dockerCommands := Seq(
 )
 
 fork := true
-
-sonarProperties ++= Map(
-  "sonar.projectName" -> "OTA Connect Director",
-  "sonar.projectKey" -> "ota-connect-director",
-  "sonar.host.url" -> "http://sonar.in.here.com",
-  "sonar.links.issue" -> "https://saeljira.it.here.com/projects/OTA/issues",
-  "sonar.links.scm" -> "https://main.gitlab.in.here.com/olp/edge/ota/connect/back-end/director",
-  "sonar.links.ci" -> "https://main.gitlab.in.here.com/olp/edge/ota/connect/back-end/director/pipelines",
-  "sonar.projectVersion" -> version.value,
-  "sonar.language" -> "scala")
