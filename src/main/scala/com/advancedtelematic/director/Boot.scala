@@ -7,6 +7,7 @@ import java.security.Security
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.settings.ParserSettings
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
 import com.advancedtelematic.libats.http.LogDirectives.logResponseMetrics
