@@ -12,12 +12,12 @@ resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/reposi
 Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
-  val akkaV = "2.6.17"
-  val akkaHttpV = "10.2.6"
+  val akkaV = "2.6.18"
+  val akkaHttpV = "10.2.7"
   val scalaTestV = "3.2.9"
   val bouncyCastleV = "1.59"
-  val tufV = "0.8.1-26-gbdfd97a-SNAPSHOT"
-  val libatsV = "2.0.3"
+  val tufV = "1.0.1"
+  val libatsV = "2.0.6"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,

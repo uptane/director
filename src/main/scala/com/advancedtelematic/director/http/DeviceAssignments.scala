@@ -51,7 +51,7 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
       correlationIdToAssignments.map { case (correlationId, assignments) =>
         val images = assignments.map { assignment =>
           ecuTargetsRepository.find(ns, assignment.ecuTargetId).map { target =>
-            assignment.ecuId -> TargetImage(Image(target.filename, FileInfo(Hashes(target.sha256), target.length)), target.uri)
+            assignment.ecuId -> TargetImage(Image(target.filename, FileInfo(Hashes(target.sha256), target.length)), target.uri, assignment.createdAt)
           }
         }.toList.sequence
 
@@ -139,7 +139,7 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
       AssignmentCreateResult(Seq.empty, ecus.notAffectedSerializable)
     } else {
       val assignments = ecus.affected.foldLeft(List.empty[Assignment]) { case (acc, (ecu, toTargetId)) =>
-        Assignment(ns, ecu.deviceId, ecu.ecuSerial, toTargetId, correlationId, inFlight = false) :: acc
+        Assignment(ns, ecu.deviceId, ecu.ecuSerial, toTargetId, correlationId, inFlight = false, createdAt = Instant.now) :: acc
       }
 
       await(assignmentsRepository.persistMany(deviceRepository)(assignments))
