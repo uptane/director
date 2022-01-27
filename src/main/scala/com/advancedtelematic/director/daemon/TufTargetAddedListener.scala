@@ -10,6 +10,7 @@ import com.advancedtelematic.libtuf_server.data.Messages.TufTargetAdded
 import org.mariadb.jdbc.internal.logging.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
 
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
 class TufTargetAddedListener()(implicit val db: Database, val ec: ExecutionContext)
@@ -46,7 +47,7 @@ class TufTargetAddedListener()(implicit val db: Database, val ec: ExecutionConte
                                 autoUpdateDefinitions: List[AutoUpdateDefinition]): Future[Unit] = async {
 
     val assignments = autoUpdateDefinitions.map { autoUpdate =>
-      Assignment(ns, autoUpdate.deviceId, autoUpdate.ecuId, ecuTarget.id, AutoUpdateId(autoUpdate.id.uuid), inFlight = false)
+      Assignment(ns, autoUpdate.deviceId, autoUpdate.ecuId, ecuTarget.id, AutoUpdateId(autoUpdate.id.uuid), inFlight = false, createdAt = Instant.now)
     }
 
     val newAssignments = await(filterDevicesWithExistingAssignments(assignments))

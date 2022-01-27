@@ -25,7 +25,10 @@ import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, Signed
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.Json
 import org.scalactic.source.Position
+import org.scalatest.Inspectors
 import org.scalatest.OptionValues._
+
+import java.time.Instant
 
 trait AssignmentResources {
   self: DirectorSpec with RouteResourceSpec with NamespacedTests with AdminResources =>
@@ -100,7 +103,8 @@ class AssignmentsResourceSpec extends DirectorSpec
   with AssignmentResources
   with RepositorySpec
   with DeviceResources
-  with DeviceManifestSpec {
+  with DeviceManifestSpec
+  with Inspectors {
 
   override implicit val msgPub = new MockMessageBus
 
@@ -110,11 +114,16 @@ class AssignmentsResourceSpec extends DirectorSpec
   }
 
   testWithRepo("GET queue for affected devices includes newly created assignment") { implicit ns =>
+    val now = Instant.now
     val regDev = registerAdminDeviceOk()
     val assignment = createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
     val queue = getDeviceAssignmentOk(assignment.devices.head)
     queue.map(_.correlationId) should contain(assignment.correlationId)
+
+    forAll(queue.flatMap(_.targets.values.map(_.createdAt))) { createdAt =>
+      createdAt.isAfter(now) shouldBe true
+    }
   }
 
   testWithRepo("returns PrimaryIsNotListedForDevice when ecus to register do not include primary ecu") { implicit ns =>
