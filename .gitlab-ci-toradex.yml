@@ -23,7 +23,7 @@ default:
     paths:
       - .ivy2/
       - .sbt/
-  image: artifactory-horw.int.toradex.com/ota-docker-dev-horw/tdx-inno-ci-scala:0.0.1
+  image: harbor-dev.int.toradex.com/ota-docker-dev-horw/tdx-inno-ci-scala:0.0.1
   services:
     - name: mariadb:10.4
       alias: db
