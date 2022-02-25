@@ -114,7 +114,7 @@ class AssignmentsResourceSpec extends DirectorSpec
   }
 
   testWithRepo("GET queue for affected devices includes newly created assignment") { implicit ns =>
-    val now = Instant.now
+    val now = Instant.now.minusSeconds(1)
     val regDev = registerAdminDeviceOk()
     val assignment = createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
