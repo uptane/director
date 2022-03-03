@@ -17,7 +17,7 @@ libraryDependencies ++= {
   val scalaTestV = "3.2.11"
   val bouncyCastleV = "1.70"
   val tufV = "0.8.1-26-gbdfd97a-SNAPSHOT"
-  val libatsV = "2.0.7"
+  val libatsV = "2.0.10"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
