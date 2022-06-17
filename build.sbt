@@ -1,6 +1,6 @@
 name := "director-v2"
 organization := "io.github.uptane"
-scalaVersion := "2.12.14"
+scalaVersion := "2.12.15"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Ypartial-unification")
 
@@ -12,10 +12,10 @@ resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/reposi
 Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
-  val akkaV = "2.6.18"
-  val akkaHttpV = "10.2.8"
-  val scalaTestV = "3.2.9"
-  val bouncyCastleV = "1.59"
+  val akkaV = "2.6.19"
+  val akkaHttpV = "10.2.9"
+  val scalaTestV = "3.2.12"
+  val bouncyCastleV = "1.70"
   val tufV = "1.0.1"
   val libatsV = "2.0.10"
 
@@ -27,7 +27,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
     "org.scalatest"     %% "scalatest" % scalaTestV % Test,
-    "org.scalacheck" %% "scalacheck" % "1.13.5" % Test,
+    "org.scalacheck" %% "scalacheck" % "1.16.0" % Test,
 
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
@@ -45,7 +45,7 @@ libraryDependencies ++= {
 
     "org.scala-lang.modules" %% "scala-async" % "0.10.0",
 
-    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.6"
+    "org.mariadb.jdbc" % "mariadb-java-client" % "3.0.5"
   )
 }
 
@@ -83,7 +83,7 @@ dockerAliases ++= Seq(dockerAlias.value.withTag(git.gitHeadCommit.value))
 
 Docker / defaultLinuxInstallLocation := s"/opt/${moduleName.value}"
 
-dockerBaseImage := "advancedtelematic/alpine-jre:adoptopenjdk-jre8u262-b10"
+dockerBaseImage := "eclipse-temurin:17.0.3_7-jre-jammy"
 
 Docker / daemonUser := "daemon"
 
