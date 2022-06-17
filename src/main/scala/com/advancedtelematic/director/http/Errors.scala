@@ -39,6 +39,8 @@ object ErrorCodes {
   val DeviceNoCompatibleHardware = ErrorCode("device_no_compatible_hardware")
 
   val NotAffectedByMtu = ErrorCode("not_affected_by_mtu")
+
+  val InvalidMtu = ErrorCode("invalid_mtu")
 }
 
 object Errors {
@@ -61,6 +63,8 @@ object Errors {
     StatusCodes.BadRequest,
     s"ecu $deviceId$ecuIdentifier not affected by $mtuId"
   )
+
+  case class InvalidMtu(_msg: String) extends Error(ErrorCodes.InvalidMtu, StatusCodes.BadRequest, "Invalid MTU: "+ _msg)
 
   case class MissingAdminRole(repoId: RepoId, name: AdminRoleName) extends Error(ErrorCodes.MissingAdminRole, StatusCodes.NotFound, s"admin role $repoId/$name not found")
 
