@@ -7,7 +7,7 @@ import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, AutoUpda
 import com.advancedtelematic.libats.data.DataType.{AutoUpdateId, Namespace}
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libtuf_server.data.Messages.TufTargetAdded
-import org.mariadb.jdbc.internal.logging.LoggerFactory
+import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
 
 import java.time.Instant
