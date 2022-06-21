@@ -35,6 +35,11 @@ default:
 
 test:
   stage: test
+  only:
+    refs:
+      - master
+      - branches
+      - merge_requests
   variables:
     DB_URL: "jdbc:mariadb://db:3306/$MYSQL_DATABASE"
   before_script:
