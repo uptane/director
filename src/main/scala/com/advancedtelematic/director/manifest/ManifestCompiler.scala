@@ -71,9 +71,11 @@ object ManifestCompiler {
       val installedImage = ecuManifest.signed.installed_image
       val existingEcuTarget = findEcuTargetByImage(knownStatus.ecuTargets, installedImage)
 
-      if(existingEcuTarget.isEmpty) {
+      if (existingEcuTarget.isEmpty) {
         _log.debug(s"$installedImage not found in ${knownStatus.ecuTargets}")
-        EcuTarget(ns, EcuTargetId.generate, installedImage.filepath, installedImage.fileinfo.length, Checksum(HashMethod.SHA256, installedImage.fileinfo.hashes.sha256), installedImage.fileinfo.hashes.sha256, uri = None)
+        EcuTarget(ns, EcuTargetId.generate, installedImage.filepath, installedImage.fileinfo.length,
+          Checksum(HashMethod.SHA256, installedImage.fileinfo.hashes.sha256), installedImage.fileinfo.hashes.sha256,
+          uri = None, userDefinedCustom = None)
       } else
         existingEcuTarget.get
 

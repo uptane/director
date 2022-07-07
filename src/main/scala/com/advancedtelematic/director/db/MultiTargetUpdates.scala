@@ -20,12 +20,13 @@ class MultiTargetUpdates(implicit val db: Database, val ec: ExecutionContext)
     val hardwareUpdates = multiTargetUpdate.targets.map { case (hwId, targetUpdateReq) =>
       val toId = EcuTargetId.generate()
 
-      val to = EcuTarget(ns, toId, targetUpdateReq.to.target, targetUpdateReq.to.targetLength,
-        targetUpdateReq.to.checksum, targetUpdateReq.to.checksum.hash, targetUpdateReq.to.uri)
+      val t = targetUpdateReq.to
+      val to = EcuTarget(ns, toId, t.target, t.targetLength, t.checksum, t.checksum.hash, t.uri,
+        t.userDefinedCustom)
 
       val from = targetUpdateReq.from.map { f =>
         val fromId = EcuTargetId.generate()
-        EcuTarget(ns, fromId, f.target, f.targetLength, f.checksum, f.checksum.hash, f.uri)
+        EcuTarget(ns, fromId, f.target, f.targetLength, f.checksum, f.checksum.hash, f.uri, f.userDefinedCustom)
       }
 
       for {
@@ -42,10 +43,10 @@ class MultiTargetUpdates(implicit val db: Database, val ec: ExecutionContext)
     hardwareUpdateRepository.findUpdateTargets(ns, updateId).map { hardwareUpdates =>
       hardwareUpdates.foldLeft(Map.empty[HardwareIdentifier, TargetUpdateRequest]) { case (acc, (hu, fromO, toU)) =>
         val from = fromO.map { f =>
-          TargetUpdate(f.filename, f.checksum, f.length, f.uri)
+          TargetUpdate(f.filename, f.checksum, f.length, f.uri, toU.userDefinedCustom)
         }
 
-        val to = TargetUpdate(toU.filename, toU.checksum, toU.length, toU.uri)
+        val to = TargetUpdate(toU.filename, toU.checksum, toU.length, toU.uri, toU.userDefinedCustom)
 
         acc + (hu.hardwareId -> TargetUpdateRequest(from, to))
       }

@@ -95,7 +95,8 @@ object DbDataType {
   case class EcuTarget(ns: Namespace, id: EcuTargetId, filename: TargetFilename, length: Long,
                        checksum: Checksum,
                        sha256: SHA256Checksum,
-                       uri: Option[Uri]) {
+                       uri: Option[Uri],
+                       userDefinedCustom: Option[Json]) {
     def matches(other: EcuTarget): Boolean = {
       filename == other.filename &&
         length == other.length &&
@@ -122,7 +123,7 @@ object AdminDataType {
 
   final case class TargetUpdateRequest(from: Option[TargetUpdate], to: TargetUpdate)
 
-  final case class TargetUpdate(target: TargetFilename, checksum: Checksum, targetLength: Long, uri: Option[Uri])
+  final case class TargetUpdate(target: TargetFilename, checksum: Checksum, targetLength: Long, uri: Option[Uri], userDefinedCustom: Option[Json])
 
   final case class MultiTargetUpdate(targets: Map[HardwareIdentifier, TargetUpdateRequest])
 
@@ -181,7 +182,8 @@ object DataType {
   final case class TargetItemCustomEcuData(hardwareId: HardwareIdentifier)
 
   final case class TargetItemCustom(uri: Option[Uri],
-                                    ecuIdentifiers: Map[EcuIdentifier, TargetItemCustomEcuData])
+                                    ecuIdentifiers: Map[EcuIdentifier, TargetItemCustomEcuData],
+                                    userDefinedCustom: Option[Json] = None)
 
   final case class DeviceUpdateTarget(device: DeviceId, correlationId: Option[CorrelationId], updateId: Option[UpdateId], targetVersion: Int, inFlight: Boolean)
 

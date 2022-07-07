@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.http
 
-import com.advancedtelematic.director.data.ClientDataType
+
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option._
 import cats.syntax.show._
@@ -31,6 +31,7 @@ import org.scalatest.Inspectors
 import org.scalatest.LoneElement._
 import org.scalatest.OptionValues._
 import io.circe.syntax._
+import org.scalatest.EitherValues._
 
 class DeviceResourceSpec extends DirectorSpec
   with RouteResourceSpec with AdminResources with AssignmentResources with EcuRepositorySupport
@@ -379,6 +380,62 @@ class DeviceResourceSpec extends DirectorSpec
       targets.targets(targetUpdate.to.target).length shouldBe targetUpdate.to.targetLength
     }
   }
+
+  testWithRepo("GET on targets.json contains user defined json") { implicit ns =>
+    val userCustom = Json.obj("mydata" -> Json.fromInt(1))
+    val toTarget = GenTargetUpdate.generate.copy(userDefinedCustom = Some(userCustom))
+    val targetUpdateReq = GenTargetUpdateRequest.generate.copy(to = toTarget)
+    val regDev = registerAdminDeviceOk()
+    val deviceId = regDev.deviceId
+
+    createDeviceAssignmentOk(deviceId, regDev.primary.hardwareId, targetUpdateReq.some)
+
+    Get(apiUri(s"device/${deviceId.show}/targets.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+
+      val targets = responseAs[SignedPayload[TargetsRole]].signed
+      targets.version shouldBe 2
+
+      val target = targets.targets.head._2
+
+      target
+        .custom
+        .value
+        .hcursor
+        .get[Json]("userDefinedCustom")
+        .value shouldBe userCustom
+    }
+  }
+
+  testWithRepo("user defined metadata is an array when more than one ECU is assigned to the same target") { implicit ns =>
+    val userCustom = Json.obj("mydata" -> Json.fromInt(1))
+    val toTarget = GenTargetUpdate.generate.copy(userDefinedCustom = Some(userCustom))
+    val targetUpdateReq = GenTargetUpdateRequest.generate.copy(to = toTarget)
+
+    val regDev = registerAdminDeviceWithSecondariesOk()
+    val (_, secondaryEcu) = (regDev.ecus - regDev.primary.ecuSerial).head
+    val deviceId = regDev.deviceId
+    val correlationId = GenCorrelationId.generate
+
+    createDeviceAssignmentOk(deviceId, regDev.primary.hardwareId, targetUpdateReq.some, correlationId.some)
+    createDeviceAssignmentOk(deviceId, secondaryEcu.hardwareId, targetUpdateReq.some, correlationId.some)
+
+    Get(apiUri(s"device/${deviceId.show}/targets.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+
+      val targets = responseAs[SignedPayload[TargetsRole]].signed
+
+      val target = targets.targets.head._2
+
+      target
+        .custom
+        .value
+        .hcursor
+        .get[Json]("userDefinedCustom")
+        .value shouldBe userCustom
+    }
+  }
+
 
   testWithRepo("device can PUT a valid manifest") { implicit ns =>
     val regDev = registerAdminDeviceOk()

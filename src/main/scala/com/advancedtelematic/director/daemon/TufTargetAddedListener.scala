@@ -25,7 +25,8 @@ class TufTargetAddedListener()(implicit val db: Database, val ec: ExecutionConte
   private def ecuTargetFromTufTarget(msg: TufTargetAdded): Future[EcuTarget] = {
     val ecuTargetId = EcuTargetId.generate()
     val ecuTarget = EcuTarget(msg.namespace, ecuTargetId, msg.filename,
-      msg.length, msg.checksum, msg.checksum.hash, msg.custom.flatMap(_.uri.map(u => Uri(u.toString))))
+      msg.length, msg.checksum, msg.checksum.hash, msg.custom.flatMap(_.uri.map(u => Uri(u.toString))),
+      userDefinedCustom = None)
     // TODO: Reuse ecuTarget if one exists with checksum/length, etc
     FastFuture.successful(ecuTarget)
   }

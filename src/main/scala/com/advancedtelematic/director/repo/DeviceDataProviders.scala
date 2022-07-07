@@ -16,6 +16,7 @@ import com.advancedtelematic.libtuf.data.TufDataType.RepoId
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
 import com.advancedtelematic.libtuf_server.repo.server.TargetsItemsProvider.TargetItems
 import com.advancedtelematic.libtuf_server.repo.server.{SignedRoleProvider, TargetsItemsProvider}
+import io.circe.Json
 import io.circe.syntax._
 import slick.jdbc.MySQLProfile.api._
 
@@ -42,13 +43,16 @@ protected [repo] class DeviceTargetProvider(ns: Namespace, deviceId: DeviceId)(i
   with EcuTargetsRepositorySupport with EcuRepositorySupport {
 
   private case class TargetItem(hashes: ClientHashes,
-                        length: Long,
-                        uri: Option[Uri],
-                        ecuIds: List[EcuIdentifier]) {
-    def +(other: TargetItem) = {
-      require(other.length == length, "Cannot sum TargetItem with different lengths")
-      require(other.uri == uri, "Cannot sum TargetItem with different uris")
-      TargetItem(hashes ++ other.hashes, length, uri, ecuIds ++ other.ecuIds)
+                                length: Long,
+                                uri: Option[Uri],
+                                ecuIds: List[EcuIdentifier],
+                                userDefinedCustom: Option[Json]) {
+    def merge(other: TargetItem): TargetItem = {
+      require(other.length == length, "Cannot merge TargetItems with different lengths")
+      require(other.uri == uri, "Cannot merge TargetItems with different uris")
+      require(other.userDefinedCustom == userDefinedCustom, "Cannot merge target items with different userDefinedCustom")
+
+      TargetItem(hashes ++ other.hashes, length, uri, ecuIds ++ other.ecuIds, userDefinedCustom)
     }
   }
 
@@ -64,7 +68,7 @@ protected [repo] class DeviceTargetProvider(ns: Namespace, deviceId: DeviceId)(i
     val targetsByFilenameF = assignments.map { assignment =>
       ecuTargetsRepository.find(ns, assignment.ecuTargetId).map { ecuTarget =>
         val hashes = Map(ecuTarget.checksum.method -> ecuTarget.checksum.hash)
-        ecuTarget.filename -> this.TargetItem(hashes, ecuTarget.length, ecuTarget.uri, List(assignment.ecuId))
+        ecuTarget.filename -> this.TargetItem(hashes, ecuTarget.length, ecuTarget.uri, List(assignment.ecuId), ecuTarget.userDefinedCustom)
       }
     }.toList.sequence
 
@@ -73,9 +77,9 @@ protected [repo] class DeviceTargetProvider(ns: Namespace, deviceId: DeviceId)(i
       .mapValues(_.map(_._2))
 
     val items = targetsByFilename.mapValues { filenameItems =>
-      val targetItem = filenameItems.reduce { _ + _ }
+      val targetItem = filenameItems.reduce { _ merge _ }
       val hwIds = ecus.filterKeys(targetItem.ecuIds.contains).mapValues(h => TargetItemCustomEcuData(h))
-      val custom = TargetItemCustom(targetItem.uri, hwIds)
+      val custom = TargetItemCustom(targetItem.uri, hwIds, targetItem.userDefinedCustom)
 
       ClientTargetItem(targetItem.hashes, targetItem.length, Option(custom.asJson))
     }

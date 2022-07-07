@@ -78,7 +78,8 @@ trait Generators {
     checksum <- GenChecksum
     nr <- Gen.posNum[Int]
     uri <- Gen.option(Gen.const(Uri(s"http://test-$nr.example.com")))
-  } yield TargetUpdate(target, checksum, size, uri)
+    userDefinedCustom <- Gen.option(Gen.oneOf(Gen.const(Json.arr(Json.fromInt(0))), Gen.const(Json.obj("mycustom" -> Json.fromInt(0)))))
+  } yield TargetUpdate(target, checksum, size, uri, userDefinedCustom)
 
   val GenTargetUpdateRequest: Gen[TargetUpdateRequest] = for {
     targetUpdate <- GenTargetUpdate
