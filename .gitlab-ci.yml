@@ -34,7 +34,7 @@ default:
 include:
   - project: torizon-platform/ci-container-build
     file: gitlab-ci-templates/gitlab-sbt-docker-publish.yaml
-    ref: gitlab
+    ref: master
   - project: 'torizon-platform/deploy-env'
     ref: master
     file: '/gitlab/deploy-core-service.yml'
