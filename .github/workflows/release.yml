@@ -19,4 +19,5 @@ jobs:
           jvm: 'temurin:1.17.0.3'
       - uses: coursier/cache-action@v6
       - run: sbt docker:publishLocal
+      - run: docker tag advancedtelematic/director-v2:$GITHUB_SHA uptane/director-v2:$GITHUB_SHA
       - run: docker push uptane/director-v2:$GITHUB_SHA
