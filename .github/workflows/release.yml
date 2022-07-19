@@ -16,8 +16,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: coursier/setup-action@v1
         with:
-          jvm: adoptjdk:17
+          jvm: 'openjdk:17'
       - uses: coursier/cache-action@v6
       - run: sbt docker:publishLocal
-      - run: docker tag advancedtelematic/director-v2:$GITHUB_SHA uptane/director-v2:$GITHUB_SHA
       - run: docker push uptane/director-v2:$GITHUB_SHA
