@@ -131,9 +131,12 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
   }
 
   private def replaceDeviceEcus(ecuRepository: EcuRepository)(ns: Namespace, device: Device, ecus: Seq[Ecu]): DBIO[Seq[Ecu]] = {
-    val ensureNoAssignments = Schema.assignments.filter(_.deviceId === device.id).exists.result.flatMap  {
-      case true => DBIO.failed(Errors.AssignmentExistsError(device.id))
-      case false => DBIO.successful(())
+    // A running assignment is allowed, as long as the new list of ECUs includes all ECUS that have an assignment (OTA-1366)n
+    val ensureRunningAssignmentsValid = Schema.assignments.filter(_.deviceId === device.id).map(_.ecuId).result.flatMap { assignedEcus =>
+      if(assignedEcus.intersect(ecus.map(_.ecuSerial)) == assignedEcus) // assignedEcus is subset of ecus
+        DBIO.successful(true)
+      else
+        DBIO.failed(Errors.AssignmentExistsError(device.id))
     }
 
     val ensureNotReplacingDeleted =
@@ -148,7 +151,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
 
     val setActive = ecuRepository.setActiveEcus(ns, device.id, ecus.map(_.ecuSerial).toSet)
 
-    DBIO.seq(ensureNoAssignments, ensureNotReplacingDeleted, insertEcus, insertDevice, setActive).map(_ => ecus)
+    DBIO.seq(ensureRunningAssignmentsValid, ensureNotReplacingDeleted, insertEcus, insertDevice, setActive).map(_ => ecus)
   }
 
   protected [db] def setMetadataOutdatedAction(deviceIds: Set[DeviceId], outdated: Boolean): DBIO[Unit] = DBIO.seq {
