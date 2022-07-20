@@ -70,10 +70,12 @@ object Schema {
     def checksum = column[Checksum]("checksum")
     def sha256 = column[SHA256Checksum]("sha256")
     def uri = column[Option[Uri]]("uri")
+    def userDefinedCustom = column[Option[Json]]("user_custom")
 
     def primKey = primaryKey("ecu_targets_pk", id)
 
-    override def * = (namespace, id, filename, length, checksum, sha256, uri) <> ((EcuTarget.apply _).tupled, EcuTarget.unapply)
+    override def * = (namespace, id, filename, length, checksum,
+      sha256, uri, userDefinedCustom) <> ((EcuTarget.apply _).tupled, EcuTarget.unapply)
   }
 
   protected [db] val ecuTargets = TableQuery[EcuTargetsTable]

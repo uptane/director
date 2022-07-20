@@ -31,7 +31,7 @@ class ManifestCompilerSpec extends DirectorSpec {
   val secondary = GenEcuIdentifier.generate
   val targetUpdate = GenTargetUpdate.generate
   val deviceId = DeviceId.generate()
-  val ecuTarget = EcuTarget(ns, EcuTargetId.generate(), targetUpdate.target, targetUpdate.targetLength, targetUpdate.checksum, targetUpdate.checksum.hash, targetUpdate.uri)
+  val ecuTarget = EcuTarget(ns, EcuTargetId.generate(), targetUpdate.target, targetUpdate.targetLength, targetUpdate.checksum, targetUpdate.checksum.hash, targetUpdate.uri, targetUpdate.userDefinedCustom)
   val assignment = Assignment(ns, deviceId, primary, ecuTarget.id, GenCorrelationId.generate, inFlight = true, createdAt = Instant.now)
 
   test("manifest setting already known versions is a NOOP") {

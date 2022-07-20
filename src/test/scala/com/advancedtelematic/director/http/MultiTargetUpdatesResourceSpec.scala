@@ -3,6 +3,7 @@ import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show._
 import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, TargetUpdateRequest}
 import com.advancedtelematic.director.data.Codecs._
+import com.advancedtelematic.director.data.GeneratorOps.GenSample
 import com.advancedtelematic.director.data.Generators
 import com.advancedtelematic.director.util.{DefaultPatience, DirectorSpec, RouteResourceSpec}
 import com.advancedtelematic.libats.codecs.CirceCodecs._
@@ -11,6 +12,9 @@ import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging_datatype.DataType.UpdateId
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import io.circe.Json
+import org.scalatest.OptionValues._
+
 
 class MultiTargetUpdatesResourceSpec extends DirectorSpec
   with Generators with DefaultPatience with RouteResourceSpec with AdminResources {
@@ -54,6 +58,27 @@ class MultiTargetUpdatesResourceSpec extends DirectorSpec
     Post(apiUri("multi_target_updates"), mtu).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.BadRequest
       responseAs[ErrorRepresentation].code shouldBe ErrorCodes.InvalidMtu
+    }
+  }
+
+  testWithNamespace("accepts user defined json") { implicit ns =>
+    val userDefinedCustom = Json.obj("some" -> Json.fromString("val"))
+    val toUpdate = GenTargetUpdate.generate.copy(userDefinedCustom = Some(userDefinedCustom))
+    val toUpdateReq = TargetUpdateRequest(None, toUpdate)
+    val hwId = GenHardwareIdentifier.generate
+    val mtu = MultiTargetUpdate(Map(hwId -> toUpdateReq))
+
+    val id = Post(apiUri("multi_target_updates"), mtu).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.Created
+      responseAs[UpdateId]
+    }
+
+    Get(apiUri(s"multi_target_updates/${id.show}")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val r = responseAs[Map[HardwareIdentifier, TargetUpdateRequest]] // This should be responseAs[MultiTargetUpdate], see comments on resource
+
+      val _, update = r.head._2
+      update.to.userDefinedCustom.value shouldBe userDefinedCustom
     }
   }
 }
