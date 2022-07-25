@@ -222,6 +222,37 @@ class DeviceResourceSpec extends DirectorSpec
     msgPub.findReceived[EcuReplacement](deviceId.show) shouldBe None
   }
 
+  testWithRepo("A device can replace ECUs if an assignment exists, if the new ECU list contains all ecus with assignments") { implicit ns =>
+    val deviceId = DeviceId.generate()
+    val ((primary, primaryKeys), secondary) = (GenRegisterEcuKeys.generate, GenRegisterEcu.generate)
+    val (secondary2, secondary2Keys) = GenRegisterEcuKeys.generate
+    val targetUpdate = GenTargetUpdateRequest.generate
+    val req = RegisterDevice(deviceId.some, primary.ecu_serial, Seq(primary, secondary))
+    val req2 = RegisterDevice(deviceId.some, primary.ecu_serial, Seq(primary, secondary2))
+
+    Post(apiUri(s"device/${deviceId.show}/ecus"), req).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.Created
+    }
+
+    createDeviceAssignmentOk(deviceId, primary.hardware_identifier, targetUpdate.some)
+
+    Post(apiUri(s"device/${deviceId.show}/ecus"), req2).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    val deviceManifest = buildSecondaryManifest(primary.ecu_serial, primaryKeys, secondary2.ecu_serial, secondary2Keys, Map(primary.ecu_serial -> targetUpdate.to, secondary2.ecu_serial -> targetUpdate.to))
+    putManifestOk(deviceId, deviceManifest)
+
+    Get(apiUri(s"admin/devices/${deviceId.show}/ecus")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[Vector[EcuInfoResponse]]
+
+      resp.size shouldBe 2
+      resp.find(_.primary).map(_.id) should contain(primary.ecu_serial)
+      resp.find(_.primary == false).map(_.id) should contain(secondary2.ecu_serial)
+    }
+  }
+
   testWithRepo("a device can replace a secondary and POST manifests for the new ECUs") { implicit ns =>
     val dev = registerAdminDeviceWithSecondariesOk()
     val targetUpdate = GenTargetUpdateRequest.generate
@@ -250,21 +281,22 @@ class DeviceResourceSpec extends DirectorSpec
     }
   }
 
-  testWithRepo("replacing ecus fails when device has running assignments") { implicit ns =>
+  testWithRepo("replacing ecus fails when device has running assignments and new ecu list does not include all ECUs with assignments") { implicit ns =>
     val targetUpdate = GenTargetUpdateRequest.generate
     val deviceId = DeviceId.generate()
     val ecus = GenRegisterEcu.generate
+    val ecus2 = GenRegisterEcu.generate
+    val ecus3 = GenRegisterEcu.generate
     val primaryEcu = ecus.ecu_serial
-    val regDev = RegisterDevice(deviceId.some, primaryEcu, Seq(ecus))
+    val regDev = RegisterDevice(deviceId.some, primaryEcu, Seq(ecus, ecus2))
 
     Post(apiUri(s"device/${deviceId.show}/ecus"), regDev).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Created
     }
 
-    createDeviceAssignmentOk(deviceId, ecus.hardware_identifier, targetUpdate.some)
+    createDeviceAssignmentOk(deviceId, ecus2.hardware_identifier, targetUpdate.some)
 
-    val ecus2 = GenRegisterEcu.generate
-    val req2 = RegisterDevice(deviceId.some, primaryEcu, Seq(ecus, ecus2))
+    val req2 = RegisterDevice(deviceId.some, primaryEcu, Seq(ecus, ecus3)) // Remove ecu2 from list of ecus, add ecu3
 
     Post(apiUri(s"device/${deviceId.show}/ecus"), req2).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.PreconditionFailed

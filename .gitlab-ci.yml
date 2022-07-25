@@ -63,4 +63,3 @@ build docker image:
   extends: .sbt-docker-publish
   variables:
     SERVICE_NAME: director-v2
-    ROOT_LOG_LEVEL: debug
