@@ -15,7 +15,7 @@ libraryDependencies ++= {
   val akkaV = "2.6.19"
   val akkaHttpV = "10.2.9"
   val scalaTestV = "3.2.13"
-  val bouncyCastleV = "1.70"
+  val bouncyCastleV = "1.71.1"
   val tufV = "2.0.2"
   val libatsV = "2.0.11"
 
