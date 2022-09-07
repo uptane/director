@@ -13,7 +13,7 @@ Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
   val akkaV = "2.6.19"
-  val akkaHttpV = "10.2.9"
+  val akkaHttpV = "10.2.10"
   val scalaTestV = "3.2.13"
   val bouncyCastleV = "1.70"
   val tufV = "2.0.2"
