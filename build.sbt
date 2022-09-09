@@ -12,7 +12,7 @@ resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/reposi
 Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
-  val akkaV = "2.6.20"
+  val akkaV = "2.6.19"
   val akkaHttpV = "10.2.9"
   val scalaTestV = "3.2.13"
   val bouncyCastleV = "1.70"
