@@ -3,7 +3,7 @@ package com.advancedtelematic.director.manifest
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, ValidatedNel}
 import com.advancedtelematic.director.data.Codecs._
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest}
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, MissingInstallationReport}
 import com.advancedtelematic.director.db.EcuRepositorySupport
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.EcuIdentifier
@@ -11,7 +11,6 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.TufDataType.{SignedPayload, TufKey}
 import io.circe.Decoder.Result
 import io.circe.{Decoder, Json}
-import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
 
 import scala.async.Async._
@@ -44,7 +43,7 @@ object DeviceManifestProcess {
           e.json.as[EcuManifest].map(_.ecu_serial -> e)
         }.map(_.toMap)
 
-      ecu_version_manifests.map(DeviceManifest(v1.primary_ecu_serial, _, None))
+      ecu_version_manifests.map(DeviceManifest(v1.primary_ecu_serial, _, Left(MissingInstallationReport)))
     }
   }
 

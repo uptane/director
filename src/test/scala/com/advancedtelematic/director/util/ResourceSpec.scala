@@ -15,7 +15,7 @@ import com.advancedtelematic.director.data.AdminDataType.TargetUpdate
 import com.advancedtelematic.director.data.UptaneDataType._
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.DeviceRequest
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationReport, InstallationReportEntity}
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationReport, InstallationReportEntity, MissingInstallationReport}
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.director.data.Codecs._
 import com.advancedtelematic.director.data.UptaneDataType.Image
@@ -54,9 +54,9 @@ trait DeviceManifestSpec {
     EcuManifest(image, ecuSerial, "", custom = None)
   }
 
-  def buildPrimaryManifest(primary: Ecu, ecuKey: TufKeyPair, targetUpdate: TargetUpdate, reportO: Option[InstallationReport] = None, ecuManifest: Option[EcuManifest] = None): SignedPayload[DeviceManifest] = {
+  def buildPrimaryManifest(primary: Ecu, ecuKey: TufKeyPair, targetUpdate: TargetUpdate, reportO: Option[InstallationReport] = None): SignedPayload[DeviceManifest] = {
     val ecuManifest = sign(ecuKey, buildEcuManifest(primary.ecuSerial, targetUpdate))
-    val report = reportO.map { r => InstallationReportEntity("mock-content-type", r) }
+    val report = reportO.map { r => InstallationReportEntity("mock-content-type", r) }.toRight(MissingInstallationReport)
     sign(ecuKey, DeviceRequest.DeviceManifest(primary.ecuSerial, Map(primary.ecuSerial -> ecuManifest), installation_report = report))
   }
 
@@ -64,6 +64,6 @@ trait DeviceManifestSpec {
     val secondaryManifest = sign(secondaryKey, buildEcuManifest(secondary, updates(secondary)))
     val primaryManifest = sign(ecuKey, buildEcuManifest(primary, updates(primary)))
     val m = Map(primary -> primaryManifest, secondary-> secondaryManifest)
-    sign(ecuKey, DeviceManifest(primary, m, installation_report = None))
+    sign(ecuKey, DeviceManifest(primary, m, installation_report = Left(MissingInstallationReport)))
   }
 }

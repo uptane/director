@@ -80,7 +80,7 @@ class ManifestCompilerSpec extends DirectorSpec {
     val newStatus = ManifestCompiler(ns, manifest).apply(currentStatus).get.knownState
 
     newStatus.currentAssignments shouldBe Set(assignment)
-    newStatus.processedAssignments shouldBe Set(secondaryAssignment.toProcessedAssignment(successful = true))
+    newStatus.processedAssignments.map(_.correlationId) shouldBe Set(secondaryAssignment.correlationId)
     newStatus.ecuStatus(primary) shouldBe None
     newStatus.ecuStatus(secondary) should contain(ecuTarget.id)
     newStatus.ecuTargets shouldBe currentStatus.ecuTargets
@@ -108,7 +108,7 @@ class ManifestCompilerSpec extends DirectorSpec {
 
     val installationReportEntity = GenInstallReportEntity(primary, success = false).generate
 
-    val manifest = DeviceManifest(primary, ecuVersionManifest, installationReportEntity.some)
+    val manifest = DeviceManifest(primary, ecuVersionManifest, Right(installationReportEntity))
     val otherAssignment = Assignment(ns, deviceId, secondary, ecuTarget.id, GenCorrelationId.generate, inFlight = true, createdAt = Instant.now)
 
     val currentStatus = DeviceKnownState(deviceId, primary, Map(primary -> None), Map(ecuTarget.id -> ecuTarget), Set(assignment, otherAssignment), Set.empty, generatedMetadataOutdated = false)
@@ -127,7 +127,7 @@ class ManifestCompilerSpec extends DirectorSpec {
 
     val installationReportEntity = GenInstallReportEntity(primary, success = false).generate
 
-    val manifest = DeviceManifest(primary, ecuVersionManifest, installationReportEntity.some)
+    val manifest = DeviceManifest(primary, ecuVersionManifest, Right(installationReportEntity))
 
     val currentStatus = DeviceKnownState(deviceId, primary, Map(primary -> None), Map(ecuTarget.id -> ecuTarget), Set(assignment), Set.empty, generatedMetadataOutdated = false)
 

@@ -338,7 +338,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
 
     val action = for {
       assignments <- assignmentQuery.result
-      _ <- Schema.processedAssignments ++= assignments.map(_.toProcessedAssignment(true))
+      _ <- Schema.processedAssignments ++= assignments.map(_.toProcessedAssignment(successful = true))
       _ <- assignmentQuery.delete
     } yield assignments
 

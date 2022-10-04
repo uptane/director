@@ -5,7 +5,7 @@ import org.scalacheck.Gen
 import GeneratorOps._
 import akka.http.scaladsl.model.Uri
 import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, RegisterEcu, TargetUpdate, TargetUpdateRequest}
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationItem, InstallationReport, InstallationReportEntity}
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationItem, InstallationReport, InstallationReportEntity, MissingInstallationReport}
 import com.advancedtelematic.director.data.UptaneDataType._
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, MultiTargetUpdateId, ResultCode, ResultDescription, ValidChecksum}
 import com.advancedtelematic.libats.messaging_datatype.DataType.InstallationResult
@@ -56,7 +56,7 @@ trait Generators {
   lazy val GenDeviceManifest: Gen[DeviceManifest] = for {
    primaryEcu <- GenEcuIdentifier
    ecuManifest <- GenEcuManifest(primaryEcu)
-  } yield DeviceManifest(primaryEcu, Map(primaryEcu -> SignedPayload(Seq.empty, ecuManifest, Json.Null)), installation_report = None)
+  } yield DeviceManifest(primaryEcu, Map(primaryEcu -> SignedPayload(Seq.empty, ecuManifest, Json.Null)), installation_report = Left(MissingInstallationReport))
 
   def genIdentifier(maxLen: Int): Gen[String] = for {
     //use a minimum length of 10 to reduce possibility of naming conflicts
