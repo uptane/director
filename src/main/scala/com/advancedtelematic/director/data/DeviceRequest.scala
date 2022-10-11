@@ -3,7 +3,6 @@ package com.advancedtelematic.director.data
 import com.advancedtelematic.libats.data.DataType.CorrelationId
 import com.advancedtelematic.libats.messaging_datatype.DataType.InstallationResult
 import io.circe.Json
-
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 
@@ -17,7 +16,7 @@ object DeviceRequest {
 
   final case class DeviceManifest(primary_ecu_serial: EcuIdentifier,
                                   ecu_version_manifests: Map[EcuIdentifier, SignedPayload[EcuManifest]],
-                                  installation_report: Option[InstallationReportEntity] = None)
+                                  installation_report: Either[InvalidInstallationReportError, InstallationReportEntity] = Left(MissingInstallationReport))
 
   final case class OperationResult(id: String, result_code: Int, result_text: String) {
     def isSuccess: Boolean = result_code == 0 || result_code == 1
@@ -25,6 +24,12 @@ object DeviceRequest {
   }
 
   final case class EcuManifestCustom(operation_result: OperationResult)
+
+  sealed trait InvalidInstallationReportError
+
+  final case class InvalidInstallationReport(reason: String, payload: Option[Json]) extends InvalidInstallationReportError
+
+  final case object MissingInstallationReport extends InvalidInstallationReportError
 
   final case class InstallationReportEntity(content_type: String, report: InstallationReport)
 
