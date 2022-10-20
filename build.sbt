@@ -1,6 +1,6 @@
 name := "director-v2"
 organization := "io.github.uptane"
-scalaVersion := "2.12.16"
+scalaVersion := "2.12.17"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Ypartial-unification")
 
@@ -14,7 +14,7 @@ Global / bloopAggregateSourceDependencies := true
 libraryDependencies ++= {
   val akkaV = "2.6.20"
   val akkaHttpV = "10.2.10"
-  val scalaTestV = "3.2.13"
+  val scalaTestV = "3.2.14"
   val bouncyCastleV = "1.70"
   val tufV = "2.0.2"
   val libatsV = "2.0.11"
@@ -27,7 +27,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
     "org.scalatest"     %% "scalatest" % scalaTestV % Test,
-    "org.scalacheck" %% "scalacheck" % "1.16.0" % Test,
+    "org.scalacheck" %% "scalacheck" % "1.17.0" % Test,
 
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
@@ -45,7 +45,7 @@ libraryDependencies ++= {
 
     "org.scala-lang.modules" %% "scala-async" % "0.10.0",
 
-    "org.mariadb.jdbc" % "mariadb-java-client" % "3.0.7"
+    "org.mariadb.jdbc" % "mariadb-java-client" % "3.0.8"
   )
 }
 
