@@ -291,6 +291,14 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
     Schema.assignments.filter(_.deviceId === deviceId).result
   }
 
+  def findMany(devices: Set[DeviceId]): Future[Map[DeviceId, Seq[Assignment]]] = {
+    db.run(Schema.assignments.filter(_.deviceId inSet devices).result).map { assignments =>
+      devices.map { device =>
+        device -> assignments.filter(_.deviceId == device)
+      }.toMap
+    }
+  }
+
   def existsForDevices(deviceIds: Set[DeviceId]): Future[Map[DeviceId, Boolean]] = db.run {
     Schema.assignments
       .filter(_.deviceId.inSet(deviceIds))

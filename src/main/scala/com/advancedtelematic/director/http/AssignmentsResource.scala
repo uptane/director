@@ -70,6 +70,12 @@ class AssignmentsResource(extractNamespace: Directive1[Namespace])
             val a = deviceAssignments.cancel(ns, devices)
             complete(a.map(_.map(_.deviceId)))
           }
+        } ~
+        get {
+          parameter('ids.as(CsvSeq[DeviceId])) { deviceIds =>
+            val f = deviceAssignments.findMultiDeviceAssignments(ns, deviceIds.toSet)
+            complete(f)
+          }
         }
       } ~
       path(DeviceId.Path) { deviceId =>

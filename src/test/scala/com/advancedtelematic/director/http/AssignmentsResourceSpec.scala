@@ -80,6 +80,14 @@ trait AssignmentResources {
     }
   }
 
+  def getMultipleDeviceAssignments[T](devices: Set[DeviceId])(checkFn: => T)(implicit ns: Namespace, pos: Position): T = {
+    Get(apiUri(
+      // make a quick csv query
+      s"assignments?ids=${devices.map(_.uuid.show).mkString(",")}"
+      )
+    ).namespaced ~> routes ~> check(checkFn)
+  }
+
   def getTargetsOk(regDev: AdminResources.RegisterDeviceResult)(implicit ns: Namespace): SignedPayload[TargetsRole] = {
     Get(apiUri(s"device/${regDev.deviceId.show}/targets.json")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
@@ -372,4 +380,37 @@ class AssignmentsResourceSpec extends DirectorSpec
     createDeviceAssignmentOk(device1, regEcu.hardware_identifier)
     createDeviceAssignmentOk(device2, regEcu.hardware_identifier)
   }
+
+  testWithRepo("Retrieving assignments for multiple devices works") { implicit ns =>
+    val device1 = DeviceId.generate
+    val device2 = DeviceId.generate
+    val (regEcu, _) = GenRegisterEcuKeys.generate
+    val regDev1 = RegisterDevice(device1.some, regEcu.ecu_serial, List(regEcu))
+    val regDev2 = RegisterDevice(device2.some, regEcu.ecu_serial, List(regEcu))
+
+    Post(apiUri("admin/devices"), regDev1).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.Created
+    }
+
+    Post(apiUri("admin/devices"), regDev2).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.Created
+    }
+
+    val dev1AssignmentResp = createDeviceAssignmentOk(device1, regEcu.hardware_identifier)
+    val dev2AssignmentResp = createDeviceAssignmentOk(device2, regEcu.hardware_identifier)
+
+
+    getMultipleDeviceAssignments(Set(device1, device2)) {
+      status shouldBe StatusCodes.OK
+      val res = responseAs[Map[DeviceId, Seq[QueueResponse]]]
+
+      res.get(device1).getOrElse(Seq.empty[QueueResponse]).length shouldBe 1
+      res.get(device2).getOrElse(Seq.empty[QueueResponse]).length shouldBe 1
+
+      res.get(device1).getOrElse(Seq.empty[QueueResponse]).head.correlationId shouldBe dev1AssignmentResp.correlationId
+      res.get(device2).getOrElse(Seq.empty[QueueResponse]).head.correlationId shouldBe dev2AssignmentResp.correlationId
+    }
+  }
+
+
 }

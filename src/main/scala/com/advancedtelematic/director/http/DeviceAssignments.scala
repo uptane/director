@@ -43,12 +43,9 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
 
   import scala.async.Async._
 
-  def findDeviceAssignments(ns: Namespace, deviceId: DeviceId): Future[Vector[QueueResponse]] = async {
-
-    val correlationIdToAssignments = await(assignmentsRepository.findBy(deviceId)).groupBy(_.correlationId)
-
+  def AssignmentsToQueueResponse(ns: Namespace, idAssignments: Map[CorrelationId, Seq[Assignment]]): Future[Vector[QueueResponse]] = {
     val deviceQueues =
-      correlationIdToAssignments.map { case (correlationId, assignments) =>
+      idAssignments.map { case (correlationId, assignments) =>
         val images = assignments.map { assignment =>
           ecuTargetsRepository.find(ns, assignment.ecuTargetId).map { target =>
             assignment.ecuId -> TargetImage(Image(target.filename, FileInfo(Hashes(target.sha256), target.length)), target.uri, assignment.createdAt)
@@ -56,14 +53,23 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
         }.toList.sequence
 
         val queue = images.map(_.toMap).map { images =>
-          val inFlight = correlationIdToAssignments.get(correlationId).exists(_.exists(_.inFlight))
+          val inFlight = idAssignments.get(correlationId).exists(_.exists(_.inFlight))
           QueueResponse(correlationId, images, inFlight = inFlight)
         }
-
         queue
       }
+    Future.sequence(deviceQueues.toVector)
+  }
 
-    await(Future.sequence(deviceQueues)).toVector
+  def findDeviceAssignments(ns: Namespace, deviceId: DeviceId): Future[Vector[QueueResponse]] = async {
+    val correlationIdToAssignments = await(assignmentsRepository.findBy(deviceId)).groupBy(_.correlationId)
+    await(AssignmentsToQueueResponse(ns, correlationIdToAssignments))
+  }
+  def findMultiDeviceAssignments(ns: Namespace, devices: Set[DeviceId]): Future[Map[DeviceId, Vector[QueueResponse]]] = async {
+    val devicesAssignments = await(assignmentsRepository.findMany(devices))
+    val queueResponses = devicesAssignments.map(idAssignment => (idAssignment._1 -> AssignmentsToQueueResponse(ns, idAssignment._2.groupBy(_.correlationId))))
+    // Need to convert Map[A, Future[X]] -> Future[Map[A, X]]
+    await(Future.traverse(queueResponses.toList) { case (k, fv) => fv.map(k -> _) } map(_.toMap))
   }
 
   def findAffectedDevices(ns: Namespace, deviceIds: Seq[DeviceId], mtuId: UpdateId): Future[Seq[DeviceId]] = {
