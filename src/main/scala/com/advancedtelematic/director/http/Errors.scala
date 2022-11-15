@@ -3,8 +3,8 @@ package com.advancedtelematic.director.http
 import akka.http.scaladsl.model.StatusCodes
 import cats.Show
 import com.advancedtelematic.director.data.DataType.AdminRoleName
-import com.advancedtelematic.director.data.DbDataType.HardwareUpdate
-import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.director.data.DbDataType.{EcuTargetId, HardwareUpdate}
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.{EcuIdentifier, ErrorCode}
 import com.advancedtelematic.libats.http.Errors.{Error, JsonError, MissingEntityId, RawError}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
@@ -41,6 +41,8 @@ object ErrorCodes {
   val NotAffectedByMtu = ErrorCode("not_affected_by_mtu")
 
   val InvalidMtu = ErrorCode("invalid_mtu")
+
+  val InvalidAssignment = ErrorCode("invalid_assignment")
 }
 
 object Errors {
@@ -63,6 +65,9 @@ object Errors {
     StatusCodes.BadRequest,
     s"ecu $deviceId$ecuIdentifier not affected by $mtuId"
   )
+
+  case class InvalidAssignment(targetId: EcuTargetId, correlationId: CorrelationId) extends Error(ErrorCodes.InvalidAssignment, StatusCodes.InternalServerError,
+    msg=s"No ECU Target exists matching the ecu target id (${targetId}) specified in assignment")
 
   case class InvalidMtu(_msg: String) extends Error(ErrorCodes.InvalidMtu, StatusCodes.BadRequest, "Invalid MTU: "+ _msg)
 

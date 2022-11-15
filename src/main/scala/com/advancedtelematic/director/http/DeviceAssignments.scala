@@ -3,9 +3,10 @@ package com.advancedtelematic.director.http
 import java.time.Instant
 import cats.implicits._
 import com.advancedtelematic.director.data.AdminDataType.QueueResponse
-import com.advancedtelematic.director.data.DbDataType.{Assignment, Ecu, EcuTargetId}
+import com.advancedtelematic.director.data.DbDataType.{Assignment, Ecu, EcuTarget, EcuTargetId}
 import com.advancedtelematic.director.data.UptaneDataType.{TargetImage, _}
 import com.advancedtelematic.director.db._
+import com.advancedtelematic.director.http.Errors.InvalidAssignment
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.{EcuIdentifier, ErrorRepresentation}
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
@@ -43,33 +44,33 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
 
   import scala.async.Async._
 
-  def AssignmentsToQueueResponse(ns: Namespace, idAssignments: Map[CorrelationId, Seq[Assignment]]): Future[Vector[QueueResponse]] = {
+  private def assignmentsToQueueResponse(ns: Namespace, idAssignments: Map[CorrelationId, Seq[Assignment]]): Future[Vector[QueueResponse]] = async {
+    val ecuTargets = await(ecuTargetsRepository.findAll(ns, idAssignments.flatMap(_._2).map(_.ecuTargetId).toSeq))
+    ecuTargetsToQueueResponse(idAssignments, ecuTargets)
+  }
+
+  private def ecuTargetsToQueueResponse(idAssignments: Map[CorrelationId, Seq[Assignment]], ecus: Map[EcuTargetId, EcuTarget]): Vector[QueueResponse] = {
     val deviceQueues =
       idAssignments.map { case (correlationId, assignments) =>
         val images = assignments.map { assignment =>
-          ecuTargetsRepository.find(ns, assignment.ecuTargetId).map { target =>
-            assignment.ecuId -> TargetImage(Image(target.filename, FileInfo(Hashes(target.sha256), target.length)), target.uri, assignment.createdAt)
-          }
-        }.toList.sequence
-
-        val queue = images.map(_.toMap).map { images =>
-          val inFlight = idAssignments.get(correlationId).exists(_.exists(_.inFlight))
-          QueueResponse(correlationId, images, inFlight = inFlight)
-        }
-        queue
+          val target = ecus.getOrElse(assignment.ecuTargetId, throw InvalidAssignment(assignment.ecuTargetId, correlationId) )
+          assignment.ecuId -> TargetImage(Image(target.filename, FileInfo(Hashes(target.sha256), target.length)), target.uri, assignment.createdAt)
+        }.toMap
+        val inFlight = idAssignments.get(correlationId).exists(_.exists(_.inFlight))
+        QueueResponse(correlationId, images, inFlight = inFlight)
       }
-    Future.sequence(deviceQueues.toVector)
+    deviceQueues.toVector
   }
 
   def findDeviceAssignments(ns: Namespace, deviceId: DeviceId): Future[Vector[QueueResponse]] = async {
     val correlationIdToAssignments = await(assignmentsRepository.findBy(deviceId)).groupBy(_.correlationId)
-    await(AssignmentsToQueueResponse(ns, correlationIdToAssignments))
+    await(assignmentsToQueueResponse(ns, correlationIdToAssignments))
   }
   def findMultiDeviceAssignments(ns: Namespace, devices: Set[DeviceId]): Future[Map[DeviceId, Vector[QueueResponse]]] = async {
     val devicesAssignments = await(assignmentsRepository.findMany(devices))
-    val queueResponses = devicesAssignments.map(idAssignment => (idAssignment._1 -> AssignmentsToQueueResponse(ns, idAssignment._2.groupBy(_.correlationId))))
-    // Need to convert Map[A, Future[X]] -> Future[Map[A, X]]
-    await(Future.traverse(queueResponses.toList) { case (k, fv) => fv.map(k -> _) } map(_.toMap))
+    val ecuTargets = await(ecuTargetsRepository.findAll(ns, devicesAssignments.flatten(_._2).map(_.ecuTargetId).toList))
+    val queueResponses = devicesAssignments.map { case (deviceId, assignments) => deviceId -> ecuTargetsToQueueResponse(assignments.groupBy(_.correlationId), ecuTargets) }
+    queueResponses
   }
 
   def findAffectedDevices(ns: Namespace, deviceIds: Seq[DeviceId], mtuId: UpdateId): Future[Seq[DeviceId]] = {
