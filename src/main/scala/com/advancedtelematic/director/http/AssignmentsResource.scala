@@ -72,8 +72,10 @@ class AssignmentsResource(extractNamespace: Directive1[Namespace])
           }
         } ~
         get {
+          val deviceIdFetchLimit = 50
           parameter('ids.as(CsvSeq[DeviceId])) { deviceIds =>
-            val f = deviceAssignments.findMultiDeviceAssignments(ns, deviceIds.toSet)
+            val limit = if(deviceIds.length > deviceIdFetchLimit) deviceIdFetchLimit else deviceIds.length
+            val f = deviceAssignments.findMultiDeviceAssignments(ns, deviceIds.slice(0, limit) toSet)
             complete(f)
           }
         }

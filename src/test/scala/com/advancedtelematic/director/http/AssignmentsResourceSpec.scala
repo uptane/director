@@ -412,5 +412,23 @@ class AssignmentsResourceSpec extends DirectorSpec
     }
   }
 
+  testWithRepo("Retrieving assignments for more than 50 devices will limit results to 50") { implicit ns =>
+    val deviceIds = (1 to 60).toList.map { _ =>
+      val deviceId = DeviceId.generate()
+      val (regEcu, _) = GenRegisterEcuKeys.generate
+      val regDev = RegisterDevice(deviceId.some, regEcu.ecu_serial, List(regEcu))
+      Post(apiUri("admin/devices"), regDev).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.Created
+      }
+      val deviceAssignments = createDeviceAssignmentOk(deviceId, regEcu.hardware_identifier)
+      deviceId
+    }
+
+    getMultipleDeviceAssignments(deviceIds.toSet) {
+      status shouldBe StatusCodes.OK
+      val res = responseAs[Map[DeviceId, Seq[QueueResponse]]]
+      res.size shouldBe 50
+    }
+  }
 
 }

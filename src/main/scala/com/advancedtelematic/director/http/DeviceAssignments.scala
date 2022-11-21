@@ -69,7 +69,9 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
   def findMultiDeviceAssignments(ns: Namespace, devices: Set[DeviceId]): Future[Map[DeviceId, Vector[QueueResponse]]] = async {
     val devicesAssignments = await(assignmentsRepository.findMany(devices))
     val ecuTargets = await(ecuTargetsRepository.findAll(ns, devicesAssignments.flatten(_._2).map(_.ecuTargetId).toList))
-    val queueResponses = devicesAssignments.map { case (deviceId, assignments) => deviceId -> ecuTargetsToQueueResponse(assignments.groupBy(_.correlationId), ecuTargets) }
+    val queueResponses = devicesAssignments.map {
+      case (deviceId, assignments) => deviceId -> ecuTargetsToQueueResponse(assignments.groupBy(_.correlationId), ecuTargets)
+    }
     queueResponses
   }
 
