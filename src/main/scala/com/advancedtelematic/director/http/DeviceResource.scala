@@ -12,17 +12,17 @@ import com.advancedtelematic.director.data.DbDataType.Assignment
 import com.advancedtelematic.director.data.Messages.{DeviceManifestReported, _}
 import com.advancedtelematic.director.db._
 import com.advancedtelematic.director.manifest.{DeviceManifestProcess, ManifestCompiler}
-import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates}
+import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates, RemoteSessions}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateEvent, DeviceUpdateInFlight}
 import com.advancedtelematic.libtuf.data.ClientCodecs._
-import com.advancedtelematic.libtuf.data.ClientDataType.{OfflineSnapshotRole, OfflineUpdatesRole, SnapshotRole, TimestampRole}
+import com.advancedtelematic.libtuf.data.ClientDataType.{OfflineSnapshotRole, OfflineUpdatesRole, RemoteSessionsRole, SnapshotRole, TimestampRole}
 import com.advancedtelematic.libtuf.data.TufCodecs._
 import com.advancedtelematic.libtuf.data.TufDataType.{RoleType, SignedPayload}
-import com.advancedtelematic.libtuf_server.data.Marshalling.JsonRoleTypeMetaPath
+import com.advancedtelematic.libtuf_server.data.Marshalling.{JsonRoleTypeMetaPath, RoleTypePath}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.Json
@@ -46,11 +46,12 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
   val deviceManifestProcess = new DeviceManifestProcess()
   val deviceRoleGeneration = new DeviceRoleGeneration(keyserverClient)
   val offlineUpdates = new OfflineUpdates(keyserverClient)
+  val remoteSessions = new RemoteSessions(keyserverClient)
 
   def deviceRegisterAllowed(deviceId: DeviceId): Directive0 = {
-    if (ecuReplacementAllowed) {
+    if (ecuReplacementAllowed)
       pass
-    } else {
+    else {
       Directive.Empty.tflatMap { _ =>
         onSuccess(deviceRepository.exists(deviceId)).flatMap {
           case true => failWith(Errors.EcuReplacementDisabled(deviceId))
@@ -110,6 +111,12 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
         path("offline-snapshot.json") {
           get {
             val f = offlineUpdates.findLatestSnapshot(repoId)
+            complete(f)
+          }
+        } ~
+        path("remote-sessions.json") {
+          get {
+            val f = remoteSessions.find(repoId)
             complete(f)
           }
         } ~

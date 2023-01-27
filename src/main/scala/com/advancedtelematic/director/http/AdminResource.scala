@@ -5,34 +5,35 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import cats.syntax.option._
 import com.advancedtelematic.director.data.AdminDataType.{FindImageCount, RegisterDevice}
-import com.advancedtelematic.director.data.ClientDataType.DevicePaginationOps
+import com.advancedtelematic.director.data.ClientDataType.{DevicePaginationOps, _}
 import com.advancedtelematic.director.data.Codecs._
-import com.advancedtelematic.director.db.{AutoUpdateDefinitionRepositorySupport, DeviceRegistration, DeviceRepository, DeviceRepositorySupport, EcuRepositorySupport, RepoNamespaceRepositorySupport}
+import com.advancedtelematic.director.data.DataType.AdminRoleName.AdminRoleNamePathMatcher
+import com.advancedtelematic.director.db._
+import com.advancedtelematic.director.http.PaginationParametersDirectives._
+import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates, RemoteSessions}
 import com.advancedtelematic.libats.codecs.CirceCodecs._
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.EcuIdentifier
+import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport._
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientCodecs._
+import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, RootRole}
 import com.advancedtelematic.libtuf.data.TufCodecs._
-import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetFilename, TargetName, ValidKeyId, ValidTargetFilename}
+import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetFilename, TargetName, ValidKeyId}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import io.circe.Json
 import slick.jdbc.MySQLProfile.api._
-import PaginationParametersDirectives._
-import com.advancedtelematic.director.data.DataType.AdminRoleName.AdminRoleNamePathMatcher
-import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates}
-import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
-import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, RootRole}
-
-import scala.concurrent.{ExecutionContext, Future}
-import com.advancedtelematic.director.data.ClientDataType._
 
 import java.time.Instant
+import scala.concurrent.{ExecutionContext, Future}
 
 case class OfflineUpdateRequest(values: Map[TargetFilename, ClientTargetItem], expiresAt: Option[Instant])
+
+case class RemoteSessionRequest(remoteSessions: Json, previousVersion: Int)
 
 class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient)
                    (implicit val db: Database, val ec: ExecutionContext, messageBusPublisher: MessageBusPublisher)
@@ -51,6 +52,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
   val repositoryCreation = new RepositoryCreation(keyserverClient)
   val deviceRoleGeneration = new DeviceRoleGeneration(keyserverClient)
   val offlineUpdates = new OfflineUpdates(keyserverClient)
+  val remoteSessions = new RemoteSessions(keyserverClient)
 
   private def findDevicesCurrentTarget(ns: Namespace, devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
     val defaultResult = devices.map { deviceId => deviceId -> List.empty[EcuTarget] }.toMap
@@ -172,6 +174,16 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
               complete(f)
             }
           }
+        },
+        (path("remote-sessions") & UserRepoId(ns)) { repoId =>
+          (post & entity(as[RemoteSessionRequest])) { req =>
+            val f = remoteSessions.set(repoId, req.remoteSessions, req.previousVersion)
+            complete(f.map(_.content))
+          }
+        },
+        (path("remote-sessions.json") & UserRepoId(ns)) { repoId =>
+          val f = remoteSessions.find(repoId)
+          complete(f)
         },
         pathPrefix("devices") {
           UserRepoId(ns) { repoId =>

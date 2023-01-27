@@ -2,7 +2,7 @@ package com.advancedtelematic.director.repo
 
 import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.SignedPayloadToDbRole
-import com.advancedtelematic.director.db.DbOfflineUpdatesRepositorySupportSupport
+import com.advancedtelematic.director.db.AdminRolesRepositorySupport
 import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, OfflineSnapshotRole, OfflineUpdatesRole, TufRole, TufRoleOps}
 import com.advancedtelematic.libtuf.data.TufDataType.{JsonSignedPayload, RepoId, RoleType, TargetFilename, TargetName}
 import slick.jdbc.MySQLProfile.api._
@@ -17,7 +17,7 @@ import java.time.{Duration, Instant}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.async.Async._
 
-class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext) extends DbOfflineUpdatesRepositorySupportSupport {
+class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext) extends AdminRolesRepositorySupport {
 
   private val defaultExpire = Duration.ofDays(365)
   // Roles are marked as expired `EXPIRE_AHEAD` before the actual expire date
@@ -38,7 +38,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
     findLatest[OfflineSnapshotRole](repoId, DEFAULT_SNAPSHOTS_NAME)
 
   private def findLatest[T : Codec](repoId: RepoId, name: AdminRoleName)(implicit tufRole: TufRole[T]): Future[JsonSignedPayload] = async {
-    val existing = await(dbAdminRolesRepository.findLatest(repoId, tufRole.roleType, name))
+    val existing = await(adminRolesRepository.findLatest(repoId, tufRole.roleType, name))
 
     // Only refreshes expired snapshots, not updates
     if (existing.isExpired(EXPIRE_AHEAD) && tufRole.roleType == RoleType.OFFLINE_SNAPSHOT) {
@@ -46,7 +46,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
       val newRole = versionedRole.tufRole.refreshRole(versionedRole.role, _ + 1, nextExpires)
 
       val signed = await(sign(repoId, newRole))
-      await(dbAdminRolesRepository.persistAll(signed.toDbAdminRole(repoId, name)))
+      await(adminRolesRepository.persistAll(signed.toDbAdminRole(repoId, name)))
       signed.content
 
     } else
@@ -54,7 +54,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
   }
 
   def set(repoId: RepoId, offlineUpdatesName: AdminRoleName, values: Map[TargetFilename, ClientTargetItem], expireAt: Option[Instant]): Future[Unit] = async {
-    val existing = await(dbAdminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_UPDATES, offlineUpdatesName))
+    val existing = await(adminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_UPDATES, offlineUpdatesName))
 
     val expires = expireAt.getOrElse(nextExpires)
 
@@ -73,13 +73,13 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
   private def nextExpires = Instant.now().plus(defaultExpire)
 
   private def findRole[T : Codec](repoId: RepoId, name: AdminRoleName, version: Int)(implicit tufRole: TufRole[T]): Future[JsonSignedPayload] =
-    dbAdminRolesRepository.findByVersion(repoId, tufRole.roleType, name, version).map(_.content)
+    adminRolesRepository.findByVersion(repoId, tufRole.roleType, name, version).map(_.content)
 
   private def signAndPersistWithSnapshot(repoId: RepoId, name: AdminRoleName, updates: OfflineUpdatesRole, newExpires: Instant): Future[(SignedRole[OfflineUpdatesRole], SignedRole[OfflineSnapshotRole])] = async {
-    val oldSnapshotsO = await(dbAdminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_SNAPSHOT, DEFAULT_SNAPSHOTS_NAME))
+    val oldSnapshotsO = await(adminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_SNAPSHOT, DEFAULT_SNAPSHOTS_NAME))
     val nextVersion = oldSnapshotsO.map(_.version).getOrElse(0) + 1
 
-    val allAdminRoles = await(dbAdminRolesRepository.findAll(repoId, RoleType.OFFLINE_UPDATES))
+    val allAdminRoles = await(adminRolesRepository.findAll(repoId, RoleType.OFFLINE_UPDATES))
 
     val savedRolesMeta = allAdminRoles.map { adminRole =>
       val (_, metaItem) = adminRole.toSignedRole[OfflineUpdatesRole].asMetaRole
@@ -96,7 +96,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
     val newSnapshots = OfflineSnapshotRole(newRolesMeta, expires, version = nextVersion)
     val signedSnapshots = await(sign(repoId, newSnapshots))
 
-    await(dbAdminRolesRepository.persistAll(signedUpdates.toDbAdminRole(repoId, name), signedSnapshots.toDbAdminRole(repoId, DEFAULT_SNAPSHOTS_NAME)))
+    await(adminRolesRepository.persistAll(signedUpdates.toDbAdminRole(repoId, name), signedSnapshots.toDbAdminRole(repoId, DEFAULT_SNAPSHOTS_NAME)))
 
     (signedUpdates, signedSnapshots)
   }

@@ -185,8 +185,6 @@ object DataType {
                                     ecuIdentifiers: Map[EcuIdentifier, TargetItemCustomEcuData],
                                     userDefinedCustom: Option[Json] = None)
 
-  final case class DeviceUpdateTarget(device: DeviceId, correlationId: Option[CorrelationId], updateId: Option[UpdateId], targetVersion: Int, inFlight: Boolean)
-
   final case class DeviceTargetsCustom(correlationId: Option[CorrelationId])
 
   final case class AdminRoleName private(value: String) extends ValidatedString {

@@ -470,12 +470,11 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
   }
 }
 
-trait DbOfflineUpdatesRepositorySupportSupport extends DatabaseSupport {
-  lazy val dbAdminRolesRepository = new DbOfflineUpdatesRepository()
+trait AdminRolesRepositorySupport extends DatabaseSupport {
+  lazy val adminRolesRepository = new AdminRolesRepository()
 }
 
-protected[db] class DbOfflineUpdatesRepository()(implicit val db: Database, val ec: ExecutionContext) {
-
+protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: ExecutionContext) {
 
   import Schema.adminRoles
   import SlickMapping.adminRoleNameMapper
@@ -515,8 +514,29 @@ protected[db] class DbOfflineUpdatesRepository()(implicit val db: Database, val 
       case None => FastFuture.failed(Errors.MissingAdminRole(repoId, name))
     }
 
+  def persistAction(signedRole: DbAdminRole): DBIO[Unit] =
+    adminRoles
+      .filter(_.repoId === signedRole.repoId)
+      .filter(_.name === signedRole.name)
+      .filter(_.role === signedRole.role)
+      .sortBy(_.version.reverse)
+      .forUpdate
+      .result
+      .headOption
+      .flatMap(ensureVersionBumpIsValid(signedRole))
+      .flatMap(_ => adminRoles += signedRole)
+      .map(_ => ())
+
+  private def ensureVersionBumpIsValid(signedRole: DbAdminRole)(oldSignedRole: Option[DbAdminRole]): DBIO[Unit] =
+    oldSignedRole match {
+      case Some(sr) if sr.version != signedRole.version - 1 =>
+        DBIO.failed(Errors.InvalidVersionBumpError(sr.version, signedRole.version, signedRole.role))
+      case _ => DBIO.successful(())
+    }
+
   def persistAll(values: DbAdminRole*): Future[Unit] = db.run {
-    (adminRoles ++= values).handleIntegrityErrors(AlreadyExists).transactionally.map(_ => ())
+    DBIO.sequence(values.map(persistAction)).handleIntegrityErrors(AlreadyExists).map(_ => ()).transactionally
+    // (adminRoles ++= values)..transactionally.map(_ => ())
   }
 }
 
@@ -535,6 +555,7 @@ protected[db] class DbDeviceRoleRepository()(implicit val db: Database, val ec: 
       .filter(_.device === signedRole.device)
       .filter(_.role === signedRole.role)
       .sortBy(_.version.reverse)
+      .forUpdate
       .result
       .headOption
       .flatMap { old =>
@@ -560,8 +581,13 @@ protected[db] class DbDeviceRoleRepository()(implicit val db: Database, val ec: 
         .resultHead(Errors.SignedRoleNotFound[T](deviceId))
     }
 
-  def findLastCreated[T](deviceId: DeviceId)(implicit ev: TufRole[T]): Future[Option[Instant]] = db.run {
-    deviceRoles.filter(_.device === deviceId).filter(_.role === ev.roleType).sortBy(_.createdAt.reverse).map(_.createdAt).result.headOption
+  def findLatestOpt[T](deviceId: DeviceId)(implicit ev: TufRole[T]): Future[Option[DbDeviceRole]] = db.run {
+    deviceRoles
+      .filter(_.device === deviceId)
+      .filter(_.role === ev.roleType)
+      .sortBy(_.version.reverse)
+      .result
+      .headOption
   }
 
   private def ensureVersionBumpIsValid(signedRole: DbDeviceRole)(oldSignedRole: Option[DbDeviceRole]): DBIO[Unit] =
