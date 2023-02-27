@@ -9,7 +9,7 @@ import UptaneDataType._
 import io.circe._
 import AdminDataType._
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
-import com.advancedtelematic.director.http.OfflineUpdateRequest
+import com.advancedtelematic.director.http.{OfflineUpdateRequest, RemoteSessionRequest}
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
@@ -120,8 +120,10 @@ object Codecs {
   implicit val clientEcuTargetCodec: Codec[ClientDataType.EcuTarget] = deriveCodec
   implicit val clientDevicesCurrentTarget: Codec[ClientDataType.DevicesCurrentTarget] = deriveCodec
 
-  implicit val offlineUpdateRequestEncoder: Encoder[OfflineUpdateRequest] = io.circe.generic.semiauto.deriveEncoder[OfflineUpdateRequest]
-  implicit val offlineUpdateRequestDecoder: Decoder[OfflineUpdateRequest] = io.circe.generic.semiauto.deriveDecoder[OfflineUpdateRequest]
+  implicit val offlineUpdateRequestEncoder: Encoder[OfflineUpdateRequest] = deriveEncoder[OfflineUpdateRequest]
+  implicit val offlineUpdateRequestDecoder: Decoder[OfflineUpdateRequest] = deriveDecoder[OfflineUpdateRequest]
+
+  implicit val remoteSessionRequestCodec: Codec[RemoteSessionRequest] = deriveCodec[RemoteSessionRequest]
 
   implicit val assignmentCreateResultCodec: Codec[AssignmentCreateResult] = deriveCodec
 }
