@@ -14,6 +14,7 @@ import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import cats.syntax.either._
+import com.advancedtelematic.director.data.ClientDataType.DeviceEcus
 import io.circe.syntax._
 
 object Codecs {
@@ -119,6 +120,9 @@ object Codecs {
   implicit val clientDeviceCodec: Codec[ClientDataType.Device] = deriveCodec
   implicit val clientEcuTargetCodec: Codec[ClientDataType.EcuTarget] = deriveCodec
   implicit val clientDevicesCurrentTarget: Codec[ClientDataType.DevicesCurrentTarget] = deriveCodec
+  implicit val codecEcuTargetId: Codec[ClientDataType.EcuTargetId] = deriveCodec
+  implicit val codecEcu: Codec[ClientDataType.Ecu] = deriveCodec
+  implicit val codecDeviceEcus: Codec[DeviceEcus] = deriveCodec
 
   implicit val offlineUpdateRequestEncoder: Encoder[OfflineUpdateRequest] = deriveEncoder[OfflineUpdateRequest]
   implicit val offlineUpdateRequestDecoder: Decoder[OfflineUpdateRequest] = deriveDecoder[OfflineUpdateRequest]

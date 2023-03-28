@@ -13,7 +13,7 @@ import com.advancedtelematic.director.http.PaginationParametersDirectives._
 import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates, RemoteSessions}
 import com.advancedtelematic.libats.codecs.CirceCodecs._
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.data.EcuIdentifier
+import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport._
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
@@ -222,6 +222,24 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                   path("hardware_identifiers") {
                     PaginationParameters { (limit, offset) =>
                       val f = ecuRepository.findAllHardwareIdentifiers(ns, offset, limit)
+                      complete(f)
+                    }
+                  },
+                  path("ecus") {
+                    PaginationParameters { (limit, offset) =>
+                      val f = ecuRepository.findAll(ns).map { ecus =>
+                        val s: Set[DeviceEcus] = ecus.map(_.deviceId).toSet.map { deviceId: DeviceId =>
+                          val deviceEcus = ecus.filter(_.deviceId == deviceId).map(_.toClient())
+                          DeviceEcus(deviceId=deviceId, ecus=deviceEcus)
+                        }
+                        val pageLimit = if (s.size < (offset * limit + limit).toInt) {
+                          s.size
+                        } else {
+                          (offset * limit + limit).toInt
+                        }
+                        val page = s.slice((offset*limit).toInt, (offset*limit + limit).toInt)
+                        PaginationResult(page.toSeq, pageLimit, offset, limit)
+                      }
                       complete(f)
                     }
                   }

@@ -414,6 +414,10 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
     Schema.activeEcus.filter(_.deviceId === deviceId).result
   }.map(_.map(e => e.ecuSerial -> e).toMap)
 
+  def findAll(ns: Namespace): Future[Seq[Ecu]] = db.run {
+    Schema.activeEcus.filter(_.namespace === ns).result
+  }
+
   def findEcuWithTargets(devices: Set[DeviceId], hardwareIds: Set[HardwareIdentifier]): Future[Seq[(Ecu, Option[EcuTarget])]] = db.run {
     Schema.activeEcus.filter(_.deviceId.inSet(devices)).filter(_.hardwareId.inSet(hardwareIds))
       .joinLeft(Schema.ecuTargets).on(_.installedTarget === _.id).result

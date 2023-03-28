@@ -222,6 +222,20 @@ object ClientDataType {
   implicit class EcuTargetOps(value: DbDataType.EcuTarget) {
     def toClient(ecuId: EcuIdentifier): EcuTarget = EcuTarget(ecuId, value.checksum, value.filename)
   }
+  final case class EcuTargetId(uuid: UUID) extends UUIDKey
+  final case class Ecu(ecuSerial: EcuIdentifier, deviceId: DeviceId, namespace: Namespace,
+                       hardwareId: HardwareIdentifier, publicKey: TufKey, installedTarget: Option[EcuTargetId])
+  final case class DeviceEcus(deviceId: DeviceId, ecus: Seq[Ecu])
+  implicit class EcuOps(value: DbDataType.Ecu) {
+    def toClient(): Ecu = Ecu(
+      value.ecuSerial,
+      value.deviceId,
+      value.namespace,
+      value.hardwareId,
+      value.publicKey,
+      value.installedTarget.map(t => EcuTargetId(t.uuid))
+    )
+  }
 
   case class DevicesCurrentTarget(values: Map[DeviceId, Seq[EcuTarget]])
 }
