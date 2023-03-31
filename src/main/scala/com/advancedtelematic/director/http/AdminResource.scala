@@ -227,10 +227,13 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                   },
                   path("ecus") {
                     PaginationParameters { (limit, offset) =>
-                      val f = ecuRepository.findAll(ns).map { ecus =>
-                        val s: Set[DeviceEcus] = ecus.map(_.deviceId).toSet.map { deviceId: DeviceId =>
-                          val deviceEcus = ecus.filter(_.deviceId == deviceId).map(_.toClient())
-                          DeviceEcus(deviceId=deviceId, ecus=deviceEcus)
+                      val pagedEcus = ecuRepository.findAll(ns).map { ecuTuples =>
+                        val uniqueDeviceIds = ecuTuples.map(_._1.deviceId).toSet
+                        val s = uniqueDeviceIds.map { deviceId =>
+                          // group ecus which belong to the same device
+                          val deviceEcus = ecuTuples.filter(_._1.deviceId == deviceId)
+                            .map{ case (ecu, primary) => ecu.toClient(primary)}
+                          Map(deviceId -> deviceEcus)
                         }
                         val pageLimit = if (s.size < (offset * limit + limit).toInt) {
                           s.size
@@ -240,7 +243,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                         val page = s.slice((offset*limit).toInt, (offset*limit + limit).toInt)
                         PaginationResult(page.toSeq, pageLimit, offset, limit)
                       }
-                      complete(f)
+                      complete(pagedEcus)
                     }
                   }
                 )
