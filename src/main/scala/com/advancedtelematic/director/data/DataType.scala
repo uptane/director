@@ -217,10 +217,15 @@ object ClientDataType {
     def toClient: PaginationResult[Device] = value.map { case (createdAt, device) => device.toClient(createdAt) }
   }
 
-  case class EcuTarget(ecuId: EcuIdentifier, checksum: Checksum, filename: TargetFilename)
+  case class EcuTarget(ecuId: EcuIdentifier,
+                       checksum: Checksum,
+                       filename: TargetFilename,
+                       hardwareId: HardwareIdentifier,
+                       isPrimary: Boolean)
 
   implicit class EcuTargetOps(value: DbDataType.EcuTarget) {
-    def toClient(ecuId: EcuIdentifier): EcuTarget = EcuTarget(ecuId, value.checksum, value.filename)
+    def toClient(ecuId: EcuIdentifier, hwId: HardwareIdentifier, isPrimary: Boolean): EcuTarget =
+      EcuTarget(ecuId, value.checksum, value.filename, hwId, isPrimary)
   }
   final case class EcuTargetId(uuid: UUID) extends UUIDKey
   final case class Ecu(ecuSerial: EcuIdentifier, deviceId: DeviceId, namespace: Namespace,

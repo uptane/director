@@ -348,8 +348,9 @@ class AdminResourceSpec extends DirectorSpec
     }
   }
 
-  testWithRepo("GET devices returns object containing current targets for devices with known targets") { implicit  ns =>
-    val regDev = registerAdminDeviceOk()
+  testWithRepo("POST to list-installed-targets returns object containing current targets for devices with known targets") { implicit  ns =>
+    val hwId = GenHardwareIdentifier.generate
+    val regDev = registerAdminDeviceOk(Some(hwId))
     val targetUpdate = GenTargetUpdateRequest.generate
     val correlationId = GenCorrelationId.generate
     val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success = true, correlationId = correlationId.some).generate
@@ -370,9 +371,68 @@ class AdminResourceSpec extends DirectorSpec
     Post(apiUri("admin/devices/list-installed-targets"), body).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
 
-      val expected = Map(regDev.deviceId -> List(ClientDataType.EcuTarget(regDev.primary.ecuSerial, targetUpdate.to.checksum, targetUpdate.to.target)))
+      val expected = Map(
+        regDev.deviceId -> List(ClientDataType.EcuTarget(regDev.primary.ecuSerial,
+          targetUpdate.to.checksum,
+          targetUpdate.to.target,
+          hwId,
+          true)))
+      responseAs[ClientDataType.DevicesCurrentTarget].values shouldBe expected
+    }
+  }
+
+  testWithRepo("POST to list-installed-targets returns primary and secondary ecus") { implicit ns =>
+//    val hwId = GenHardwareIdentifier.generate
+    val regDev = registerAdminDeviceWithSecondariesOk()
+    val targetUpdate = GenTargetUpdateRequest.generate
+    val secondaryUpdate = GenTargetUpdateRequest.generate
+    val correlationId = GenCorrelationId.generate
+    val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success = true, correlationId = correlationId.some).generate
+    val deviceManifest = buildPrimaryManifest(regDev.primary, regDev.primaryKey, targetUpdate.to, deviceReport.some)
+    val secondaryManifest = buildSecondaryManifest(
+      regDev.primary.ecuSerial,
+      regDev.primaryKey,
+      regDev.secondaries.head._1,
+      regDev.secondaryKeys.head._2,
+      Map(
+        regDev.primary.ecuSerial -> targetUpdate.to,
+        regDev.secondaries.head._1 -> secondaryUpdate.to
+      )
+    )
+
+    val body = List(regDev.deviceId)
+
+    Post(apiUri("admin/devices/list-installed-targets"), body).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+
+      val expected = Map(regDev.deviceId -> List.empty)
 
       responseAs[ClientDataType.DevicesCurrentTarget].values shouldBe expected
+    }
+
+    putManifestOk(regDev.deviceId, deviceManifest)
+    putManifestOk(regDev.deviceId, secondaryManifest)
+
+    Post(apiUri("admin/devices/list-installed-targets"), body).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+
+      val expectedPrimary =
+          ClientDataType.EcuTarget(
+            regDev.primary.ecuSerial,
+            targetUpdate.to.checksum,
+            targetUpdate.to.target,
+            regDev.primary.hardwareId,
+            true)
+      val expectedSecondary =
+          ClientDataType.EcuTarget(
+            regDev.secondaries.head._2.ecuSerial,
+            secondaryUpdate.to.checksum,
+            secondaryUpdate.to.target,
+            regDev.secondaries.head._2.hardwareId,
+            false,
+          )
+      responseAs[ClientDataType.DevicesCurrentTarget].values(regDev.deviceId) should contain(expectedPrimary)
+      responseAs[ClientDataType.DevicesCurrentTarget].values(regDev.deviceId) should contain(expectedSecondary)
     }
   }
 }

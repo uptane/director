@@ -57,13 +57,18 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
   private def findDevicesCurrentTarget(ns: Namespace, devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
     val defaultResult = devices.map { deviceId => deviceId -> List.empty[EcuTarget] }.toMap
 
-    ecuRepository.currentTargets(ns, devices.toSet).map { existing =>
-      val result = existing.foldLeft(defaultResult) { case (acc, (deviceId, ecuId, target)) =>
-        acc + (deviceId -> (target.toClient(ecuId) +: acc(deviceId)))
-      }
+    for {
+      ecus <- ecuRepository.findAll(ns)
+      d <- ecuRepository.currentTargets(ns, devices.toSet).map { existing =>
 
-      DevicesCurrentTarget(result)
-    }
+        val result = existing.foldLeft (defaultResult) {case (acc, (deviceId, ecuId, target)) =>
+          // get primary and hwid for each ecu
+          val ecu = ecus.find{case (ecu, _) => ecu.deviceId == deviceId && ecu.ecuSerial == ecuId}.get
+          acc + (deviceId -> (target.toClient (ecuId, ecu._1.hardwareId, ecu._2) +: acc (deviceId)))
+        }
+        DevicesCurrentTarget (result)
+      }
+    } yield d
   }
 
   def repoRoute(ns: Namespace): Route =
