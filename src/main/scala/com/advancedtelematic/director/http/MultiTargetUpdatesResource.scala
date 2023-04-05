@@ -37,7 +37,6 @@ class MultiTargetUpdatesResource(extractNamespace: Directive1[Namespace])(implic
           val f = multiTargetUpdates.create(ns, mtuRequest).map {
             StatusCodes.Created -> _
           }
-
           complete(f)
         }
       }

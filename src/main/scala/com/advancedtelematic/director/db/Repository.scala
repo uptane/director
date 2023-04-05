@@ -83,11 +83,17 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
     db.run(existsIO(deviceId))
 
   def markDeleted(namespace: Namespace, deviceId: DeviceId): Future[Unit] = db.run {
-    Schema.allDevices
-      .filter(d => d.namespace === namespace && d.id === deviceId)
-      .map(_.deleted)
-      .update(true)
-      .handleSingleUpdateError(MissingEntity[Device]())
+    for {
+      e <- Schema.allDevices
+        .filter(d => d.namespace === namespace && d.id === deviceId)
+        .map(_.deleted)
+        .update(true)
+        .handleSingleUpdateError(MissingEntity[Device]())
+      _ <- Schema.allEcus
+        .filter(e => e.namespace === namespace && e.deviceId === deviceId)
+        .map(_.deleted)
+        .update(true)
+    } yield e
   }
 
   def findAllDeviceIds(ns: Namespace, offset: Long, limit: Long): Future[PaginationResult[DeviceId]] = db.run {
@@ -413,6 +419,13 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
   def findFor(deviceId: DeviceId): Future[Map[EcuIdentifier, Ecu]] = db.run {
     Schema.activeEcus.filter(_.deviceId === deviceId).result
   }.map(_.map(e => e.ecuSerial -> e).toMap)
+
+  // get ecus for the namespace, the bool means it's a primary ecu
+  def findAll(ns: Namespace): Future[Seq[(Ecu, Boolean)]] = db.run {
+      Schema.activeEcus.filter(_.namespace === ns)
+        .joinLeft(Schema.activeDevices).on(_.ecuSerial === _.primaryEcu)
+        .map{case (ecu, devices) => (ecu, devices.nonEmpty)}.result
+  }
 
   def findEcuWithTargets(devices: Set[DeviceId], hardwareIds: Set[HardwareIdentifier]): Future[Seq[(Ecu, Option[EcuTarget])]] = db.run {
     Schema.activeEcus.filter(_.deviceId.inSet(devices)).filter(_.hardwareId.inSet(hardwareIds))

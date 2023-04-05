@@ -217,10 +217,30 @@ object ClientDataType {
     def toClient: PaginationResult[Device] = value.map { case (createdAt, device) => device.toClient(createdAt) }
   }
 
-  case class EcuTarget(ecuId: EcuIdentifier, checksum: Checksum, filename: TargetFilename)
+  case class EcuTarget(ecuId: EcuIdentifier,
+                       checksum: Checksum,
+                       filename: TargetFilename,
+                       hardwareId: HardwareIdentifier,
+                       isPrimary: Boolean)
 
   implicit class EcuTargetOps(value: DbDataType.EcuTarget) {
-    def toClient(ecuId: EcuIdentifier): EcuTarget = EcuTarget(ecuId, value.checksum, value.filename)
+    def toClient(ecuId: EcuIdentifier, hwId: HardwareIdentifier, isPrimary: Boolean): EcuTarget =
+      EcuTarget(ecuId, value.checksum, value.filename, hwId, isPrimary)
+  }
+  final case class EcuTargetId(uuid: UUID) extends UUIDKey
+  final case class Ecu(ecuSerial: EcuIdentifier, deviceId: DeviceId, namespace: Namespace,
+                       hardwareId: HardwareIdentifier, publicKey: TufKey, installedTarget: Option[EcuTargetId], primary: Boolean)
+  final case class DeviceEcus(deviceId: DeviceId, ecus: Seq[Ecu])
+  implicit class EcuOps(value: DbDataType.Ecu) {
+    def toClient(primary: Boolean = false): Ecu = Ecu(
+      value.ecuSerial,
+      value.deviceId,
+      value.namespace,
+      value.hardwareId,
+      value.publicKey,
+      value.installedTarget.map(t => EcuTargetId(t.uuid)),
+      primary
+    )
   }
 
   case class DevicesCurrentTarget(values: Map[DeviceId, Seq[EcuTarget]])

@@ -2,12 +2,12 @@ package com.advancedtelematic.director.http
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option._
 import cats.syntax.show._
 import com.advancedtelematic.director.data.ClientDataType
 import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, FindImageCount, RegisterDevice}
+import com.advancedtelematic.director.data.ClientDataType.DeviceEcus
 import com.advancedtelematic.director.data.Codecs._
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.GeneratorOps._
@@ -147,6 +147,54 @@ class AdminResourceSpec extends DirectorSpec
       responseAs[TufKey] shouldBe dev.primaryKey.pubkey
     }
   }
+
+  testWithRepo("devices/ecus gives a list of devices and it's ecus when single ecu") { implicit ns =>
+    val dev = registerAdminDeviceOk()
+    val targetUpdate = GenTargetUpdate.generate
+
+    putManifestOk(dev.deviceId, buildPrimaryManifest(dev.primary, dev.primaryKey, targetUpdate))
+
+    Get(apiUri(s"admin/devices/ecus")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[PaginationResult[Map[DeviceId, Seq[ClientDataType.Ecu]]]]
+      resp.total shouldBe 1
+      resp.values should have size (1)
+      resp.values.head(dev.deviceId).size shouldBe 1
+      resp.values.head(dev.deviceId).head.hardwareId shouldBe dev.primary.hardwareId
+      resp.values.head(dev.deviceId).head.ecuSerial shouldBe dev.primary.ecuSerial
+      resp.values.head(dev.deviceId).head.primary shouldBe true
+      resp.values.head(dev.deviceId).head.installedTarget.nonEmpty shouldBe true
+    }
+  }
+
+  testWithRepo("devices/ecus gives a list of devices and it's ecus when multiple ecus") { implicit ns =>
+    val dev = registerAdminDeviceWithSecondariesOk()
+    val secondaryEcu = dev.ecus.filter{case (ecuId, _) => ecuId != dev.primary.ecuSerial}.head._2
+    val targetUpdate = GenTargetUpdate.generate
+
+    putManifestOk(dev.deviceId, buildPrimaryManifest(dev.primary, dev.primaryKey, targetUpdate))
+
+    Get(apiUri(s"admin/devices/ecus")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[PaginationResult[Map[DeviceId, Seq[ClientDataType.Ecu]]]]
+      resp.total shouldBe 1
+      resp.values should have size (1)
+      resp.values.head(dev.deviceId).size shouldBe 2
+      resp.values.head(dev.deviceId).head.hardwareId shouldBe dev.primary.hardwareId
+      resp.values.head(dev.deviceId).head.ecuSerial shouldBe dev.primary.ecuSerial
+      resp.values.head(dev.deviceId).head.primary shouldBe true
+      resp.values.head(dev.deviceId).head.installedTarget.nonEmpty shouldBe true
+
+      resp.values.head(dev.deviceId)(1).hardwareId shouldBe secondaryEcu.hardwareId
+      resp.values.head(dev.deviceId)(1).ecuSerial shouldBe secondaryEcu.ecuSerial
+      resp.values.head(dev.deviceId)(1).primary shouldBe false
+      resp.values.head(dev.deviceId)(1).installedTarget.nonEmpty shouldBe false
+    }
+  }
+
+
+
+
 
   testWithRepo("devices/id gives a list of ecu responses") { implicit ns =>
     val dev = registerAdminDeviceOk()
@@ -300,8 +348,9 @@ class AdminResourceSpec extends DirectorSpec
     }
   }
 
-  testWithRepo("GET devices returns object containing current targets for devices with known targets") { implicit  ns =>
-    val regDev = registerAdminDeviceOk()
+  testWithRepo("POST to list-installed-targets returns object containing current targets for devices with known targets") { implicit  ns =>
+    val hwId = GenHardwareIdentifier.generate
+    val regDev = registerAdminDeviceOk(Some(hwId))
     val targetUpdate = GenTargetUpdateRequest.generate
     val correlationId = GenCorrelationId.generate
     val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success = true, correlationId = correlationId.some).generate
@@ -322,9 +371,68 @@ class AdminResourceSpec extends DirectorSpec
     Post(apiUri("admin/devices/list-installed-targets"), body).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
 
-      val expected = Map(regDev.deviceId -> List(ClientDataType.EcuTarget(regDev.primary.ecuSerial, targetUpdate.to.checksum, targetUpdate.to.target)))
+      val expected = Map(
+        regDev.deviceId -> List(ClientDataType.EcuTarget(regDev.primary.ecuSerial,
+          targetUpdate.to.checksum,
+          targetUpdate.to.target,
+          hwId,
+          true)))
+      responseAs[ClientDataType.DevicesCurrentTarget].values shouldBe expected
+    }
+  }
+
+  testWithRepo("POST to list-installed-targets returns primary and secondary ecus") { implicit ns =>
+//    val hwId = GenHardwareIdentifier.generate
+    val regDev = registerAdminDeviceWithSecondariesOk()
+    val targetUpdate = GenTargetUpdateRequest.generate
+    val secondaryUpdate = GenTargetUpdateRequest.generate
+    val correlationId = GenCorrelationId.generate
+    val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success = true, correlationId = correlationId.some).generate
+    val deviceManifest = buildPrimaryManifest(regDev.primary, regDev.primaryKey, targetUpdate.to, deviceReport.some)
+    val secondaryManifest = buildSecondaryManifest(
+      regDev.primary.ecuSerial,
+      regDev.primaryKey,
+      regDev.secondaries.head._1,
+      regDev.secondaryKeys.head._2,
+      Map(
+        regDev.primary.ecuSerial -> targetUpdate.to,
+        regDev.secondaries.head._1 -> secondaryUpdate.to
+      )
+    )
+
+    val body = List(regDev.deviceId)
+
+    Post(apiUri("admin/devices/list-installed-targets"), body).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+
+      val expected = Map(regDev.deviceId -> List.empty)
 
       responseAs[ClientDataType.DevicesCurrentTarget].values shouldBe expected
+    }
+
+    putManifestOk(regDev.deviceId, deviceManifest)
+    putManifestOk(regDev.deviceId, secondaryManifest)
+
+    Post(apiUri("admin/devices/list-installed-targets"), body).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+
+      val expectedPrimary =
+          ClientDataType.EcuTarget(
+            regDev.primary.ecuSerial,
+            targetUpdate.to.checksum,
+            targetUpdate.to.target,
+            regDev.primary.hardwareId,
+            true)
+      val expectedSecondary =
+          ClientDataType.EcuTarget(
+            regDev.secondaries.head._2.ecuSerial,
+            secondaryUpdate.to.checksum,
+            secondaryUpdate.to.target,
+            regDev.secondaries.head._2.hardwareId,
+            false,
+          )
+      responseAs[ClientDataType.DevicesCurrentTarget].values(regDev.deviceId) should contain(expectedPrimary)
+      responseAs[ClientDataType.DevicesCurrentTarget].values(regDev.deviceId) should contain(expectedSecondary)
     }
   }
 }

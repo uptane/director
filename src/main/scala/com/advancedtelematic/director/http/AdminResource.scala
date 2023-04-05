@@ -13,7 +13,7 @@ import com.advancedtelematic.director.http.PaginationParametersDirectives._
 import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates, RemoteSessions}
 import com.advancedtelematic.libats.codecs.CirceCodecs._
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.data.EcuIdentifier
+import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport._
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
@@ -57,13 +57,18 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
   private def findDevicesCurrentTarget(ns: Namespace, devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
     val defaultResult = devices.map { deviceId => deviceId -> List.empty[EcuTarget] }.toMap
 
-    ecuRepository.currentTargets(ns, devices.toSet).map { existing =>
-      val result = existing.foldLeft(defaultResult) { case (acc, (deviceId, ecuId, target)) =>
-        acc + (deviceId -> (target.toClient(ecuId) +: acc(deviceId)))
-      }
+    for {
+      ecus <- ecuRepository.findAll(ns)
+      d <- ecuRepository.currentTargets(ns, devices.toSet).map { existing =>
 
-      DevicesCurrentTarget(result)
-    }
+        val result = existing.foldLeft (defaultResult) {case (acc, (deviceId, ecuId, target)) =>
+          // get primary and hwid for each ecu
+          val ecu = ecus.find{case (ecu, _) => ecu.deviceId == deviceId && ecu.ecuSerial == ecuId}.get
+          acc + (deviceId -> (target.toClient (ecuId, ecu._1.hardwareId, ecu._2) +: acc (deviceId)))
+        }
+        DevicesCurrentTarget (result)
+      }
+    } yield d
   }
 
   def repoRoute(ns: Namespace): Route =
@@ -223,6 +228,27 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                     PaginationParameters { (limit, offset) =>
                       val f = ecuRepository.findAllHardwareIdentifiers(ns, offset, limit)
                       complete(f)
+                    }
+                  },
+                  path("ecus") {
+                    PaginationParameters { (limit, offset) =>
+                      val pagedEcus = ecuRepository.findAll(ns).map { ecuTuples =>
+                        val uniqueDeviceIds = ecuTuples.map(_._1.deviceId).toSet
+                        val s = uniqueDeviceIds.map { deviceId =>
+                          // group ecus which belong to the same device
+                          val deviceEcus = ecuTuples.filter(_._1.deviceId == deviceId)
+                            .map{ case (ecu, primary) => ecu.toClient(primary)}
+                          Map(deviceId -> deviceEcus)
+                        }
+                        val pageLimit = if (s.size < (offset * limit + limit).toInt) {
+                          s.size
+                        } else {
+                          (offset * limit + limit).toInt
+                        }
+                        val page = s.slice((offset*limit).toInt, (offset*limit + limit).toInt)
+                        PaginationResult(page.toSeq, pageLimit, offset, limit)
+                      }
+                      complete(pagedEcus)
                     }
                   }
                 )
