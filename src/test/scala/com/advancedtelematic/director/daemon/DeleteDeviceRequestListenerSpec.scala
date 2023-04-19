@@ -6,6 +6,7 @@ import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, RouteR
 import com.advancedtelematic.director.data.ClientDataType
 import com.advancedtelematic.director.data.Codecs._
 import com.advancedtelematic.libats.data.PaginationResult
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
@@ -15,7 +16,7 @@ class DeleteDeviceRequestListenerSpec extends DirectorSpec
 
   val listener = new DeleteDeviceRequestListener()
 
-  testWithRepo("a device can be (marked) deleted") { implicit ns =>
+  testWithRepo("a device and it's ecus can be (marked) deleted") { implicit ns =>
     val dev = registerAdminDeviceOk()
     val hardwareId = dev.ecus.values.head.hardwareId
 
@@ -25,6 +26,13 @@ class DeleteDeviceRequestListenerSpec extends DirectorSpec
       page.total should equal(1)
       page.values.head.id shouldBe dev.deviceId
     }
+    Get(apiUri(s"admin/devices/ecus")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val page = responseAs[PaginationResult[Map[DeviceId, Seq[ClientDataType.Ecu]]]]
+      page.total should equal(1)
+      page.values.head(dev.deviceId).head.hardwareId shouldBe hardwareId
+      page.values.head(dev.deviceId).head.primary shouldBe true
+    }
 
     listener(DeleteDeviceRequest(ns, dev.deviceId)).futureValue
 
@@ -33,6 +41,11 @@ class DeleteDeviceRequestListenerSpec extends DirectorSpec
       val page = responseAs[PaginationResult[ClientDataType.Device]]
       page.total should equal(0)
       page.values shouldBe 'empty
+    }
+    Get(apiUri(s"admin/devices/ecus")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val page = responseAs[PaginationResult[Map[DeviceId, Seq[ClientDataType.Ecu]]]]
+      page.total should equal(0)
     }
   }
 }
