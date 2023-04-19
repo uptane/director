@@ -516,6 +516,7 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
     adminRoles
       .filter(_.repoId === repoId)
       .filter(_.role === role)
+      .filter(_.name === name)
       .filter(_.version === version)
       .result
       .failIfNotSingle(Errors.MissingAdminRole(repoId, name))
