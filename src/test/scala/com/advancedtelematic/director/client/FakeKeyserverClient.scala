@@ -143,4 +143,6 @@ class FakeKeyserverClient extends KeyserverClient {
     val newRootRole = RootRole(roles = newRoles, keys = newKeys, version = rootRole.version + 1, expires = rootRole.expires.plus(1, ChronoUnit.DAYS))
     rootRoles.put(repoId, newRootRole)
   }
+
+  override def addRemoteSessionsRole(repoId: RepoId): Future[Unit] = throw new NotImplementedError("not implemented for FakeKeyserverClient")
 }
