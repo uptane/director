@@ -16,8 +16,8 @@ libraryDependencies ++= {
   val akkaHttpV = "10.2.10"
   val scalaTestV = "3.2.16"
   val bouncyCastleV = "1.73"
-  val tufV = "2.1.0"
-  val libatsV = "2.0.11"
+  val tufV = "2.2.0"
+  val libatsV = "2.1.1"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -43,7 +43,8 @@ libraryDependencies ++= {
     "org.bouncycastle" % "bcprov-jdk18on" % bouncyCastleV,
     "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleV,
 
-    "org.scala-lang.modules" %% "scala-async" % "0.10.0",
+    "org.scala-lang.modules" %% "scala-async" % "1.0.1",
+    "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
 
     "org.mariadb.jdbc" % "mariadb-java-client" % "3.1.4"
   )
@@ -54,7 +55,8 @@ Compile / scalacOptions ++= Seq(
     "-feature",
   "-Xlog-reflective-calls",
   "-Yno-adapted-args",
-  "-Ypartial-unification"
+  "-Ypartial-unification",
+  "-Xasync",
 )
 
 Test / testOptions ++= Seq(
