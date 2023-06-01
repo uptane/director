@@ -17,7 +17,7 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf.data.TufCodecs._
-import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetFilename, TargetName, ValidKeyId, ValidTargetFilename}
+import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetFilename, TargetName, ValidKeyId}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import slick.jdbc.MySQLProfile.api._
@@ -79,7 +79,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
         path("root.json") {
           complete(fetchRoot(ns, version = None))
         } ~
-        path(IntNumber ~ ".root.json") { version ⇒
+        path(IntNumber ~ ".root.json") { version =>
           complete(fetchRoot(ns, version.some))
         }
       } ~
@@ -200,7 +200,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                 concat(
                   pathEnd {
                     /** if you leave this parameter (or misspell it) out you'll land in [[LegacyRoutes.route]] */
-                    parameter('primaryHardwareId.as[HardwareIdentifier]) { hardwareId =>
+                    parameter(Symbol("primaryHardwareId").as[HardwareIdentifier]) { hardwareId =>
                       PaginationParameters { (limit, offset) =>
                         val f = deviceRepository.findDevices(ns, hardwareId, offset, limit).map(_.toClient)
                         complete(f)

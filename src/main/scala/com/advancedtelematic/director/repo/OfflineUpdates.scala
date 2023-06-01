@@ -4,12 +4,11 @@ import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.SignedPayloadToDbRole
 import com.advancedtelematic.director.db.DbOfflineUpdatesRepositorySupportSupport
 import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, OfflineSnapshotRole, OfflineUpdatesRole, TufRole, TufRoleOps}
-import com.advancedtelematic.libtuf.data.TufDataType.{JsonSignedPayload, RepoId, RoleType, TargetFilename, TargetName}
+import com.advancedtelematic.libtuf.data.TufDataType.{JsonSignedPayload, RepoId, RoleType, TargetFilename}
 import slick.jdbc.MySQLProfile.api._
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
-import io.circe.syntax._
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole._
 import io.circe.Codec
 
@@ -72,7 +71,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
 
   private def nextExpires = Instant.now().plus(defaultExpire)
 
-  private def findRole[T : Codec](repoId: RepoId, name: AdminRoleName, version: Int)(implicit tufRole: TufRole[T]): Future[JsonSignedPayload] =
+  private def findRole[T](repoId: RepoId, name: AdminRoleName, version: Int)(implicit tufRole: TufRole[T]): Future[JsonSignedPayload] =
     dbAdminRolesRepository.findByVersion(repoId, tufRole.roleType, name, version).map(_.content)
 
   private def signAndPersistWithSnapshot(repoId: RepoId, name: AdminRoleName, updates: OfflineUpdatesRole, newExpires: Instant): Future[(SignedRole[OfflineUpdatesRole], SignedRole[OfflineSnapshotRole])] = async {

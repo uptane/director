@@ -16,7 +16,6 @@ import io.circe.syntax._
 import org.scalatest.LoneElement._
 
 import java.time.Instant
-import scala.language.higherKinds
 
 class ManifestCompilerSpec extends DirectorSpec {
 
