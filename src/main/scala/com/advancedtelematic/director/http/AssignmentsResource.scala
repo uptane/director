@@ -12,7 +12,6 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
-import com.advancedtelematic.libats.messaging_datatype.MessageCodecs._
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateAssigned, DeviceUpdateEvent}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import slick.jdbc.MySQLProfile.api.Database
@@ -44,7 +43,7 @@ class AssignmentsResource(extractNamespace: Directive1[Namespace])
 
   val route = extractNamespace { ns =>
     pathPrefix("assignments") {
-      (path("devices") & parameter('mtuId.as[UpdateId]) & parameter('ids.as(CsvSeq[DeviceId]))) { (mtuId, deviceIds) =>
+      (path("devices") & parameter(Symbol("mtuId").as[UpdateId]) & parameter(Symbol("ids").as(CsvSeq[DeviceId]))) { (mtuId, deviceIds) =>
         val f = deviceAssignments.findAffectedDevices(ns, deviceIds, mtuId)
         complete(f)
       } ~

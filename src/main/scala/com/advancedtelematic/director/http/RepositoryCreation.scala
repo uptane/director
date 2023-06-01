@@ -5,7 +5,6 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libtuf.data.TufDataType.{Ed25519KeyType, RepoId}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import slick.jdbc.MySQLProfile.api._
-import com.advancedtelematic.libats.http.UUIDKeyAkka._
 
 import scala.concurrent.{ExecutionContext, Future}
 

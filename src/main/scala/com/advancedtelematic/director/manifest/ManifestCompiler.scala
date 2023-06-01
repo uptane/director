@@ -2,7 +2,7 @@ package com.advancedtelematic.director.manifest
 
 import com.advancedtelematic.director.data.UptaneDataType.Image
 import com.advancedtelematic.director.data.DbDataType.{Assignment, DeviceKnownState, EcuTarget, EcuTargetId}
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom}
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest}
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.data.DataType.{Checksum, HashMethod, Namespace}
 import com.advancedtelematic.libats.data.EcuIdentifier
@@ -73,13 +73,13 @@ object ManifestCompiler {
 
       if(existingEcuTarget.isEmpty) {
         _log.debug(s"$installedImage not found in ${knownStatus.ecuTargets}")
-        EcuTarget(ns, EcuTargetId.generate, installedImage.filepath, installedImage.fileinfo.length, Checksum(HashMethod.SHA256, installedImage.fileinfo.hashes.sha256), installedImage.fileinfo.hashes.sha256, uri = None)
+        EcuTarget(ns, EcuTargetId.generate(), installedImage.filepath, installedImage.fileinfo.length, Checksum(HashMethod.SHA256, installedImage.fileinfo.hashes.sha256), installedImage.fileinfo.hashes.sha256, uri = None)
       } else
         existingEcuTarget.get
 
     }.map(e => e.id -> e).toMap
 
-    val statusInManifest = manifest.ecu_version_manifests.mapValues { ecuManifest =>
+    val statusInManifest = manifest.ecu_version_manifests.view.mapValues { ecuManifest =>
       val newTargetO = findEcuTargetByImage(newEcuTargets, ecuManifest.signed.installed_image)
       newTargetO.map(_.id)
     }.filter(_._2.isDefined)

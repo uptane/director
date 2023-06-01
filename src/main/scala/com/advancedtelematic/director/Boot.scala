@@ -7,7 +7,6 @@ import java.security.Security
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.{Directives, Route}
-import akka.http.scaladsl.settings.ParserSettings
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
 import com.advancedtelematic.libats.http.LogDirectives.logResponseMetrics
@@ -19,7 +18,7 @@ import com.advancedtelematic.libats.messaging.MessageBus
 import com.advancedtelematic.libats.slick.db.{CheckMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.{DatabaseMetrics, DbHealthResource}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverHttpClient
-import com.advancedtelematic.metrics.prometheus.metrics.prometheus.PrometheusMetricsSupport
+import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.advancedtelematic.metrics.{AkkaHttpConnectionMetrics, AkkaHttpRequestMetrics, MetricsSupport}
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config

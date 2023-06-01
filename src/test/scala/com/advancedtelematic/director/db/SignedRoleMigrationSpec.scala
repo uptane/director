@@ -9,7 +9,6 @@ import com.advancedtelematic.libtuf.data.ClientDataType.SnapshotRole
 
 import scala.async.Async.{async, await}
 import scala.concurrent.ExecutionContext
-import org.scalatest.funsuite.AsyncFunSuite
 
 class SignedRoleMigrationSpec extends DirectorSpec with MysqlDatabaseSpec {
 

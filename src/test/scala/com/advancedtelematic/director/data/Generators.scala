@@ -5,7 +5,7 @@ import org.scalacheck.Gen
 import GeneratorOps._
 import akka.http.scaladsl.model.Uri
 import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, RegisterEcu, TargetUpdate, TargetUpdateRequest}
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationItem, InstallationReport, InstallationReportEntity}
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationItem, InstallationReport}
 import com.advancedtelematic.director.data.UptaneDataType._
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, MultiTargetUpdateId, ResultCode, ResultDescription, ValidChecksum}
 import com.advancedtelematic.libats.messaging_datatype.DataType.InstallationResult
@@ -13,14 +13,13 @@ import com.advancedtelematic.libtuf.data.TufDataType.{Ed25519KeyType, HardwareId
 import eu.timepit.refined.api.Refined
 import io.circe.Json
 import Codecs._
-import com.advancedtelematic.libats.data.DataType.HashMethod.HashMethod
 import com.advancedtelematic.libtuf.data.ClientDataType.ClientTargetItem
 
 trait Generators {
   lazy val GenHexChar: Gen[Char] = Gen.oneOf(('0' to '9') ++ ('a' to 'f'))
 
   lazy val GenEcuIdentifier: Gen[EcuIdentifier] =
-    Gen.choose(10, 64).flatMap(GenStringByCharN(_, Gen.alphaChar)).map(EcuIdentifier.from(_).right.get)
+    Gen.choose(10, 64).flatMap(GenStringByCharN(_, Gen.alphaChar)).map(EcuIdentifier.from(_).toOption.get)
 
   lazy val GenHardwareIdentifier: Gen[HardwareIdentifier] =
     Gen.choose(10, 200).flatMap(GenRefinedStringByCharN(_, Gen.alphaChar))
@@ -93,7 +92,7 @@ trait Generators {
 
   lazy val GenTufKeyPair: Gen[TufKeyPair] =
     GenKeyType.map { kt =>
-      kt.crypto.generateKeyPair
+      kt.crypto.generateKeyPair()
     }
 
   lazy val GenTufKey: Gen[TufKey] =

@@ -11,7 +11,6 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.TufDataType.{SignedPayload, TufKey}
 import io.circe.Decoder.Result
 import io.circe.{Decoder, Json}
-import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
 
 import scala.async.Async._
@@ -78,7 +77,7 @@ class DeviceManifestProcess()(implicit val db: Database, val ec: ExecutionContex
 
   def validateManifestSignatures(ns: Namespace, deviceId: DeviceId, json: SignedPayload[Json]): Future[ValidatedNel[String, DeviceManifest]] = async {
     val primaryValidation = await(validateManifestPrimarySignatures(ns, deviceId, json))
-    val deviceEcus = await(ecuRepository.findFor(deviceId)).mapValues(_.publicKey)
+    val deviceEcus = await(ecuRepository.findFor(deviceId)).view.mapValues(_.publicKey).toMap
 
     primaryValidation.andThen { manifest =>
       validateManifestSecondarySignatures(deviceEcus, manifest)

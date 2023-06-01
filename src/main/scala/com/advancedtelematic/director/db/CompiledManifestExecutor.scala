@@ -8,10 +8,9 @@ import com.advancedtelematic.libats.slick.db.SlickAnyVal._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric._
 import org.slf4j.LoggerFactory
-import slick.dbio.DBIOAction.successful
 import slick.jdbc.MySQLProfile.api._
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 class CompiledManifestExecutor()(implicit val db: Database, val ec: ExecutionContext) {

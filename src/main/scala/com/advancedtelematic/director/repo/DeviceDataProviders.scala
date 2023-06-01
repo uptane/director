@@ -70,15 +70,17 @@ protected [repo] class DeviceTargetProvider(ns: Namespace, deviceId: DeviceId)(i
 
     val targetsByFilename = await(targetsByFilenameF)
       .groupBy { case (filename, _) => filename }
+      .view
       .mapValues(_.map(_._2))
+      .toMap
 
-    val items = targetsByFilename.mapValues { filenameItems =>
+    val items = targetsByFilename.view.mapValues { filenameItems =>
       val targetItem = filenameItems.reduce { _ + _ }
-      val hwIds = ecus.filterKeys(targetItem.ecuIds.contains).mapValues(h => TargetItemCustomEcuData(h))
+      val hwIds = ecus.view.filterKeys(targetItem.ecuIds.contains).mapValues(h => TargetItemCustomEcuData(h)).toMap
       val custom = TargetItemCustom(targetItem.uri, hwIds)
 
       ClientTargetItem(targetItem.hashes, targetItem.length, Option(custom.asJson))
-    }
+    }.toMap
 
     TargetItems(items, custom = maybeCorrelationId.map(c => DeviceTargetsCustom(Option(c))))
   }

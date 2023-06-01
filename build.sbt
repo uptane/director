@@ -1,10 +1,8 @@
 name := "director-v2"
 organization := "io.github.uptane"
-scalaVersion := "2.12.17"
+scalaVersion := "2.13.10"
 
-scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-Ypartial-unification")
-
-resolvers += "Artifactory Realm" at "https://artifactory-horw.int.toradex.com/artifactory/ota-sbt-dev-horw"
+scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused")
 
 resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
 resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
@@ -16,7 +14,7 @@ libraryDependencies ++= {
   val akkaHttpV = "10.2.10"
   val scalaTestV = "3.2.16"
   val bouncyCastleV = "1.73"
-  val tufV = "2.2.0"
+  val tufV = "3.0.0"
   val libatsV = "2.1.1"
 
   Seq(
@@ -49,15 +47,6 @@ libraryDependencies ++= {
     "org.mariadb.jdbc" % "mariadb-java-client" % "3.1.4"
   )
 }
-
-Compile / scalacOptions ++= Seq(
-  "-deprecation",
-    "-feature",
-  "-Xlog-reflective-calls",
-  "-Yno-adapted-args",
-  "-Ypartial-unification",
-  "-Xasync",
-)
 
 Test / testOptions ++= Seq(
   Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),

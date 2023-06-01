@@ -43,7 +43,7 @@ trait AdminResources {
   self: DirectorSpec with RouteResourceSpec with NamespacedTests =>
 
   def registerAdminDeviceWithSecondariesOk()(implicit ns: Namespace, pos: Position): RegisterDeviceResult = {
-    val device = DeviceId.generate
+    val device = DeviceId.generate()
     val (regPrimaryEcu, primaryEcuKey) = GenRegisterEcuKeys.generate
     val (regSecondaryEcu, secondaryEcuKey) = GenRegisterEcuKeys.generate
 
@@ -61,7 +61,7 @@ trait AdminResources {
   }
 
   def registerAdminDeviceOk(hardwareIdentifier: Option[HardwareIdentifier] = None)(implicit ns: Namespace, pos: Position): RegisterDeviceResult = {
-    val device = DeviceId.generate
+    val device = DeviceId.generate()
     val (regEcu, ecuKey) = GenRegisterEcuKeys.generate
 
     val hwId = hardwareIdentifier.getOrElse(regEcu.hardware_identifier)

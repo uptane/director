@@ -9,16 +9,15 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.Codec
 import org.scalactic.source.Position
-import com.advancedtelematic.director.data.Generators._
-import com.advancedtelematic.director.data.GeneratorOps._
-import cats.syntax.show._
-import cats.syntax.option._
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import com.advancedtelematic.director.data.Codecs._
-import com.advancedtelematic.director.data.DataType._
-import com.advancedtelematic.libtuf.data.TufCodecs._
+import com.advancedtelematic.director.data.GeneratorOps.*
+import cats.syntax.show.*
+import cats.syntax.option.*
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.advancedtelematic.director.data.Codecs.*
+import com.advancedtelematic.libtuf.data.TufCodecs.*
+
 
 trait DeviceResources {
   self: DirectorSpec with ResourceSpec with RouteResourceSpec =>
@@ -37,20 +36,20 @@ trait DeviceResources {
     deviceId
   }
 
-  def getDeviceRole[T : Encoder : Decoder](deviceId: DeviceId, version: Option[Int] = None)
-                                          (implicit namespace: Namespace, pos: Position, tufRole: TufRole[T]): RouteTestResult = {
-    val versionStr = version.map(_ + ".").getOrElse("")
+  def getDeviceRole[T](deviceId: DeviceId, version: Option[Int] = None)
+                                          (implicit namespace: Namespace, tufRole: TufRole[T]): RouteTestResult = {
+    val versionStr = version.map(v => s"$v.").getOrElse("")
     Get(apiUri(s"device/${deviceId.show}/$versionStr${tufRole.metaPath.value}")).namespaced ~> routes
   }
 
-  def getDeviceRoleOk[T : Encoder : Decoder](deviceId: DeviceId, version: Option[Int] = None)(implicit namespace: Namespace, pos: Position, tufRole: TufRole[T]): SignedPayload[T] = {
+  def getDeviceRoleOk[T : Codec](deviceId: DeviceId, version: Option[Int] = None)(implicit namespace: Namespace, pos: Position, tufRole: TufRole[T]): SignedPayload[T] = {
     getDeviceRole[T](deviceId, version) ~> check {
       status shouldBe StatusCodes.OK
       responseAs[SignedPayload[T]]
     }
   }
 
-  def putManifest[T](deviceId: DeviceId, manifest: SignedPayload[DeviceManifest])(fn: => T)(implicit ns: Namespace, pos: Position)  = {
+  def putManifest[T](deviceId: DeviceId, manifest: SignedPayload[DeviceManifest])(fn: => T)(implicit ns: Namespace): T = {
     Put(apiUri(s"device/${deviceId.show}/manifest"), manifest).namespaced ~> routes ~> check(fn)
   }
 

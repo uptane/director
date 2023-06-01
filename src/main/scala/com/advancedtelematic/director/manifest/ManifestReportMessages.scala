@@ -11,7 +11,7 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceUpdateComp
 object ManifestReportMessages {
 
   private def fromInstallationReport(namespace: Namespace, deviceId: DeviceId, deviceManifest: DeviceManifest): Option[DeviceUpdateCompleted] = {
-    val reportedImages = deviceManifest.ecu_version_manifests.mapValues { ecuManifest =>
+    val reportedImages = deviceManifest.ecu_version_manifests.view.mapValues { ecuManifest =>
       ecuManifest.signed.installed_image.filepath
     }
 
