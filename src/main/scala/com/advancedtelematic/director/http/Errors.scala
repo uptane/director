@@ -6,7 +6,7 @@ import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.{EcuTargetId, HardwareUpdate}
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.{EcuIdentifier, ErrorCode}
-import com.advancedtelematic.libats.http.Errors.{Error, JsonError, MissingEntityId, RawError}
+import com.advancedtelematic.libats.http.Errors.{Error, MissingEntityId, RawError}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
 import com.advancedtelematic.libtuf.data.TufDataType.{RepoId, TargetFilename}

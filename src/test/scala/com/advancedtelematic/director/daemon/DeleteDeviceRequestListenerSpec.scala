@@ -40,7 +40,7 @@ class DeleteDeviceRequestListenerSpec extends DirectorSpec
       status shouldBe StatusCodes.OK
       val page = responseAs[PaginationResult[ClientDataType.Device]]
       page.total should equal(0)
-      page.values shouldBe 'empty
+      page.values shouldBe Symbol("empty")
     }
     Get(apiUri(s"admin/devices/ecus")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK

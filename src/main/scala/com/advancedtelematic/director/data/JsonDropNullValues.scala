@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.data
 
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.{Encoder, Json}
 
 // TODO: Remove after https://github.com/circe/circe/pull/983/files is in the new circe release
 // TODO: Move to libats

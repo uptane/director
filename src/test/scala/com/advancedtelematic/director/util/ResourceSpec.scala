@@ -4,7 +4,6 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.advancedtelematic.director.client.FakeKeyserverClient
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.test.MysqlDatabaseSpec
 import com.advancedtelematic.libtuf.crypt.TufCrypto
 import com.advancedtelematic.libtuf.data.TufDataType.{SignedPayload, TufKeyPair}
@@ -12,14 +11,14 @@ import io.circe.Encoder
 import org.scalatest.Suite
 import com.advancedtelematic.director.Settings
 import com.advancedtelematic.director.data.AdminDataType.TargetUpdate
-import com.advancedtelematic.director.data.UptaneDataType._
+import com.advancedtelematic.director.data.UptaneDataType.*
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.DeviceRequest
 import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationReport, InstallationReportEntity, MissingInstallationReport}
 import com.advancedtelematic.libats.data.EcuIdentifier
-import com.advancedtelematic.director.data.Codecs._
+import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
-import com.typesafe.config.{Config, ConfigFactory}
+import com.advancedtelematic.libats.messaging.test.MockMessageBus
 
 trait ResourceSpec extends ScalatestRouteTest with MysqlDatabaseSpec with Settings {
   self: Suite =>
@@ -28,7 +27,7 @@ trait ResourceSpec extends ScalatestRouteTest with MysqlDatabaseSpec with Settin
 
   val defaultNs = Namespace("default")
 
-  implicit val msgPub = MessageBusPublisher.ignore
+  implicit val msgPub = new MockMessageBus
 
   implicit val ec = executor
 }

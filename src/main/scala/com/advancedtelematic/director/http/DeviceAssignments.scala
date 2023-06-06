@@ -15,9 +15,6 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateCan
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
 import com.advancedtelematic.libats.http.Errors.Error
-import com.advancedtelematic.libtuf.data.TufDataType
-import com.advancedtelematic.libtuf.data.TufDataType.ValidTargetFilename
-import eu.timepit.refined.api.Refined
 
 import scala.concurrent.{ExecutionContext, Future}
 

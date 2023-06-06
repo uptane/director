@@ -13,10 +13,10 @@ import com.advancedtelematic.libats.slick.db.{BootMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.DbHealthResource
 import com.advancedtelematic.libtuf_server.data.Messages.TufTargetAdded
 import com.advancedtelematic.metrics.MetricsSupport
-import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
-import com.advancedtelematic.libats.http.VersionDirectives._
+import com.advancedtelematic.libats.http.VersionDirectives.*
+import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 import java.security.Security

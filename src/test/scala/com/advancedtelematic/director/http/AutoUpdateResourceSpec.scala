@@ -2,7 +2,7 @@ package com.advancedtelematic.director.http
 
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show._
-import com.advancedtelematic.director.util.{DefaultPatience, DirectorSpec, RepositorySpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, RouteResourceSpec}
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf.data.TufDataType.TargetName
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._

@@ -3,7 +3,6 @@ package com.advancedtelematic.director.http
 import akka.http.scaladsl.server._
 import com.advancedtelematic.director.db.RepoNamespaceRepositorySupport
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.http.Errors.MissingEntity
 import com.advancedtelematic.libtuf.data.TufDataType.RepoId
 import org.slf4j.LoggerFactory
 

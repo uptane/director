@@ -36,7 +36,7 @@ class SignedRoleMigration(old_director_schema: String = "director")
   implicit val setRoleTypeParameter: SetParameter[RoleType] =
     (roleType: RoleType, pp: PositionedParameters) => pp.setString(roleType.toString)
 
-  implicit val getDeviceIdResult = GetResult(r => DeviceId(UUID.fromString(r.nextString)))
+  implicit val getDeviceIdResult = GetResult(r => DeviceId(UUID.fromString(r.nextString())))
   implicit val setDeviceIdParameter: SetParameter[DeviceId] =
     (deviceId: DeviceId, pp: PositionedParameters) => pp.setString(deviceId.uuid.toString)
 
