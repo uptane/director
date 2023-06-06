@@ -30,6 +30,7 @@ import slick.jdbc.MySQLProfile.api._
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
+import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
 
 case class OfflineUpdateRequest(values: Map[TargetFilename, ClientTargetItem], expiresAt: Option[Instant])
 

@@ -30,6 +30,7 @@ import slick.jdbc.MySQLProfile.api._
 
 import scala.async.Async._
 import scala.concurrent.{ExecutionContext, Future}
+import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
 
 class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient, val ecuReplacementAllowed: Boolean)
                     (implicit val db: Database, val ec: ExecutionContext, messageBusPublisher: MessageBusPublisher)

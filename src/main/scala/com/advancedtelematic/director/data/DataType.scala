@@ -5,7 +5,7 @@ import java.time.{Duration, Instant}
 import java.util.UUID
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.PathMatcher
-import cats.implicits._
+import cats.implicits.*
 import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.UptaneDataType.{Hashes, TargetImage}
@@ -15,9 +15,8 @@ import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 import com.advancedtelematic.libats.messaging_datatype.Messages.EcuAndHardwareId
-import com.advancedtelematic.libtuf.crypt.CanonicalJson._
+import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{ClientHashes, MetaPath, TufRole, ValidMetaPath}
-import com.advancedtelematic.libtuf.data.TufCodecs._
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, JsonSignedPayload, KeyType, RepoId, SignedPayload, TargetFilename, TargetName, TufKey}
 import com.advancedtelematic.libtuf.data.ValidatedString.{ValidatedString, ValidatedStringValidation}
@@ -25,8 +24,8 @@ import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
 import eu.timepit.refined.api.Refined
 import io.circe.Json
-import io.circe.syntax._
-import com.advancedtelematic.libats.data.RefinedUtils._
+import com.advancedtelematic.libats.data.RefinedUtils.*
+import com.advancedtelematic.libtuf.data.TufCodecs
 
 
 object DbDataType {
@@ -65,7 +64,7 @@ object DbDataType {
   implicit class DbDSignedRoleToSignedPayload(value: DbDeviceRole) {
     def toSignedRole[T : TufRole]: SignedRole[T] = {
       val (checksum, length) = value.checksum.product(value.length).getOrElse {
-        val canonicalJson = value.content.asJson.canonical
+        val canonicalJson = TufCodecs.jsonSignedPayloadEncoder(value.content).canonical
         val checksum = Sha256Digest.digest(canonicalJson.getBytes)
         val length = canonicalJson.length
         checksum -> length.toLong
