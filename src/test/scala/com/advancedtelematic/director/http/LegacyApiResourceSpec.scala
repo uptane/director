@@ -11,7 +11,6 @@ import com.advancedtelematic.director.data.Codecs._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import cats.syntax.show._
 import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import org.scalatest.OptionValues._
 import com.advancedtelematic.libats.messaging_datatype.Messages._
 import org.scalatest.LoneElement._
@@ -21,8 +20,6 @@ class LegacyApiResourceSpec extends DirectorSpec
   with AdminResources
   with RepositorySpec
   with AssignmentResources {
-
-  override implicit val msgPub = new MockMessageBus
 
   testWithRepo("creates an assignment for the given update id for the specified device") { implicit ns =>
     val regDev = registerAdminDeviceWithSecondariesOk()

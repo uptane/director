@@ -1,21 +1,16 @@
 package com.advancedtelematic.director.http
 
 import akka.http.scaladsl.model.StatusCodes
-import com.advancedtelematic.director.data.AdminDataType.RegisterDevice
 import com.advancedtelematic.director.data.Generators
 import com.advancedtelematic.director.db.RepoNamespaceRepositorySupport
 import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, RouteResourceSpec}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import cats.syntax.option._
 import cats.syntax.show._
-import com.advancedtelematic.director.data.GeneratorOps._
-import io.circe.Json
 import io.circe.syntax._
 import com.advancedtelematic.director.data.Codecs._
 import com.advancedtelematic.libats.data.ErrorRepresentation
-import com.advancedtelematic.libtuf.data.ClientDataType.{RemoteSessionsRole, TargetsRole}
+import com.advancedtelematic.libtuf.data.ClientDataType.RemoteSessionsRole
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
-import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf.data.TufCodecs._

@@ -1,17 +1,17 @@
 package com.advancedtelematic.director.manifest
 
-import cats.syntax.option._
+import cats.syntax.option.*
 import com.advancedtelematic.director.data.Codecs.ecuManifestCustomCodec
 import com.advancedtelematic.director.data.DbDataType.{Assignment, DeviceKnownState, EcuTarget, EcuTargetId, ProcessedAssignment}
-import com.advancedtelematic.director.data.DeviceRequest._
+import com.advancedtelematic.director.data.DeviceRequest.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, Namespace, ResultCode, ResultDescription}
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuInstallationReport, InstallationResult}
-import com.advancedtelematic.libats.messaging_datatype.MessageCodecs._
+import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateCompleted, DeviceUpdateEvent}
-import io.circe.syntax._
+import io.circe.syntax.*
 import org.slf4j.LoggerFactory
 
 import java.time.Instant
@@ -67,7 +67,7 @@ object ManifestCompiler {
 
       if (existingEcuTarget.isEmpty) {
         _log.debug(s"$installedImage not found in ${knownStatus.ecuTargets}")
-        EcuTarget(ns, EcuTargetId.generate, installedImage.filepath, installedImage.fileinfo.length,
+        EcuTarget(ns, EcuTargetId.generate(), installedImage.filepath, installedImage.fileinfo.length,
           Checksum(HashMethod.SHA256, installedImage.fileinfo.hashes.sha256), installedImage.fileinfo.hashes.sha256,
           uri = None, userDefinedCustom = None)
       } else
@@ -75,7 +75,7 @@ object ManifestCompiler {
 
     }.map(e => e.id -> e).toMap
 
-    val statusInManifest = manifest.ecu_version_manifests.mapValues { ecuManifest =>
+    val statusInManifest = manifest.ecu_version_manifests.view.mapValues { ecuManifest =>
       val newTargetO = findEcuTargetByImage(newEcuTargets, ecuManifest.signed.installed_image)
       newTargetO.map(_.id)
     }.filter(_._2.isDefined)
@@ -160,7 +160,7 @@ object ManifestCompiler {
 
         newStatus -> msgs
 
-      case Right(report) if assignmentsProcessedInManifest.nonEmpty =>
+      case Right(report) =>
         val desc = "Device sent a successful installation report"
         _log.info(s"${knownStatus.deviceId} Device sent a successful installation report, processing assignments $assignmentsProcessedInManifest")
 
@@ -206,7 +206,7 @@ object ManifestCompiler {
                                               report: InstallationReport,
                                              ): List[DeviceUpdateCompleted] = {
 
-    val reportedImages = deviceManifest.ecu_version_manifests.mapValues { ecuManifest =>
+    val reportedImages = deviceManifest.ecu_version_manifests.view.mapValues { ecuManifest =>
       ecuManifest.signed.installed_image.filepath
     }
 

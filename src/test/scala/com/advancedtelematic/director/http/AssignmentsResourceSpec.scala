@@ -1,34 +1,34 @@
 package com.advancedtelematic.director.http
 
 
-import org.scalatest.LoneElement._
-import akka.http.scaladsl.model.{HttpHeader, MediaRange, MediaRanges, MediaTypes, StatusCodes}
-import cats.syntax.option._
-import cats.syntax.show._
-import com.advancedtelematic.director.data.AdminDataType._
-import com.advancedtelematic.director.data.Codecs._
+import org.scalatest.LoneElement.*
+import akka.http.scaladsl.model.StatusCodes
+import cats.syntax.option.*
+import cats.syntax.show.*
+import com.advancedtelematic.director.data.AdminDataType.*
+import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.TargetItemCustom
-import com.advancedtelematic.director.data.GeneratorOps._
-import com.advancedtelematic.director.data.Generators._
+import com.advancedtelematic.director.data.GeneratorOps.*
+import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.db.{DbDeviceRoleRepositorySupport, RepoNamespaceRepositorySupport}
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
-import com.advancedtelematic.director.util._
+import com.advancedtelematic.director.util.*
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, MultiTargetUpdateId, Namespace}
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateEvent, _}
-import com.advancedtelematic.libtuf.data.ClientCodecs._
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateEvent, *}
+import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.TargetsRole
-import com.advancedtelematic.libtuf.data.TufCodecs._
+import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import io.circe.Json
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalactic.source.Position
 import org.scalatest.Inspectors
-import org.scalatest.OptionValues._
+import org.scalatest.OptionValues.*
 
 import java.time.Instant
+import scala.annotation.unused
 
 trait AssignmentResources {
   self: DirectorSpec with RouteResourceSpec with NamespacedTests with AdminResources =>
@@ -39,7 +39,7 @@ trait AssignmentResources {
   }
 
   def createAssignment(deviceIds: Seq[DeviceId], hwId: HardwareIdentifier, targetUpdateO: Option[TargetUpdateRequest] = None,
-                       correlationIdO: Option[CorrelationId] = None, detailedResult: Boolean = false)(checkV: => Any)(implicit ns: Namespace, pos: Position): AssignUpdateRequest = {
+                       correlationIdO: Option[CorrelationId] = None)(checkV: => Any)(implicit ns: Namespace, pos: Position): AssignUpdateRequest = {
     val correlationId = correlationIdO.getOrElse(GenCorrelationId.generate)
 
     val targetUpdate = targetUpdateO.getOrElse(GenTargetUpdateRequest.generate)
@@ -69,7 +69,7 @@ trait AssignmentResources {
     createAssignmentOk(Seq(deviceId), hwId, targetUpdateO, correlationIdO)
   }
 
-  def getDeviceAssignment[T](deviceId: DeviceId)(checkFn: => T)(implicit ns: Namespace, pos: Position): T = {
+  def getDeviceAssignment[T](deviceId: DeviceId)(checkFn: => T)(implicit ns: Namespace): T = {
     Get(apiUri(s"assignments/${deviceId.show}")).namespaced ~> routes ~> check(checkFn)
   }
 
@@ -80,7 +80,7 @@ trait AssignmentResources {
     }
   }
 
-  def getMultipleDeviceAssignments[T](devices: Set[DeviceId])(checkFn: => T)(implicit ns: Namespace, pos: Position): T = {
+  def getMultipleDeviceAssignments[T](devices: Set[DeviceId])(checkFn: => T)(implicit ns: Namespace, @unused pos: Position): T = {
     Get(apiUri(
       // make a quick csv query
       s"assignments?ids=${devices.map(_.uuid.show).mkString(",")}"
@@ -135,7 +135,7 @@ class AssignmentsResourceSpec extends DirectorSpec
   }
 
   testWithRepo("returns PrimaryIsNotListedForDevice when ecus to register do not include primary ecu") { implicit ns =>
-    val device = DeviceId.generate
+    val device = DeviceId.generate()
     val (regEcu, _) = GenRegisterEcuKeys.generate
     val ecu = GenEcuIdentifier.generate
     val regDev = RegisterDevice(device.some, ecu, List(regEcu))
@@ -210,7 +210,7 @@ class AssignmentsResourceSpec extends DirectorSpec
     val otherUpdate = GenTargetUpdate.generate
     putManifestOk(regDev1.deviceId, buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, otherUpdate))
 
-    createAssignment(List(regDev0.deviceId, regDev1.deviceId), regDev0.primary.hardwareId, targetUpdate.some, detailedResult = true) {
+    createAssignment(List(regDev0.deviceId, regDev1.deviceId), regDev0.primary.hardwareId, targetUpdate.some) {
       status shouldBe StatusCodes.Created
 
       val response = responseAs[AssignmentCreateResult]
@@ -363,8 +363,8 @@ class AssignmentsResourceSpec extends DirectorSpec
   }
 
   testWithRepo("can schedule an assignment when using the same ecu serial as another device") { implicit ns =>
-    val device1 = DeviceId.generate
-    val device2 = DeviceId.generate
+    val device1 = DeviceId.generate()
+    val device2 = DeviceId.generate()
     val (regEcu, _) = GenRegisterEcuKeys.generate
     val regDev1 = RegisterDevice(device1.some, regEcu.ecu_serial, List(regEcu))
     val regDev2 = RegisterDevice(device2.some, regEcu.ecu_serial, List(regEcu))
@@ -382,8 +382,8 @@ class AssignmentsResourceSpec extends DirectorSpec
   }
 
   testWithRepo("Retrieving assignments for multiple devices works") { implicit ns =>
-    val device1 = DeviceId.generate
-    val device2 = DeviceId.generate
+    val device1 = DeviceId.generate()
+    val device2 = DeviceId.generate()
     val (regEcu, _) = GenRegisterEcuKeys.generate
     val regDev1 = RegisterDevice(device1.some, regEcu.ecu_serial, List(regEcu))
     val regDev2 = RegisterDevice(device2.some, regEcu.ecu_serial, List(regEcu))
@@ -420,7 +420,7 @@ class AssignmentsResourceSpec extends DirectorSpec
       Post(apiUri("admin/devices"), regDev).namespaced ~> routes ~> check {
         status shouldBe StatusCodes.Created
       }
-      val deviceAssignments = createDeviceAssignmentOk(deviceId, regEcu.hardware_identifier)
+      createDeviceAssignmentOk(deviceId, regEcu.hardware_identifier)
       deviceId
     }
 

@@ -15,7 +15,7 @@ class MultiTargetUpdates(implicit val db: Database, val ec: ExecutionContext)
   def create(ns: Namespace, multiTargetUpdate: MultiTargetUpdate): Future[UpdateId] = {
     require(multiTargetUpdate.targets.nonEmpty, "multiTargetUpdate.targets cannot be empty")
 
-    val updateId = UpdateId.generate
+    val updateId = UpdateId.generate()
 
     val hardwareUpdates = multiTargetUpdate.targets.map { case (hwId, targetUpdateReq) =>
       val toId = EcuTargetId.generate()

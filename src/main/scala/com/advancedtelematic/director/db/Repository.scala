@@ -5,7 +5,7 @@ import java.util.UUID
 import cats.Show
 import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, AutoUpdateDefinitionId, DbAdminRole, DbDeviceRole, Device, Ecu, EcuTarget, EcuTargetId, HardwareUpdate, ProcessedAssignment}
 import com.advancedtelematic.director.db.DeviceRepository.DeviceCreateResult
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
+import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, MissingEntityId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
@@ -319,7 +319,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
     } else {
       // raw sql is workaround for https://github.com/slick/slick/pull/995
       implicit val getResult = GetResult { r =>
-        DeviceId(UUID.fromString(r.nextString)) -> EcuIdentifier.from(r.nextString()).valueOr(throw _)
+        DeviceId(UUID.fromString(r.nextString())) -> EcuIdentifier.from(r.nextString()).valueOr(throw _)
       }
 
       val elems = ids.map { case (d, e) => "('" + d.uuid.toString + "','" + e.value + "')" }.mkString("(", ",", ")")
@@ -404,7 +404,9 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
       .map { targetByEcu =>
         targetByEcu
           .groupBy { case (_, filename) => filename }
+          .view
           .mapValues(_.size)
+          .toMap
       }
   }
 

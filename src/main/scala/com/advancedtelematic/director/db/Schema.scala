@@ -31,7 +31,7 @@ object Schema {
     def primaryEcu = column[EcuIdentifier]("primary_ecu_id")
     def generatedMetadataOutdated = column[Boolean]("generated_metadata_outdated")
     def deleted = column[Boolean]("deleted", O.Default(false))
-    def createdAt = column[Instant]("created_at")
+    def createdAt = column[Instant]("created_at")(javaInstantMapping)
 
     def pk = primaryKey("devices_pk", id)
 
@@ -86,8 +86,8 @@ object Schema {
     def name = column[AdminRoleName]("name")
     def version = column[Int]("version")
     def content = column[JsonSignedPayload]("content")
-    def expires = column[Instant]("expires_at")
-    def createdAt = column[Instant]("created_at")
+    def expires = column[Instant]("expires_at")(javaInstantMapping)
+    def createdAt = column[Instant]("created_at")(javaInstantMapping)
     def checksum = column[Checksum]("checksum")
     def length = column[Long]("length")
 
@@ -103,8 +103,8 @@ object Schema {
     def device  = column[DeviceId]("device_id")
     def version = column[Int]("version")
     def content = column[JsonSignedPayload]("content")
-    def expires = column[Instant]("expires_at")
-    def createdAt = column[Instant]("created_at")
+    def expires = column[Instant]("expires_at")(javaInstantMapping)
+    def createdAt = column[Instant]("created_at")(javaInstantMapping)
     def checksum = column[Option[Checksum]]("checksum")
     def length = column[Option[Long]]("length")
 
@@ -121,7 +121,7 @@ object Schema {
     def ecuId = column[EcuIdentifier]("ecu_serial")
     def ecuTargetId = column[EcuTargetId]("ecu_target_id")
     def correlationId = column[CorrelationId]("correlation_id")
-    def createdAt = column[Instant]("created_at")
+    def createdAt = column[Instant]("created_at")(javaInstantMapping)
     def inFlight = column[Boolean]("in_flight")
 
     def * = (namespace, deviceId, ecuId, ecuTargetId, correlationId, inFlight, createdAt) <> ((Assignment.apply _).tupled, Assignment.unapply)
@@ -140,7 +140,7 @@ object Schema {
     def canceled = column[Boolean]("canceled")
     def successful = column[Boolean]("successful")
     def resultDesc = column[Option[String]]("result_desc")
-    def createdAt = column[Instant]("created_at")
+    def createdAt = column[Instant]("created_at")(javaInstantMapping)
 
     def * = (namespace, deviceId, ecuId, ecuTargetId, correlationId, successful, resultDesc, canceled) <> ((ProcessedAssignment.apply _).tupled, ProcessedAssignment.unapply)
   }
@@ -186,7 +186,7 @@ object Schema {
   class DeviceManifestsTable(tag: Tag) extends Table[(DeviceId, Json, SHA256Checksum, Instant)](tag, "device_manifests") {
     def deviceId = column[DeviceId]("device_id")
     def targetName = column[TargetName]("target_name")
-    def receivedAt = column[Instant]("received_at")
+    def receivedAt = column[Instant]("received_at")(javaInstantMapping)
     def sha256 = column[SHA256Checksum]("sha256")
     def manifest = column[Json]("manifest")
 

@@ -19,10 +19,10 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateEvent, DeviceUpdateInFlight}
 import com.advancedtelematic.libtuf.data.ClientCodecs._
-import com.advancedtelematic.libtuf.data.ClientDataType.{OfflineSnapshotRole, OfflineUpdatesRole, RemoteSessionsRole, SnapshotRole, TimestampRole}
+import com.advancedtelematic.libtuf.data.ClientDataType.{SnapshotRole, TimestampRole}
 import com.advancedtelematic.libtuf.data.TufCodecs._
 import com.advancedtelematic.libtuf.data.TufDataType.{RoleType, SignedPayload}
-import com.advancedtelematic.libtuf_server.data.Marshalling.{JsonRoleTypeMetaPath, RoleTypePath}
+import com.advancedtelematic.libtuf_server.data.Marshalling.JsonRoleTypeMetaPath
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.Json

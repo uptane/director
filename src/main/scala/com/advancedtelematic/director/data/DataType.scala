@@ -75,7 +75,7 @@ object DbDataType {
     }
   }
 
-  implicit class SignedPayloadToDbRole[_](value: SignedRole[_]) {
+  implicit class SignedPayloadToDbRole(value: SignedRole[_]) {
     def toDbDeviceRole(deviceId: DeviceId): DbDeviceRole =
       DbDeviceRole(value.tufRole.roleType, deviceId, value.checksum.some, value.length.some, value.version, value.expiresAt, value.content)
 
@@ -167,7 +167,6 @@ object UptaneDataType {
 object Messages {
   import DeviceId._
   import cats.syntax.show._
-  import com.advancedtelematic.libtuf.data.TufCodecs._
   import com.advancedtelematic.libats.codecs.CirceCodecs._
   import com.advancedtelematic.libtuf.data.TufCodecs._
 
@@ -187,7 +186,7 @@ object DataType {
 
   final case class DeviceTargetsCustom(correlationId: Option[CorrelationId])
 
-  final case class AdminRoleName private(value: String) extends ValidatedString {
+  final case class AdminRoleName protected[data] (value: String) extends ValidatedString {
     def asMetaPath: MetaPath =  (value + ".json").refineTry[ValidMetaPath].get // get safe due to Validation
   }
 

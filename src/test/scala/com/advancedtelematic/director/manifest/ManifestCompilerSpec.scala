@@ -1,6 +1,5 @@
 package com.advancedtelematic.director.manifest
 
-import cats.syntax.option._
 import com.advancedtelematic.director.data.AdminDataType.TargetUpdate
 import com.advancedtelematic.director.data.Codecs._
 import com.advancedtelematic.director.data.DbDataType.{Assignment, DeviceKnownState, EcuTarget, EcuTargetId}
@@ -16,7 +15,6 @@ import io.circe.syntax._
 import org.scalatest.LoneElement._
 
 import java.time.Instant
-import scala.language.higherKinds
 
 class ManifestCompilerSpec extends DirectorSpec {
 
