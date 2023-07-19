@@ -12,6 +12,7 @@ import io.circe.{Decoder, Json}
 import org.slf4j.LoggerFactory
 
 import java.time.Instant
+import scala.concurrent.Future
 
 protected case class DeviceObservationRequest(observedAt: Instant, payload: Json)
 
@@ -36,7 +37,7 @@ class DeviceMonitoringResource(namespaceExtractor: Directive1[Namespace],
   val route: Route =
     (pathPrefix("devices") & namespaceExtractor) { ns =>
       deviceNamespaceAuthorizer { uuid =>
-        path("monitoring") {
+        pathPrefix("monitoring") {
           (post & entity(as[DeviceObservationRequest])) { req =>
             log.debug("device observation from client: {}", req.payload.noSpaces)
 
@@ -44,6 +45,14 @@ class DeviceMonitoringResource(namespaceExtractor: Directive1[Namespace],
             val f = messageBus.publish(msg).map(_ => StatusCodes.NoContent)
 
             complete(f)
+          } ~
+          (path("fluentbit-metrics") & post & entity(as[List[DeviceObservationRequest]])) { req =>
+            val f = req.map { r =>
+              log.debug("device observation from client: {}", r.payload.noSpaces)
+              val msg = DeviceMetricsObservation(ns, uuid, r.payload, Instant.now())
+              messageBus.publish(msg)
+            }
+            complete(Future.sequence(f).map(_ => StatusCodes.NoContent))
           }
         }
       }

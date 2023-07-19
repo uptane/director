@@ -71,6 +71,64 @@ class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with Sc
       |}
       |""".stripMargin).right.value
 
+  val jsonPayloadBufferedList = io.circe.jawn.parse(
+    """
+      |[
+      |{
+      |    "cpu": {
+      |        "cpu0.p_cpu": 0.19,
+      |        "cpu0.p_system": 0.04666666666666667,
+      |        "cpu0.p_user": 0.1433333333333333,
+      |        "cpu1.p_cpu": 0.1933333333333333,
+      |        "cpu1.p_system": 0.08333333333333333,
+      |        "cpu1.p_user": 0.11,
+      |        "cpu2.p_cpu": 0.2233333333333333,
+      |        "cpu2.p_system": 0.06666666666666667,
+      |        "cpu2.p_user": 0.1566666666666667,
+      |        "cpu3.p_cpu": 0.22,
+      |        "cpu3.p_system": 0.04666666666666667,
+      |        "cpu3.p_user": 0.1733333333333333,
+      |        "cpu4.p_cpu": 0.1333333333333333,
+      |        "cpu4.p_system": 0.03666666666666667,
+      |        "cpu4.p_user": 0.09666666666666666,
+      |        "cpu5.p_cpu": 0.1533333333333333,
+      |        "cpu5.p_system": 0.04666666666666667,
+      |        "cpu5.p_user": 0.1066666666666667,
+      |        "cpu_p": 0.1855555555555556,
+      |        "system_p": 0.05444444444444444,
+      |        "user_p": 0.1311111111111111
+      |    },
+      |    "date": 1621930398.017631
+      |},
+      |{
+      |    "date": 1678390521.739909,
+      |    "cpu": {
+      |      "cpu_p": 3.25,
+      |      "cpu5.p_system": 1.3
+      |    },
+      |    "docker": {
+      |        "alive": true,
+      |        "pid": 839,
+      |        "proc_name": "dockerd"
+      |    },
+      |    "memory": {
+      |        "Mem.free": 3105676,
+      |        "Mem.total": 3797652,
+      |        "Mem.used": 691976,
+      |        "Swap.free": 0,
+      |        "Swap.total": 0,
+      |        "Swap.used": 0
+      |    },
+      |    "temperature": {
+      |        "name": "thermal_zone0",
+      |        "temp": 69.1,
+      |        "type": "cpu-thermal0"
+      |    }
+      |}
+      |]
+      |""".stripMargin).right.value
+
+
   test("accepts metrics from device") {
     val uuid = createDeviceOk(genDeviceT.generate)
 
@@ -82,6 +140,22 @@ class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with Sc
 
     msg.value.payload shouldBe jsonPayload
     msg.value.namespace shouldBe defaultNs
+  }
+
+  test("accepts metrics from device when they are buffered as a list") {
+    val uuid = createDeviceOk(genDeviceT.generate)
+
+    Post(Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"), jsonPayloadBufferedList) ~> route ~> check {
+      status shouldBe StatusCodes.NoContent
+    }
+
+    val msgs = messageBus.findReceivedAll[DeviceMetricsObservation]((msg: DeviceMetricsObservation) => msg.uuid == uuid)
+    jsonPayloadBufferedList.asArray.map(_.map { j =>
+      msgs.map(_.payload) should contain(j)
+      msgs.map { msg =>
+        msg.namespace shouldBe defaultNs
+      }
+    })
   }
 
   test("responds with bad request if json is not a valid monitoring payload") {
