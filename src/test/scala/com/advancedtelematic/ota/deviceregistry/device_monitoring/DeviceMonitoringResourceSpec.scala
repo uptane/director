@@ -4,7 +4,9 @@ import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show._
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId._
+import com.advancedtelematic.libats.messaging_datatype.MessageLike
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
+import com.advancedtelematic.ota.deviceregistry.data.DataType.ObservationPublishResult
 import com.advancedtelematic.ota.deviceregistry.data.DeviceGenerators
 import com.advancedtelematic.ota.deviceregistry.{Resource, ResourceSpec}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -15,14 +17,11 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Seconds, Span}
 
-class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures with DeviceGenerators {
+import java.io.IOException
+import scala.concurrent.{ExecutionContext, Future}
 
-  import com.advancedtelematic.ota.deviceregistry.data.GeneratorOps._
 
-  override implicit def patienceConfig: PatienceConfig = super.patienceConfig.copy(timeout = Span(3, Seconds))
-
-  override lazy val messageBus = new MockMessageBus()
-
+object TestPayloads {
   val jsonPayload = io.circe.jawn.parse(
     """
       |{
@@ -127,42 +126,70 @@ class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with Sc
       |}
       |]
       |""".stripMargin).right.value
+}
+
+
+class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures with DeviceGenerators {
+
+  import com.advancedtelematic.ota.deviceregistry.data.GeneratorOps._
+
+  override implicit def patienceConfig: PatienceConfig = super.patienceConfig.copy(timeout = Span(3, Seconds))
+
+  override lazy val messageBus = new MockMessageBus()
 
 
   test("accepts metrics from device") {
     val uuid = createDeviceOk(genDeviceT.generate)
 
-    Post(Resource.uri("devices", uuid.show, "monitoring"), jsonPayload) ~> route ~> check {
+    Post(Resource.uri("devices", uuid.show, "monitoring"), TestPayloads.jsonPayload) ~> route ~> check {
       status shouldBe StatusCodes.NoContent
     }
 
     val msg = messageBus.findReceived[DeviceMetricsObservation]((msg: DeviceMetricsObservation) => msg.uuid == uuid)
 
-    msg.value.payload shouldBe jsonPayload
+    msg.value.payload shouldBe TestPayloads.jsonPayload
     msg.value.namespace shouldBe defaultNs
   }
 
   test("accepts metrics from device when they are buffered as a list") {
+    import com.advancedtelematic.ota.deviceregistry.data.Codecs.ObservationPublishResultCodec
     val uuid = createDeviceOk(genDeviceT.generate)
 
-    Post(Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"), jsonPayloadBufferedList) ~> route ~> check {
+    Post(Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"), TestPayloads.jsonPayloadBufferedList) ~> route ~> check {
       status shouldBe StatusCodes.NoContent
     }
 
     val msgs = messageBus.findReceivedAll[DeviceMetricsObservation]((msg: DeviceMetricsObservation) => msg.uuid == uuid)
-    jsonPayloadBufferedList.asArray.map(_.map { j =>
+    TestPayloads.jsonPayloadBufferedList.asArray.map(_.map { j =>
       msgs.map(_.payload) should contain(j)
       msgs.map { msg =>
         msg.namespace shouldBe defaultNs
       }
     })
   }
+}
 
-  test("responds with bad request if json is not a valid monitoring payload") {
+
+class BadMessageBus extends MockMessageBus {
+  override def publish[T](msg: T)(implicit ex: ExecutionContext, messageLike: MessageLike[T]): Future[Unit] = {
+    Future.failed(new IOException)
+  }
+}
+class DeviceMonitoringResourceSpecBadMsgPub extends AnyFunSuite with ResourceSpec with ScalaFutures with DeviceGenerators {
+
+  import com.advancedtelematic.ota.deviceregistry.data.GeneratorOps._
+
+  override implicit def patienceConfig: PatienceConfig = super.patienceConfig.copy(timeout = Span(3, Seconds))
+
+  override lazy val messageBus = new BadMessageBus()
+
+  test("Buffered metrics that failed to be published are returned with partial results body") {
+    import com.advancedtelematic.ota.deviceregistry.data.Codecs.ObservationPublishResultCodec
     val uuid = createDeviceOk(genDeviceT.generate)
 
-    Post(Resource.uri("devices", uuid.show, "monitoring"), Json.obj()) ~> route ~> check {
-      status shouldBe StatusCodes.BadRequest
+    Post(Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"), TestPayloads.jsonPayloadBufferedList) ~> route ~> check {
+      status shouldBe StatusCodes.RangeNotSatisfiable
+      responseAs[List[ObservationPublishResult]].filter(_.publishedSuccessfully == false).length shouldBe 2
     }
   }
 }
