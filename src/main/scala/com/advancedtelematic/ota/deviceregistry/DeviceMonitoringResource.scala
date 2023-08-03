@@ -1,17 +1,23 @@
 package com.advancedtelematic.ota.deviceregistry
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{StatusCode, StatusCodes}
 import akka.http.scaladsl.server.{Directive1, Route}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
+import com.advancedtelematic.ota.deviceregistry.data.DataType.ObservationPublishResult
+import com.advancedtelematic.ota.deviceregistry.data.Codecs.ObservationPublishResultCodec
+import com.advancedtelematic.libats.messaging_datatype.Messages.deviceMetricsObservationMessageLike
+import com.advancedtelematic.libats.messaging_datatype.MessageCodecs._
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.{Decoder, Json}
 import org.slf4j.LoggerFactory
 
 import java.time.Instant
+import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 protected case class DeviceObservationRequest(observedAt: Instant, payload: Json)
 
@@ -36,7 +42,7 @@ class DeviceMonitoringResource(namespaceExtractor: Directive1[Namespace],
   val route: Route =
     (pathPrefix("devices") & namespaceExtractor) { ns =>
       deviceNamespaceAuthorizer { uuid =>
-        path("monitoring") {
+        pathPrefix("monitoring") {
           (post & entity(as[DeviceObservationRequest])) { req =>
             log.debug("device observation from client: {}", req.payload.noSpaces)
 
@@ -44,6 +50,24 @@ class DeviceMonitoringResource(namespaceExtractor: Directive1[Namespace],
             val f = messageBus.publish(msg).map(_ => StatusCodes.NoContent)
 
             complete(f)
+          } ~
+          (path("fluentbit-metrics") & post & entity(as[List[DeviceObservationRequest]])) { req =>
+            val f = req.map { r =>
+              log.debug("device observation from client: {}", r.payload.noSpaces)
+              val msg = DeviceMetricsObservation(ns, uuid, r.payload, Instant.now())
+              messageBus.publish(msg).transformWith {
+                case Success(_) => Future.successful(ObservationPublishResult(true, msg))
+                case Failure(_) => Future.successful(ObservationPublishResult(false, msg))
+              }
+            }
+            complete(Future.sequence(f).map { results =>
+              if (results.exists(_.publishedSuccessfully == false)) {
+                StatusCodes.RangeNotSatisfiable -> results
+              }
+              else {
+                StatusCodes.NoContent -> List.empty[ObservationPublishResult]
+              }
+            })
           }
         }
       }

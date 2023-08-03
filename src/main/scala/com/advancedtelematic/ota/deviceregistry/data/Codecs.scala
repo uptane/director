@@ -4,6 +4,7 @@ import com.advancedtelematic.libats.data.DataType.ResultCode
 import io.circe.{Codec, Decoder, Encoder}
 import com.advancedtelematic.ota.deviceregistry.data.DataType._
 import com.advancedtelematic.libats.codecs.CirceAts.{namespaceDecoder, namespaceEncoder}
+import com.advancedtelematic.libats.messaging_datatype.Messages.deviceMetricsObservationMessageLike._
 
 object Codecs {
 
@@ -39,4 +40,6 @@ object Codecs {
   implicit val deviceQueryCodec = io.circe.generic.semiauto.deriveCodec[DevicesQuery]
 
   implicit val updateHibernationStatusRequestCodec: Codec[UpdateHibernationStatusRequest] = io.circe.generic.semiauto.deriveCodec[UpdateHibernationStatusRequest]
+
+  implicit val ObservationPublishResultCodec = io.circe.generic.semiauto.deriveCodec[ObservationPublishResult]
 }
