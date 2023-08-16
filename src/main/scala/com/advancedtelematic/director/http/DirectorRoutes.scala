@@ -25,7 +25,8 @@ class DirectorRoutes(keyserverClient: KeyserverClient, allowEcuReplacement: Bool
           new DeviceResource(extractNamespace, keyserverClient, allowEcuReplacement).route ~
           new MultiTargetUpdatesResource(extractNamespace).route ~
           new LegacyRoutes(extractNamespace).route
-        }
+        } ~
+          new DirectorDebugResource().route
       }
     }
 }
