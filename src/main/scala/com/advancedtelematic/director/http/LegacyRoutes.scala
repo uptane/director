@@ -45,8 +45,7 @@ class LegacyRoutes(extractNamespace: Directive1[Namespace])(implicit val db: Dat
         path("assignments" / DeviceId.Path) { deviceId =>
           delete {
             val a = deviceAssignments.cancel(ns, List(deviceId))
-            complete(a.map(_.map(_.deviceId)))
-          }
+            complete(a.map(_.map(_.deviceId))) }
         },
         (path("admin" / "devices") & PaginationParameters) { (limit, offset) =>
           get {

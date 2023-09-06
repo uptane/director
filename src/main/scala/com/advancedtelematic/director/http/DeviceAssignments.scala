@@ -1,21 +1,21 @@
 package com.advancedtelematic.director.http
 
-import java.time.Instant
-import cats.implicits._
+import cats.implicits.*
 import com.advancedtelematic.director.data.AdminDataType.QueueResponse
 import com.advancedtelematic.director.data.DbDataType.{Assignment, Ecu, EcuTarget, EcuTargetId}
-import com.advancedtelematic.director.data.UptaneDataType.{TargetImage, _}
-import com.advancedtelematic.director.db._
+import com.advancedtelematic.director.data.UptaneDataType.*
+import com.advancedtelematic.director.db.*
 import com.advancedtelematic.director.http.Errors.InvalidAssignment
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.{EcuIdentifier, ErrorRepresentation}
+import com.advancedtelematic.libats.http.Errors.Error
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateCanceled, DeviceUpdateEvent}
 import org.slf4j.LoggerFactory
-import slick.jdbc.MySQLProfile.api._
-import com.advancedtelematic.libats.http.Errors.Error
+import slick.jdbc.MySQLProfile.api.*
 
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
 object DeviceAssignments {
@@ -38,11 +38,11 @@ object DeviceAssignments {
 class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) extends EcuRepositorySupport
   with HardwareUpdateRepositorySupport with AssignmentsRepositorySupport with EcuTargetsRepositorySupport with DeviceRepositorySupport {
 
-  import DeviceAssignments._
+  import DeviceAssignments.*
 
   private val _log = LoggerFactory.getLogger(this.getClass)
 
-  import scala.async.Async._
+  import scala.async.Async.*
 
   private def assignmentsToQueueResponse(ns: Namespace, idAssignments: Map[CorrelationId, Seq[Assignment]]): Future[Vector[QueueResponse]] = async {
     val ecuTargets = await(ecuTargetsRepository.findAll(ns, idAssignments.flatMap(_._2).map(_.ecuTargetId).toSeq))
@@ -79,7 +79,7 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
     findAffectedEcus(ns, deviceIds, mtuId).map { _.affected.map(_._1.deviceId) }
   }
 
-  import cats.syntax.option._
+  import cats.syntax.option.*
 
   private def findAffectedEcus(ns: Namespace, devices: Seq[DeviceId], mtuId: UpdateId) = async {
     val hardwareUpdates = await(hardwareUpdateRepository.findBy(ns, mtuId))
@@ -157,13 +157,20 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
     }
   }
 
-  def cancel(namespace: Namespace, devices: Seq[DeviceId])(implicit messageBusPublisher: MessageBusPublisher): Future[Seq[Assignment]] = {
-    assignmentsRepository.processCancellation(namespace, devices).flatMap { canceledAssignments =>
+  def cancel(namespace: Namespace, deviceId: DeviceId, cancelInFlight: Boolean = false)(implicit messageBusPublisher: MessageBusPublisher): Future[Unit] =
+    assignmentsRepository.processDeviceCancellation(deviceRepository)(namespace, deviceId, cancelInFlight).flatMap { ids =>
+      ids
+        .map[DeviceUpdateEvent](ci => DeviceUpdateCanceled(namespace, Instant.now, ci, deviceId))
+        .map(duv => messageBusPublisher.publish(duv))
+        .sequence_
+    }
+
+  def cancel(namespace: Namespace, devices: Seq[DeviceId])(implicit messageBusPublisher: MessageBusPublisher): Future[Seq[Assignment]] =
+    assignmentsRepository.processCancellation(deviceRepository)(namespace, devices).flatMap { canceledAssignments =>
       Future.traverse(canceledAssignments) { canceledAssignment =>
         val ev: DeviceUpdateEvent =
           DeviceUpdateCanceled(namespace, Instant.now, canceledAssignment.correlationId, canceledAssignment.deviceId)
         messageBusPublisher.publish(ev).map(_ => canceledAssignment)
       }
     }
-  }
 }

@@ -4,23 +4,21 @@ import akka.http.scaladsl.model.StatusCodes
 import cats.Show
 import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.{EcuTargetId, HardwareUpdate}
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
+import com.advancedtelematic.libats.data.DataType.CorrelationId
 import com.advancedtelematic.libats.data.{EcuIdentifier, ErrorCode}
 import com.advancedtelematic.libats.http.Errors.{Error, MissingEntityId, RawError}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
-import com.advancedtelematic.libtuf.data.TufDataType.{RepoId, TargetFilename}
+import com.advancedtelematic.libtuf.data.TufDataType.RepoId
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
 
 object ErrorCodes {
   val PrimaryIsNotListedForDevice = ErrorCode("primary_is_not_listed_for_device")
 
   val DeviceMissingPrimaryEcu = ErrorCode("device_missing_primary_ecu")
-  val NoRepoForNamespace = ErrorCode("no_repo_for_namespace")
 
   object Manifest {
     val EcuNotPrimary = ErrorCode("ecu_not_primary")
-    val WrongEcuSerialInEcuManifest = ErrorCode("wrong_ecu_serial_not_in_ecu_manifest")
     val SignatureNotValid = ErrorCode("signature_not_valid")
   }
 
@@ -29,8 +27,6 @@ object ErrorCodes {
   val EcuReplacementDisabled = ErrorCode("ecu_replacement_disabled")
 
   val MissingAdminRole = ErrorCode("missing_admin_role")
-
-  val MissingTarget = ErrorCode("missing_target")
 
   val NotAffectedRunningAssignment = ErrorCode("not_affected_running_assignment")
 
@@ -73,8 +69,6 @@ object Errors {
 
   case class MissingAdminRole(repoId: RepoId, name: AdminRoleName) extends Error(ErrorCodes.MissingAdminRole, StatusCodes.NotFound, s"admin role $repoId/$name not found")
 
-  case class MissingTarget(repoId: RepoId, name: TargetFilename) extends Error(ErrorCodes.MissingTarget, StatusCodes.NotFound, s"target role $repoId/$name not found")
-
   def DeviceMissingPrimaryEcu(deviceId: DeviceId) = RawError(ErrorCodes.DeviceMissingPrimaryEcu, StatusCodes.NotFound, s"This server does not have a primary ecu for $deviceId")
 
   case class AssignmentExistsError(deviceId: DeviceId) extends Error(ErrorCodes.ReplaceEcuAssignmentExists, StatusCodes.PreconditionFailed, s"Cannot replace ecus for $deviceId, the device has running assignments")
@@ -93,12 +87,12 @@ object Errors {
   def SignedRoleNotFound[T](deviceId: DeviceId)(implicit ev: TufRole[T]) =
     MissingEntityId[(DeviceId, TufRole[_])](deviceId -> ev)(ct = implicitly, show = showDeviceIdRoleTypeTuple)
 
-  case class NoRepoForNamespace(ns: Namespace)
-    extends com.advancedtelematic.libats.http.Errors.Error(ErrorCodes.NoRepoForNamespace, StatusCodes.NotFound, s"No repository exists for namespace ${ns.get}")
-
   object Manifest {
     val EcuNotPrimary = RawError(ErrorCodes.Manifest.EcuNotPrimary, StatusCodes.BadRequest, "The claimed primary ECU is not the primary ECU for the device")
 
     def SignatureNotValid(err: String) = RawError(ErrorCodes.Manifest.SignatureNotValid, StatusCodes.BadRequest, s"The given signature is not valid: $err")
   }
+
+  def AssignmentInFlight(deviceId: DeviceId) =
+    RawError(ErrorCode("assignment_in_flight"), StatusCodes.Conflict, s"there is an assignmement in flight for $deviceId")
 }
