@@ -157,4 +157,6 @@ class FakeKeyserverClient extends KeyserverClient {
 
   override def addRemoteSessionsRole(repoId: RepoId): Future[Unit] =
     addRoles(repoId, RoleType.REMOTE_SESSIONS)
+
+  override def rotateRoot(repoId: RepoId): Future[Unit] = FastFuture.failed(new IllegalArgumentException("[test] not implemented"))
 }
