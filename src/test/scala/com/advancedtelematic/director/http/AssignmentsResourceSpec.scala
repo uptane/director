@@ -334,6 +334,47 @@ class AssignmentsResourceSpec extends DirectorSpec
     cancelAssignmentsOk(Seq(regDev.deviceId)) shouldBe Seq.empty
   }
 
+  testWithRepo("PATCH on assignments/device-id cancels asssignmnet") { implicit ns =>
+    val regDev = registerAdminDeviceOk()
+    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
+
+    Patch(apiUri(s"assignments/${regDev.deviceId.show}")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.NoContent
+    }
+
+    val targets = getTargetsOk(regDev)
+    targets.signed.targets shouldBe empty
+  }
+
+  testWithRepo("PATCH on assignments/device-id cancels assignment if in flight and force header is used") { implicit ns =>
+    val regDev = registerAdminDeviceOk()
+    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
+
+    val targets0 = getTargetsOk(regDev)
+    targets0.signed.targets shouldNot be(empty)
+
+    Patch(apiUri(s"assignments/${regDev.deviceId.show}")).addHeader(new ForceHeader(true)).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.NoContent
+    }
+
+    val targets = getTargetsOk(regDev)
+    targets.signed.targets shouldBe empty
+  }
+
+  testWithRepo("PATCH on assignments/device-id does not cancel assignment if in flight and force header is not used") { implicit ns =>
+    val regDev = registerAdminDeviceOk()
+    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
+
+    getTargetsOk(regDev)
+
+    Patch(apiUri(s"assignments/${regDev.deviceId.show}")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.Conflict
+    }
+
+    val targets = getTargetsOk(regDev)
+    targets.signed.targets shouldNot be(empty)
+  }
+
   testWithRepo("published DeviceUpdateAssigned message") { implicit ns =>
     val regDev = registerAdminDeviceOk()
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)

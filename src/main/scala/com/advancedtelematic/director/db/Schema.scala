@@ -1,29 +1,28 @@
 package com.advancedtelematic.director.db
 
-import java.time.Instant
 import akka.http.scaladsl.model.Uri
 import com.advancedtelematic.director.data.DataType.AdminRoleName
-import com.advancedtelematic.director.data.DbDataType._
+import com.advancedtelematic.director.data.DbDataType.*
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
+import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, JsonSignedPayload, RepoId, TargetFilename, TargetName, TufKey}
 import io.circe.Json
-import slick.jdbc.MySQLProfile.api._
-import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
+import slick.jdbc.MySQLProfile.api.*
+
+import java.time.Instant
 
 object Schema {
-  import SlickMapping._
-  import com.advancedtelematic.libats.slick.codecs.SlickRefined._
-  import com.advancedtelematic.libats.slick.db.SlickAnyVal._
-  import com.advancedtelematic.libats.slick.db.SlickExtensions.javaInstantMapping
-  import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-  import com.advancedtelematic.libats.slick.db.SlickUrnMapper._
   import SlickMapping.adminRoleNameMapper
-  import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric._
-  import com.advancedtelematic.libtuf_server.data.TufSlickMappings._
-  import com.advancedtelematic.libats.slick.db.SlickUriMapper._
+  import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
+  import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
+  import com.advancedtelematic.libats.slick.db.SlickExtensions.javaInstantMapping
+  import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
+  import com.advancedtelematic.libats.slick.db.SlickUriMapper.*
+  import com.advancedtelematic.libats.slick.db.SlickUrnMapper.*
+  import com.advancedtelematic.libtuf_server.data.TufSlickMappings.*
 
   class DevicesTable(tag: Tag) extends Table[Device](tag, "devices") {
     def namespace = column[Namespace]("namespace")

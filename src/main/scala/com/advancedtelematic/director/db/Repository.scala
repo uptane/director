@@ -5,31 +5,27 @@ import java.util.UUID
 import cats.Show
 import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, AutoUpdateDefinitionId, DbAdminRole, DbDeviceRole, Device, Ecu, EcuTarget, EcuTargetId, HardwareUpdate, ProcessedAssignment}
 import com.advancedtelematic.director.db.DeviceRepository.DeviceCreateResult
-import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, MissingEntityId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
-import cats.syntax.either._
-import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
-import com.advancedtelematic.libats.slick.db.SlickExtensions._
-import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.libats.slick.codecs.SlickRefined._
-import slick.jdbc.MySQLProfile.api._
-import akka.NotUsed
+import cats.syntax.either.*
+import com.advancedtelematic.libats.slick.db.SlickExtensions.*
+import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
+import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
+import slick.jdbc.MySQLProfile.api.*
 import akka.http.scaladsl.util.FastFuture
-import akka.stream.scaladsl.Source
 import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement}
-import com.advancedtelematic.libats.slick.db.SlickAnyVal._
-import com.advancedtelematic.libats.slick.db.SlickUrnMapper._
-import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric._
+import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
+import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, RepoId, RoleType, TargetFilename, TargetName}
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
-import com.advancedtelematic.libtuf_server.data.TufSlickMappings._
+import com.advancedtelematic.libtuf_server.data.TufSlickMappings.*
 import io.circe.Json
-import com.advancedtelematic.libtuf.crypt.CanonicalJson._
+import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
 import slick.jdbc.GetResult
 
@@ -197,15 +193,6 @@ protected[db] class RepoNamespaceRepository()(implicit val db: Database, val ec:
       .headOption
       .failIfNone(MissingRepoNamespace(namespace))
   }
-
-  def belongsTo(repoId: RepoId, namespace: Namespace): Future[Boolean] = db.run {
-    repoNamespaces
-      .filter(_.repoId === repoId)
-      .filter(_.namespace === namespace)
-      .size
-      .result
-      .map(_ > 0)
-  }
 }
 
 object HardwareUpdateRepository {
@@ -331,10 +318,6 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       }
     }
 
-  def findLastCreated(deviceId: DeviceId): Future[Option[Instant]] = db.run {
-    Schema.assignments.filter(_.deviceId === deviceId).sortBy(_.createdAt.reverse).map(_.createdAt).result.headOption
-  }
-
   def markRegenerated(deviceRepository: DeviceRepository)(deviceId: DeviceId): Future[Seq[Assignment]] = db.run {
     val deviceAssignments = Schema.assignments.filter(_.deviceId === deviceId)
 
@@ -347,35 +330,40 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
     io.transactionally
   }
 
-  def processCancellation(ns: Namespace, deviceIds: Seq[DeviceId]): Future[Seq[Assignment]] = {
+  def processDeviceCancellation(deviceRepository: DeviceRepository)(ns: Namespace, deviceId: DeviceId, allowInFlightCancellation: Boolean): Future[List[CorrelationId]] = db.run {
+    val assignmentQuery = Schema.assignments.filter(_.namespace === ns).filter(_.deviceId === deviceId)
+
+    val action = assignmentQuery.forUpdate.result.flatMap { assignments =>
+      if (assignments.isEmpty)
+        DBIO.failed(MissingEntity[Assignment]())
+      else if (assignments.exists(_.inFlight) && !allowInFlightCancellation)
+        DBIO.failed(Errors.AssignmentInFlight(deviceId))
+      else
+        DBIO.seq(
+          Schema.processedAssignments ++= assignments.map(_.toProcessedAssignment(successful = true, canceled = true)),
+          assignmentQuery.delete,
+          deviceRepository.setMetadataOutdatedAction(Set(deviceId), outdated = true)
+        ).map(_ => assignments.map(_.correlationId).toList)
+    }
+
+    action.transactionally
+  }
+
+  def processCancellation(deviceRepository: DeviceRepository)(ns: Namespace, deviceIds: Seq[DeviceId]): Future[Seq[Assignment]] = db.run {
     val assignmentQuery = Schema.assignments.filter(_.namespace === ns).filter(_.deviceId inSet deviceIds).filterNot(_.inFlight)
 
     val action = for {
-      assignments <- assignmentQuery.result
-      _ <- Schema.processedAssignments ++= assignments.map(_.toProcessedAssignment(successful = true))
+      assignments <- assignmentQuery.forUpdate.result
+      _ <- Schema.processedAssignments ++= assignments.map(_.toProcessedAssignment(successful = true, canceled = true))
       _ <- assignmentQuery.delete
+      _ <- deviceRepository.setMetadataOutdatedAction(deviceIds.toSet, outdated = true)
     } yield assignments
 
-    db.run(action.transactionally)
+    action.transactionally
   }
 
   def findProcessed(ns: Namespace, deviceId: DeviceId): Future[Seq[ProcessedAssignment]] = db.run {
     Schema.processedAssignments.filter(_.namespace === ns).filter(_.deviceId === deviceId).result
-  }
-
-  def streamProcessed(ns: Namespace, noLaterThan: Instant, deviceIds: Set[DeviceId]): Source[(ProcessedAssignment, Instant), NotUsed] = {
-    val baseQuery = Schema.processedAssignments.filter(_.namespace === ns).filter(_.createdAt > noLaterThan)
-
-    val query = if(deviceIds.isEmpty)
-      baseQuery
-    else
-      baseQuery.filter(_.deviceId.inSet(deviceIds))
-
-    val io = query.map { row =>
-      row -> row.createdAt
-    }.result
-
-    Source.fromPublisher(db.stream(io))
   }
 }
 
@@ -552,7 +540,6 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
 
   def persistAll(values: DbAdminRole*): Future[Unit] = db.run {
     DBIO.sequence(values.map(persistAction)).handleIntegrityErrors(AlreadyExists).map(_ => ()).transactionally
-    // (adminRoles ++= values)..transactionally.map(_ => ())
   }
 }
 

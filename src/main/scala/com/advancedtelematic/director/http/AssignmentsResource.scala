@@ -1,29 +1,28 @@
 package com.advancedtelematic.director.http
 
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
-
-import java.time.Instant
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.*
 import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
+import cats.implicits.*
 import com.advancedtelematic.director.data.AdminDataType.AssignUpdateRequest
-import com.advancedtelematic.director.data.Codecs._
+import com.advancedtelematic.director.data.Codecs.*
+import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.http.UUIDKeyAkka._
+import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateAssigned, DeviceUpdateEvent}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import slick.jdbc.MySQLProfile.api.Database
 
+import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import cats.implicits._
-import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
 
 class AssignmentsResource(extractNamespace: Directive1[Namespace])
                          (implicit val db: Database, val ec: ExecutionContext, messageBusPublisher: MessageBusPublisher) {
 
-  import Directives._
+  import Directives.*
 
   val deviceAssignments = new DeviceAssignments()
 
@@ -80,6 +79,12 @@ class AssignmentsResource(extractNamespace: Directive1[Namespace])
         }
       } ~
       path(DeviceId.Path) { deviceId =>
+        patch {
+          optionalHeaderValueByType(ForceHeader) { force =>
+            val f = deviceAssignments.cancel(ns, deviceId, cancelInFlight = force.exists(_.asBoolean))
+            complete(f.map(_ => StatusCodes.NoContent))
+          }
+        } ~
         get { //  This should be replacing /queue in /admin
           val f = deviceAssignments.findDeviceAssignments(ns, deviceId)
           complete(f)
