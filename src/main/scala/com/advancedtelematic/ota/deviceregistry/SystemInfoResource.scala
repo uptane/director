@@ -30,6 +30,8 @@ import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository
 import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.ota.deviceregistry.http.`application/toml`
 import io.circe.{Decoder, Encoder, Json}
+import io.circe.generic.auto._
+import de.heikoseeberger.akkahttpcirce._
 import slick.jdbc.MySQLProfile.api._
 import toml.Toml
 import toml.Value.{Bool, Num, Str, Tbl}
@@ -61,23 +63,6 @@ class SystemInfoResource(
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
   private val systemInfoUpdatePublisher = new SystemInfoUpdatePublisher(messageBus)
-
-  implicit val NetworkInfoEncoder: Encoder[NetworkInfo] = Encoder.instance { x =>
-    import io.circe.syntax._
-    Json.obj(
-      "local_ipv4" -> x.localIpV4.asJson,
-      "mac"        -> x.macAddress.asJson,
-      "hostname"   -> x.hostname.asJson
-    )
-  }
-
-  implicit val NetworkInfoDecoder: Decoder[DeviceId => NetworkInfo] = Decoder.instance { c =>
-    for {
-      ip       <- c.get[String]("local_ipv4")
-      mac      <- c.get[String]("mac")
-      hostname <- c.get[String]("hostname")
-    } yield (uuid: DeviceId) => NetworkInfo(uuid, ip, hostname, mac)
-  }
 
   implicit val aktualizrConfigUnmarshaller: FromEntityUnmarshaller[AktualizrConfig] = Unmarshaller.stringUnmarshaller.map { s =>
     parseAktualizrConfigToml(s) match {
@@ -115,7 +100,21 @@ class SystemInfoResource(
 
   def api: Route =
     (pathPrefix("devices") & authNamespace) { ns =>
-
+      (path("list-network-info") & post & entity(as[Seq[DeviceId]])) { devices =>
+        val networkInfos = db.run(SystemInfoRepository.getNetworksInfo(devices))
+          .map { ni =>
+            devices.map { d =>
+              ni.find(_.deviceUuid == d) match {
+                case Some(found) => found
+                // empty content
+                case None => NetworkInfo(d, "", "", "")
+              }
+            }
+          }
+        // Use this encoder which includes the deviceUuid
+        import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdEncoder
+        complete (networkInfos)
+      } ~
       deviceNamespaceAuthorizer { uuid =>
         pathPrefix("system_info") {
           pathEnd {
@@ -136,6 +135,8 @@ class SystemInfoResource(
           path("network") {
             get {
               val networkInfo = db.run(SystemInfoRepository.getNetworkInfo(uuid))
+              // Use this encoder which includes the deviceUuid
+              import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdEncoder
               completeOrRecoverWith(networkInfo) {
                 case MissingSystemInfo =>
                   complete(OK -> NetworkInfo(uuid, "", "", ""))

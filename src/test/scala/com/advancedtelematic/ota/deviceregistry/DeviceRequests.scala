@@ -27,6 +27,7 @@ import com.advancedtelematic.ota.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.ota.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.ota.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.ota.deviceregistry.data.{Device, DeviceName, GroupExpression, PackageId, TagId}
+import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.ota.deviceregistry.http.`application/toml`
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.Json
@@ -163,6 +164,17 @@ trait DeviceRequests { self: ResourceSpec =>
   def fetchNetworkInfo(uuid: DeviceId)(implicit ec: ExecutionContext): HttpRequest = {
     val uri = Resource.uri(api, uuid.show, "system_info", "network")
     Get(uri)
+  }
+
+  def createNetworkInfo(uuid: DeviceId, networkInfo: NetworkInfo)(implicit ec: ExecutionContext): HttpRequest = {
+    val uri = Resource.uri(api, uuid.show, "system_info", "network")
+    import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdEncoder
+    Put(uri, networkInfo)
+  }
+
+  def postListNetworkInfos(uuids: Seq[DeviceId])(implicit ec: ExecutionContext): HttpRequest = {
+    val uri = Resource.uri(api, "list-network-info")
+    Post(uri, uuids)
   }
 
   def uploadSystemConfig(uuid: DeviceId, config: String): HttpRequest =

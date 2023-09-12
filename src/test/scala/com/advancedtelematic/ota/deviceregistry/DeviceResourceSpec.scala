@@ -39,6 +39,7 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import org.scalatest.time.{Millis, Seconds, Span}
 import cats.syntax.show._
+import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.NetworkInfo
 import org.scalatest.OptionValues._
 
 

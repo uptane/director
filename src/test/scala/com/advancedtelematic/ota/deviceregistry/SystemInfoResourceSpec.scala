@@ -9,14 +9,15 @@
 package com.advancedtelematic.ota.deviceregistry
 
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.removeIdNrs
-import io.circe.Json
+import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.{NetworkInfo, removeIdNrs, systemInfos}
+import io.circe.{Encoder, Json}
 import org.scalacheck.Shrink
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
 import com.advancedtelematic.ota.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.ota.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.ota.deviceregistry.data.GeneratorOps._
+import io.circe
 import org.scalatest.concurrent.Eventually._
 import org.scalatest.OptionValues._
 import toml.Toml
@@ -61,6 +62,73 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         json.hcursor.get[String]("local_ipv4").toOption should equal(Some(""))
         json.hcursor.get[String]("mac").toOption should equal(Some(""))
         json.hcursor.get[String]("hostname").toOption should equal(Some(""))
+      }
+    }
+  }
+
+  // necessary because the networkInfoEncoder used in NetworkInfo is different in order to
+  // encode from device messages
+
+  property("POST /devices/list-network-info returns empty strings if network info was not reported") {
+    import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
+    import io.circe.Json
+    import io.circe.generic.semiauto._
+    forAll { (devices: Seq[DeviceT], json: Option[Json]) =>
+      val uuids = devices.map(d => createDeviceOk(d))
+
+      json.foreach { sysinfo =>
+        uuids.map(uuid => createSystemInfo(uuid, removeIdNrs(sysinfo)) ~> route ~> check {
+          status shouldBe Created
+        } )
+      }
+      postListNetworkInfos(uuids) ~> route ~> check {
+        status shouldBe OK
+        val res = responseAs[Seq[NetworkInfo]]
+        res.map{ networkInfo =>
+          uuids should contain(networkInfo.deviceUuid)
+          networkInfo.hostname should equal("")
+          networkInfo.localIpV4 should equal("")
+          networkInfo.macAddress should equal("")
+        }
+      }
+    }
+  }
+
+  property("POST /devices/list-network-info returns network info") {
+    import io.circe.parser._
+    import io.circe._
+    val jsonStr = """
+    {
+      "local_ipv4":"10.12.224.9",
+      "mac":"DE:AD:BE:EF:FA:CE",
+      "hostname":"radical-johnson"
+    }
+    """.stripMargin
+    forAll { devices: Seq[DeviceT] =>
+      whenever (devices.length > 0) {
+        val uuids = devices.map(d => createDeviceOk(d))
+        val sysinfoParseResult = parse(jsonStr)
+        val sysInfoJson = sysinfoParseResult.getOrElse(throw new IllegalArgumentException("Failed to parse json string"))
+        val sysInfo = sysInfoJson.as[DeviceId => NetworkInfo] match {
+          case Right(ninfo) => ninfo
+          case Left(e) => throw new IllegalArgumentException("Failed to parse json string. Error: " + e.toString())
+        }
+
+        uuids.map(uuid => createNetworkInfo(uuid, sysInfo(uuid)) ~> route ~> check {
+          status shouldBe NoContent
+        })
+
+        postListNetworkInfos(uuids) ~> route ~> check {
+          status shouldBe OK
+          import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
+          val res = responseAs[List[NetworkInfo]]
+          res.map { networkInfo =>
+            uuids should contain(networkInfo.deviceUuid)
+            networkInfo.hostname should equal("radical-johnson")
+            networkInfo.localIpV4 should equal("10.12.224.9")
+            networkInfo.macAddress should equal("DE:AD:BE:EF:FA:CE")
+          }
+        }
       }
     }
   }
