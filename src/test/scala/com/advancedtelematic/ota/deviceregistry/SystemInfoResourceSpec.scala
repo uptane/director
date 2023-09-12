@@ -46,7 +46,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
 
   implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
-  property("GET /system_info/network returns empty strings if network info was not reported") {
+  property("GET /system_info/network returns empty vals if network info was not reported") {
     forAll { (device: DeviceT, json: Option[Json]) =>
       val uuid = createDeviceOk(device)
 
@@ -59,9 +59,10 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
       fetchNetworkInfo(uuid) ~> route ~> check {
         status shouldBe OK
         val json = responseAs[Json]
-        json.hcursor.get[String]("local_ipv4").toOption should equal(Some(""))
-        json.hcursor.get[String]("mac").toOption should equal(Some(""))
-        json.hcursor.get[String]("hostname").toOption should equal(Some(""))
+        json.hcursor.get[DeviceId]("deviceUuid").toOption should equal(Some(uuid))
+        json.hcursor.get[String]("local_ipv4").toOption should equal(None)
+        json.hcursor.get[String]("mac").toOption should equal(None)
+        json.hcursor.get[String]("hostname").toOption should equal(None)
       }
     }
   }
@@ -86,9 +87,9 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         val res = responseAs[Seq[NetworkInfo]]
         res.map{ networkInfo =>
           uuids should contain(networkInfo.deviceUuid)
-          networkInfo.hostname should equal("")
-          networkInfo.localIpV4 should equal("")
-          networkInfo.macAddress should equal("")
+          networkInfo.hostname should equal(None)
+          networkInfo.localIpV4 should equal(None)
+          networkInfo.macAddress should equal(None)
         }
       }
     }
@@ -124,9 +125,9 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
           val res = responseAs[List[NetworkInfo]]
           res.map { networkInfo =>
             uuids should contain(networkInfo.deviceUuid)
-            networkInfo.hostname should equal("radical-johnson")
-            networkInfo.localIpV4 should equal("10.12.224.9")
-            networkInfo.macAddress should equal("DE:AD:BE:EF:FA:CE")
+            networkInfo.hostname should equal(Some("radical-johnson"))
+            networkInfo.localIpV4 should equal(Some("10.12.224.9"))
+            networkInfo.macAddress should equal(Some("DE:AD:BE:EF:FA:CE"))
           }
         }
       }

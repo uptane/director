@@ -102,13 +102,9 @@ class SystemInfoResource(
     (pathPrefix("devices") & authNamespace) { ns =>
       (path("list-network-info") & post & entity(as[Seq[DeviceId]])) { devices =>
         val networkInfos = db.run(SystemInfoRepository.getNetworksInfo(devices))
-          .map { ni =>
+          .map { niMap =>
             devices.map { d =>
-              ni.find(_.deviceUuid == d) match {
-                case Some(found) => found
-                // empty content
-                case None => NetworkInfo(d, "", "", "")
-              }
+              niMap.getOrElse(d, NetworkInfo(d))
             }
           }
         // Use this encoder which includes the deviceUuid
@@ -139,7 +135,7 @@ class SystemInfoResource(
               import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdEncoder
               completeOrRecoverWith(networkInfo) {
                 case MissingSystemInfo =>
-                  complete(OK -> NetworkInfo(uuid, "", "", ""))
+                  complete(OK -> NetworkInfo(uuid))
                 case t =>
                   failWith(t)
               }
