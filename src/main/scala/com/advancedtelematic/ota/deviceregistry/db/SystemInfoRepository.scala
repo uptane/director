@@ -16,7 +16,7 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
 import com.advancedtelematic.ota.deviceregistry.common.Errors
-import io.circe.Json
+import io.circe.{Decoder, Encoder, Json}
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
 
@@ -55,16 +55,54 @@ object SystemInfoRepository {
   }
   // scalastyle:on
 
-  final case class NetworkInfo(deviceUuid: DeviceId, localIpV4: String, hostname: String, macAddress: String)
+  final case class NetworkInfo(deviceUuid: DeviceId,
+                               localIpV4: Option[String] = None,
+                               hostname: Option[String]=None,
+                               macAddress: Option[String]=None)
+  object NetworkInfo {
+    import com.advancedtelematic.libats.codecs.CirceCodecs._
+    implicit val NetworkInfoEncoder: Encoder[NetworkInfo] = Encoder.instance { x =>
+      import io.circe.syntax._
+      Json.obj(
+        "local_ipv4" -> x.localIpV4.asJson,
+        "mac" -> x.macAddress.asJson,
+        "hostname" -> x.hostname.asJson
+      )
+    }
+    implicit val DeviceIdToNetworkInfoDecoder: Decoder[DeviceId => NetworkInfo] = Decoder.instance { c =>
+      for {
+        ip <- c.getOrElse[Option[String]]("local_ipv4")(None)
+        mac <- c.getOrElse[Option[String]]("mac")(None)
+        hostname <- c.getOrElse[Option[String]]("hostname")(None)
+      } yield (uuid: DeviceId) => NetworkInfo(uuid, ip, hostname, mac)
+    }
+  }
+  implicit val networkInfoWithDeviceIdEncoder: Encoder[NetworkInfo] = Encoder.instance { x =>
+    import io.circe.syntax._
+    Json.obj(
+      "deviceUuid" -> x.deviceUuid.asJson,
+      "local_ipv4" -> x.localIpV4.asJson,
+      "mac" -> x.macAddress.asJson,
+      "hostname" -> x.hostname.asJson
+    )
+  }
+  implicit val networkInfoWithDeviceIdDecoder: Decoder[NetworkInfo] = Decoder.instance { x =>
+    import io.circe.syntax._
+    for {
+      id <- x.get[DeviceId]("deviceUuid")
+      ip <- x.getOrElse[Option[String]]("local_ipv4")(None)
+      mac <- x.getOrElse[Option[String]]("mac")(None)
+      hostname <- x.getOrElse[Option[String]]("hostname")(None)
+    } yield NetworkInfo(id, ip, hostname, mac)
+  }
 
   class SysInfoNetworkTable(tag: Tag) extends Table[NetworkInfo](tag, "DeviceSystem") {
     def uuid       = column[DeviceId]("uuid")
-    def localIpV4  = column[String]("local_ipv4")
-    def hostname   = column[String]("hostname")
-    def macAddress = column[String]("mac_address")
+    def localIpV4  = column[Option[String]]("local_ipv4")
+    def hostname   = column[Option[String]]("hostname")
+    def macAddress = column[Option[String]]("mac_address")
 
     def pk = primaryKey("sys_info_pk", uuid)
-
     def * = (uuid, localIpV4, hostname, macAddress).mapTo[NetworkInfo]
   }
 
@@ -75,6 +113,10 @@ object SystemInfoRepository {
 
   def getNetworkInfo(deviceUuid: DeviceId)(implicit ec: ExecutionContext): DBIO[NetworkInfo] =
     networkInfos.filter(_.uuid === deviceUuid).result.failIfEmpty(Errors.MissingSystemInfo).map(_.head)
+
+  def getNetworksInfo(devices: Seq[DeviceId])(implicit ec: ExecutionContext): DBIO[Map[DeviceId, NetworkInfo]] = {
+    networkInfos.filter(_.uuid inSet devices).map(ni => (ni.uuid -> ni)).result.map(_.toMap)
+  }
 
   val systemInfos = TableQuery[SystemInfoTable]
 
