@@ -12,10 +12,10 @@ Global / bloopAggregateSourceDependencies := true
 libraryDependencies ++= {
   val akkaV = "2.6.20"
   val akkaHttpV = "10.2.10"
-  val scalaTestV = "3.2.16"
-  val bouncyCastleV = "1.73"
   val tufV = "3.1.3"
-  val libatsV = "2.1.1"
+  val scalaTestV = "3.2.17"
+  val bouncyCastleV = "1.76"
+  val libatsV = "2.3.1"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -44,7 +44,7 @@ libraryDependencies ++= {
     "org.scala-lang.modules" %% "scala-async" % "1.0.1",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
 
-    "org.mariadb.jdbc" % "mariadb-java-client" % "3.1.4"
+    "org.mariadb.jdbc" % "mariadb-java-client" % "3.2.0"
   )
 }
 
