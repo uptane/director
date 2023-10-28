@@ -413,8 +413,9 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
   // get ecus for the namespace, the bool means it's a primary ecu
   def findAll(ns: Namespace): Future[Seq[(Ecu, Boolean)]] = db.run {
       Schema.activeEcus.filter(_.namespace === ns)
-        .joinLeft(Schema.activeDevices).on(_.ecuSerial === _.primaryEcu)
-        .map{case (ecu, devices) => (ecu, devices.nonEmpty)}.result
+        // in theory, if it's an active ecu, it will always have an active device :/
+        .join(Schema.activeDevices).on(_.deviceId === _.id)
+        .map{case (ecu, device) => (ecu, device.primaryEcu === ecu.ecuSerial)}.result
   }
 
   def findEcuWithTargets(devices: Set[DeviceId], hardwareIds: Set[HardwareIdentifier]): Future[Seq[(Ecu, Option[EcuTarget])]] = db.run {
@@ -462,11 +463,12 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
     DBIO.seq(activeIO, deleteIO)
   }
 
-  def currentTargets(ns: Namespace, devices: Set[DeviceId]): Future[Seq[(DeviceId, EcuIdentifier, EcuTarget)]] = {
+  def deviceEcuInstallInfo (ns: Namespace, devices: Set[DeviceId]): Future[Seq[(DeviceId, Ecu, Boolean, Option[EcuTarget])]] = {
     val io = Schema.activeEcus
-      .filter(_.deviceId.inSet(devices)).filter(_.namespace === ns)
-      .join(Schema.ecuTargets).on { (l, r) => l.installedTarget === r.id }
-      .map { case (l, r) => (l.deviceId, l.ecuSerial, r) }
+      .filter(_.namespace === ns).filter(_.deviceId.inSet(devices))
+      .join(Schema.activeDevices).on{(ecus, devices) => ecus.deviceId === devices.id}
+      .joinLeft(Schema.ecuTargets).on { case ((ecu,_), ecuTargets) => ecu.installedTarget === ecuTargets.id }
+      .map{ case ((ecu,device), ecuTarget) => (ecu.deviceId, ecu, device.primaryEcu===ecu.ecuSerial, ecuTarget)}
       .result
 
     db.run(io)

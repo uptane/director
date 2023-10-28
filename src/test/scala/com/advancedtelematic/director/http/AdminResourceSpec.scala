@@ -179,15 +179,17 @@ class AdminResourceSpec extends DirectorSpec
       resp.total shouldBe 1
       resp.values should have size (1)
       resp.values.head(dev.deviceId).size shouldBe 2
-      resp.values.head(dev.deviceId).head.hardwareId shouldBe dev.primary.hardwareId
-      resp.values.head(dev.deviceId).head.ecuSerial shouldBe dev.primary.ecuSerial
-      resp.values.head(dev.deviceId).head.primary shouldBe true
-      resp.values.head(dev.deviceId).head.installedTarget.nonEmpty shouldBe true
+      val primaryEcu = resp.values.head(dev.deviceId).filter(_.primary).head
+      primaryEcu.hardwareId shouldBe dev.primary.hardwareId
+      primaryEcu.ecuSerial shouldBe dev.primary.ecuSerial
+      primaryEcu.primary shouldBe true
+      primaryEcu.installedTarget.nonEmpty shouldBe true
 
-      resp.values.head(dev.deviceId)(1).hardwareId shouldBe secondaryEcu.hardwareId
-      resp.values.head(dev.deviceId)(1).ecuSerial shouldBe secondaryEcu.ecuSerial
-      resp.values.head(dev.deviceId)(1).primary shouldBe false
-      resp.values.head(dev.deviceId)(1).installedTarget.nonEmpty shouldBe false
+      val secondaryEcu = resp.values.head(dev.deviceId).filterNot(_.primary).head
+      secondaryEcu.hardwareId shouldBe secondaryEcu.hardwareId
+      secondaryEcu.ecuSerial shouldBe secondaryEcu.ecuSerial
+      secondaryEcu.primary shouldBe false
+      secondaryEcu.installedTarget.nonEmpty shouldBe false
     }
   }
 

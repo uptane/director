@@ -56,20 +56,27 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
   val remoteSessions = new RemoteSessions(keyserverClient)
 
   private def findDevicesCurrentTarget(ns: Namespace, devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
-    val defaultResult = devices.map { deviceId => deviceId -> List.empty[EcuTarget] }.toMap
+    val values = {
+      for {
+        d <- ecuRepository.deviceEcuInstallInfo(ns, devices.toSet)
+      } yield d.map { case (deviceId, ecu, isPrimary, installedTarget) =>
 
-    for {
-      ecus <- ecuRepository.findAll(ns)
-      d <- ecuRepository.currentTargets(ns, devices.toSet).map { existing =>
-
-        val result = existing.foldLeft (defaultResult) {case (acc, (deviceId, ecuId, target)) =>
-          // get primary and hwid for each ecu
-          val ecu = ecus.find{case (ecu, _) => ecu.deviceId == deviceId && ecu.ecuSerial == ecuId}.get
-          acc + (deviceId -> (target.toClient (ecuId, ecu._1.hardwareId, ecu._2) +: acc (deviceId)))
+        installedTarget match {
+          case Some(t) => deviceId -> Seq[EcuTarget](EcuTarget(ecu.ecuSerial, t.checksum, t.filename, ecu.hardwareId, isPrimary))
+          case None => deviceId -> Seq.empty[EcuTarget]
         }
-        DevicesCurrentTarget (result)
       }
-    } yield d
+      .groupMap(_._1)(_._2)
+        .map { case (deviceId, ecuTargets) => deviceId -> ecuTargets.flatten }
+    }
+    values.map { v =>
+      DevicesCurrentTarget {
+        // Only necessary if lengths differ. This can happen when db has no activeEcus for a specified deviceId
+        if (v.size != devices.length) {
+          devices.map(d => d -> v.getOrElse(d, Seq.empty[EcuTarget])).toMap
+        } else v
+      }
+    }
   }
 
   def repoRoute(ns: Namespace): Route =
