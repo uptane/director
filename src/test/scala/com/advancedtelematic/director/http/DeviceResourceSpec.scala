@@ -1,37 +1,37 @@
 package com.advancedtelematic.director.http
 
 import akka.http.scaladsl.model.StatusCodes
-import cats.syntax.option._
-import cats.syntax.show._
+import cats.syntax.option.*
+import cats.syntax.show.*
 import com.advancedtelematic.director.data.AdminDataType
-import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, QueueResponse, RegisterDevice}
-import com.advancedtelematic.director.data.Codecs._
-import com.advancedtelematic.director.data.DataType._
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom, InstallationReportEntity, MissingInstallationReport, OperationResult}
-import com.advancedtelematic.director.data.GeneratorOps._
-import com.advancedtelematic.director.data.Generators._
+import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, QueueResponse, RegisterDevice, TargetUpdate}
+import com.advancedtelematic.director.data.Codecs.*
+import com.advancedtelematic.director.data.DataType.*
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom, InstallationReport, InstallationReportEntity, MissingInstallationReport, OperationResult}
+import com.advancedtelematic.director.data.GeneratorOps.*
+import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.data.Messages.DeviceManifestReported
 import com.advancedtelematic.director.data.UptaneDataType.{FileInfo, Hashes, Image}
 import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepositorySupport}
 import com.advancedtelematic.director.manifest.ResultCodes
-import com.advancedtelematic.director.util._
-import com.advancedtelematic.libats.data.DataType.{ResultCode, ResultDescription}
+import com.advancedtelematic.director.util.*
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, HashMethod, Namespace, ResultCode, ResultDescription}
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult}
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId._
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateCompleted, _}
-import com.advancedtelematic.libtuf.data.ClientCodecs._
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateCompleted, *}
+import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{RootRole, SnapshotRole, TargetsRole, TimestampRole, TufRole}
-import com.advancedtelematic.libtuf.data.TufCodecs._
+import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalatest.Inspectors
-import org.scalatest.LoneElement._
-import org.scalatest.OptionValues._
-import io.circe.syntax._
-import org.scalatest.EitherValues._
+import org.scalatest.LoneElement.*
+import org.scalatest.OptionValues.*
+import io.circe.syntax.*
+import org.scalatest.EitherValues.*
 
 class DeviceResourceSpec extends DirectorSpec
   with RouteResourceSpec with AdminResources with AssignmentResources with EcuRepositorySupport
@@ -894,7 +894,7 @@ class DeviceResourceSpec extends DirectorSpec
     processed.head.result shouldNot be(empty)
   }
 
-  testWithRepo("device updates to some unknown target with a success installation report cancels existing assignments") { implicit ns =>
+  testWithRepo("device updates to an unknown target with a success installation report, cancels existing assignments") { implicit ns =>
     val regDev = registerAdminDeviceOk()
 
     val initialVersion = GenTargetUpdateRequest.generate
@@ -909,7 +909,8 @@ class DeviceResourceSpec extends DirectorSpec
     val targetsBefore = getDeviceRoleOk[TargetsRole](regDev.deviceId)
     targetsBefore.signed.targets shouldNot be(empty)
 
-    val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success = true, correlationId = correlationId.some).generate
+    val unknownCorrelationId = GenCorrelationId.generate
+    val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success = true, correlationId = unknownCorrelationId.some).generate
     val unknownUpdate = GenTargetUpdateRequest.generate
     val deviceManifestAfterTrying = buildPrimaryManifest(regDev.primary, regDev.primaryKey, unknownUpdate.to, deviceReport.some)
 
@@ -923,12 +924,23 @@ class DeviceResourceSpec extends DirectorSpec
     processed.canceled shouldBe true
     processed.successful shouldBe false
 
-    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
       msg.deviceUuid === regDev.deviceId
-    }.map(_.asInstanceOf[DeviceUpdateCompleted])
+    }
 
-    reportMsg.value.correlationId shouldBe correlationId
-    reportMsg.value.result.code shouldBe ResultCodes.DirectorCancelledAssignment
+    // message for known/assigned update
+    forExactly(1, allMessages) { msg =>
+      msg shouldBe a[DeviceUpdateCompleted]
+      msg.correlationId shouldBe correlationId
+      msg.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe ResultCodes.DirectorCancelledAssignment
+    }
+
+    // also gets a message for unknown update
+    forExactly(1, allMessages) { msg =>
+      msg shouldBe a[DeviceUpdateCompleted]
+      msg.correlationId shouldBe unknownCorrelationId
+      msg.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe deviceReport.result.code
+    }
   }
 
   testWithRepo("publishes bus message when manifest is received") { implicit ns =>
@@ -988,4 +1000,201 @@ class DeviceResourceSpec extends DirectorSpec
     reportMsg.value.result.success shouldBe false
     reportMsg.value.result.code shouldBe ResultCodes.DeviceSentInvalidInstallationReport
   }
+
+  testWithRepo("targets.json has the same targets when an update is successful") { implicit ns =>
+    val regDev = registerAdminDeviceOk()
+
+    val initialVersion = GenTargetUpdateRequest.generate
+    val deviceManifest = buildPrimaryManifest(regDev.primary, regDev.primaryKey, initialVersion.to, None)
+
+    putManifestOk(regDev.deviceId, deviceManifest)
+
+    val targetUpdate = GenTargetUpdateRequest.generate
+    val correlationId = GenCorrelationId.generate
+
+    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId, targetUpdate.some, correlationId.some)
+    val targetsBefore = getTargetsOk(regDev.deviceId)
+    targetsBefore.signed.targets shouldNot be(empty)
+
+    val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success = true, correlationId = correlationId.some).generate
+    val deviceManifestAfterTrying = buildPrimaryManifest(regDev.primary, regDev.primaryKey, targetUpdate.to, deviceReport.some)
+
+    putManifestOk(regDev.deviceId, deviceManifestAfterTrying)
+
+    val targetsAfter = getTargetsOk(regDev.deviceId)
+    val target = targetsAfter.signed.targets.get(targetUpdate.to.target).value
+
+    targetsAfter.signed shouldBe targetsAfter.signed
+
+    target.hashes.loneElement shouldBe (HashMethod.SHA256, targetUpdate.to.checksum.hash)
+    target.length shouldBe targetUpdate.to.targetLength
+
+    val processed = assignmentsRepository.findProcessed(ns, regDev.deviceId).futureValue.loneElement
+    processed.correlationId shouldBe correlationId
+    processed.canceled shouldBe false
+    processed.successful shouldBe true
+
+    val reportMsg = msgPub.findReceived { msg: DeviceUpdateEvent =>
+      msg.deviceUuid == regDev.deviceId
+    }.map(_.asInstanceOf[DeviceUpdateCompleted])
+
+    reportMsg.value.correlationId shouldBe correlationId
+    val ecuReport = reportMsg.value.ecuReports.get(regDev.primary.ecuSerial).value
+    ecuReport.result shouldBe deviceReport.result
+    ecuReport.target.loneElement shouldBe targetUpdate.to.target.value
+  }
+
+  def putManifestOfflineUpdateInstalled(success: Boolean)(implicit ns: Namespace): (DeviceId, CorrelationId, CorrelationId, InstallationReport) = {
+    val regDev = registerAdminDeviceOk()
+    val targetUpdate = GenTargetUpdateRequest.generate
+    val deviceId = regDev.deviceId
+    val existingCorrelationId = GenCorrelationId.generate
+    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId, targetUpdate.some, existingCorrelationId.some)
+
+    val targetsBefore = getTargetsOk(deviceId)
+    targetsBefore.signed.targets shouldNot be(empty)
+
+    val offlineTargetUpdate = GenTargetUpdateRequest.generate
+    val offlineUpdateCorrelationId = GenOffLineCorrelationId.generate
+    val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success, correlationId = offlineUpdateCorrelationId.some).generate
+    val deviceManifest = buildPrimaryManifest(regDev.primary, regDev.primaryKey, offlineTargetUpdate.to, deviceReport.some)
+
+    putManifestOk(deviceId, deviceManifest)
+
+    (regDev.deviceId, existingCorrelationId, offlineUpdateCorrelationId, deviceReport)
+  }
+
+  def putManifestCurrentAssignmentWithOfflineCorrelationId(success: Boolean)(implicit ns: Namespace): (DeviceId, CorrelationId, CorrelationId, InstallationReport, TargetUpdate) = {
+    val regDev = registerAdminDeviceOk()
+    val targetUpdate = GenTargetUpdateRequest.generate
+    val deviceId = regDev.deviceId
+    val existingCorrelationId = GenCorrelationId.generate
+    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId, targetUpdate.some, existingCorrelationId.some)
+
+    val targetsBefore = getTargetsOk(regDev.deviceId)
+    targetsBefore.signed.targets shouldNot be(empty)
+
+    val offlineUpdateCorrelationId = GenOffLineCorrelationId.generate
+    val deviceReport = GenInstallReport(regDev.primary.ecuSerial, success, correlationId = offlineUpdateCorrelationId.some).generate
+    val deviceManifest = buildPrimaryManifest(regDev.primary, regDev.primaryKey, targetUpdate.to, deviceReport.some)
+
+    putManifestOk(deviceId, deviceManifest)
+
+    (regDev.deviceId, existingCorrelationId, offlineUpdateCorrelationId, deviceReport, targetUpdate.to)
+  }
+
+  testWithRepo("clears assignments when device reports an installed offline update") { implicit ns =>
+    val (deviceId, existingCorrelationId, offlineUpdateCorrelationId, deviceReport) = putManifestOfflineUpdateInstalled(success = true)
+
+    val targetsBefore = getTargetsOk(deviceId)
+    targetsBefore.signed.targets shouldBe empty
+
+    val inFlightMsg = msgPub.findReceived { msg: DeviceUpdateEvent =>
+      msg.deviceUuid == deviceId && msg.isInstanceOf[DeviceUpdateInFlight]
+    }
+
+    inFlightMsg.value.asInstanceOf[DeviceUpdateInFlight].correlationId shouldBe existingCorrelationId
+
+    val targets = getTargetsOk(deviceId)
+    targets.signed.targets shouldBe empty
+
+    getDeviceAssignmentOk(deviceId) shouldBe empty
+
+    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+      msg.deviceUuid == deviceId
+    }
+
+    forExactly(1, allMessages) { report =>
+      report.correlationId shouldBe existingCorrelationId
+      report shouldBe a[DeviceUpdateCompleted]
+      report.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe ResultCodes.DirectorCancelledAssignment
+    }
+
+    forExactly(1, allMessages) { report =>
+      report.correlationId shouldBe offlineUpdateCorrelationId
+      report shouldBe a[DeviceUpdateCompleted]
+      report.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe deviceReport.result.code
+      report.asInstanceOf[DeviceUpdateCompleted].result.success shouldBe true
+    }
+
+  }
+
+  testWithRepo("device sends offline update installation report success = false") { implicit ns =>
+    val (deviceId, existingCorrelationId, offlineUpdateCorrelationId, deviceReport) = putManifestOfflineUpdateInstalled(success = false)
+
+    val targets = getTargetsOk(deviceId)
+    targets.signed.targets shouldBe empty
+
+    getDeviceAssignmentOk(deviceId) shouldBe empty
+
+    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+      msg.deviceUuid == deviceId
+    }
+
+    forExactly(1, allMessages) { report =>
+      report.correlationId shouldBe existingCorrelationId
+      report shouldBe a[DeviceUpdateCompleted]
+      report.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe ResultCodes.DirectorCancelledAssignment
+    }
+
+    forExactly(1, allMessages) { report =>
+      report.correlationId shouldBe offlineUpdateCorrelationId
+      report shouldBe a[DeviceUpdateCompleted]
+      report.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe deviceReport.result.code
+      report.asInstanceOf[DeviceUpdateCompleted].result.success shouldBe false
+    }
+  }
+
+  testWithRepo("report is for offline update and installed update matches current assignment") { implicit ns =>
+    val (deviceId, existingCorrelationId, offlineUpdateCorrelationId, deviceReport, targetUpdate) = putManifestCurrentAssignmentWithOfflineCorrelationId(success = true)
+
+    val targets = getTargetsOk(deviceId)
+    targets.signed.targets shouldNot be(empty)
+    targets.signed.targets.get(targetUpdate.target).value.hashes.loneElement._2 shouldBe targetUpdate.checksum.hash
+
+    getDeviceAssignmentOk(deviceId) shouldBe empty
+
+    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+      msg.deviceUuid == deviceId
+    }
+
+    forExactly(1, allMessages) { report =>
+      report.correlationId shouldBe existingCorrelationId
+      report shouldBe a[DeviceUpdateCompleted]
+      report.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe deviceReport.result.code
+    }
+
+    forExactly(1, allMessages) { report =>
+      report.correlationId shouldBe offlineUpdateCorrelationId
+      report shouldBe a[DeviceUpdateCompleted]
+      report.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe deviceReport.result.code
+      report.asInstanceOf[DeviceUpdateCompleted].result.success shouldBe true
+    }
+  }
+
+  testWithRepo("offline update in correlation id, but assigned update success = false") { implicit ns =>
+    val (deviceId, existingCorrelationId, offlineUpdateCorrelationId, deviceReport, _) = putManifestCurrentAssignmentWithOfflineCorrelationId(success = false)
+
+    val targets = getTargetsOk(deviceId)
+    targets.signed.targets shouldBe empty
+
+    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+      msg.deviceUuid == deviceId
+    }
+
+    forExactly(1, allMessages) { report =>
+      report.correlationId shouldBe existingCorrelationId
+      report shouldBe a[DeviceUpdateCompleted]
+      report.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe deviceReport.result.code
+      report.asInstanceOf[DeviceUpdateCompleted].result.success shouldBe false
+    }
+
+    forExactly(1, allMessages) { report =>
+      report.correlationId shouldBe offlineUpdateCorrelationId
+      report shouldBe a[DeviceUpdateCompleted]
+      report.asInstanceOf[DeviceUpdateCompleted].result.code shouldBe deviceReport.result.code
+      report.asInstanceOf[DeviceUpdateCompleted].result.success shouldBe false
+    }
+  }
+
 }

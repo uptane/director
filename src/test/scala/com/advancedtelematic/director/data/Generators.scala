@@ -7,10 +7,10 @@ import akka.http.scaladsl.model.Uri
 import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, RegisterEcu, TargetUpdate, TargetUpdateRequest}
 import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationItem, InstallationReport, MissingInstallationReport}
 import com.advancedtelematic.director.data.UptaneDataType.*
-import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, MultiTargetUpdateId, ResultCode, ResultDescription, ValidChecksum}
+import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, MultiTargetUpdateId, OfflineUpdateId, ResultCode, ResultDescription, ValidChecksum, ValidLockboxHash}
 import com.advancedtelematic.libats.messaging_datatype.DataType.InstallationResult
 import com.advancedtelematic.libtuf.data.TufDataType.{Ed25519KeyType, HardwareIdentifier, KeyType, RsaKeyType, SignedPayload, TargetFilename, TufKey, TufKeyPair, ValidTargetFilename}
-import eu.timepit.refined.api.Refined
+import eu.timepit.refined.api.{RefType, Refined}
 import io.circe.Json
 import Codecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.ClientTargetItem
@@ -107,6 +107,12 @@ trait Generators {
 
   lazy val GenCorrelationId =
     Gen.uuid.map(u => MultiTargetUpdateId(u))
+
+  lazy val GenOffLineCorrelationId = for {
+    hash <- Gen.stringOfN(12, Gen.hexChar).map(str => RefType.applyRef[ValidLockboxHash](str.toLowerCase()).toOption.get)
+    lockbox <- Gen.alphaStr
+    version <- Gen.long.suchThat(_ > 0)
+  } yield  OfflineUpdateId(lockbox, version, hash)
 
   lazy val GenRegisterEcuKeys: Gen[(RegisterEcu, TufKeyPair)] = for {
     ecu <- GenEcuIdentifier
