@@ -39,6 +39,8 @@ object ErrorCodes {
   val InvalidMtu = ErrorCode("invalid_mtu")
 
   val InvalidAssignment = ErrorCode("invalid_assignment")
+
+  val TooManyOfflineRoles = ErrorCode("too_many_offline_roles")
 }
 
 object Errors {
@@ -95,4 +97,7 @@ object Errors {
 
   def AssignmentInFlight(deviceId: DeviceId) =
     RawError(ErrorCode("assignment_in_flight"), StatusCodes.Conflict, s"there is an assignmement in flight for $deviceId")
+
+  def TooManyOfflineRoles(max: Int) =
+    RawError(ErrorCodes.TooManyOfflineRoles, StatusCodes.BadRequest, s"this account has too many offline roles. Maximum is set to $max roles")
 }
