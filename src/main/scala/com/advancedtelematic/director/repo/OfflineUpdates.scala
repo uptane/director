@@ -52,7 +52,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
       existing.content
   }
 
-  def set(repoId: RepoId, offlineUpdatesName: AdminRoleName, values: Map[TargetFilename, ClientTargetItem], expireAt: Option[Instant]): Future[Unit] = async {
+  def set(repoId: RepoId, offlineUpdatesName: AdminRoleName, values: Map[TargetFilename, ClientTargetItem], expireAt: Option[Instant]): Future[SignedRole[OfflineUpdatesRole]] = async {
     val existing = await(adminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_UPDATES, offlineUpdatesName))
 
     val expires = expireAt.getOrElse(nextExpires)
@@ -66,7 +66,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
       newRole
     }
 
-    await(signAndPersistWithSnapshot(repoId, offlineUpdatesName, newRole, expires))
+    await(signAndPersistWithSnapshot(repoId, offlineUpdatesName, newRole, expires))._1
   }
 
   private def nextExpires = Instant.now().plus(defaultExpire)
