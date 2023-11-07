@@ -88,8 +88,8 @@ trait AssignmentResources {
     ).namespaced ~> routes ~> check(checkFn)
   }
 
-  def getTargetsOk(regDev: AdminResources.RegisterDeviceResult)(implicit ns: Namespace): SignedPayload[TargetsRole] = {
-    Get(apiUri(s"device/${regDev.deviceId.show}/targets.json")).namespaced ~> routes ~> check {
+  def getTargetsOk(deviceId: DeviceId)(implicit ns: Namespace): SignedPayload[TargetsRole] = {
+    Get(apiUri(s"device/${deviceId.show}/targets.json")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       responseAs[SignedPayload[TargetsRole]]
     }
@@ -329,7 +329,7 @@ class AssignmentsResourceSpec extends DirectorSpec
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
     // make it inflight
-    getTargetsOk(regDev)
+    getTargetsOk(regDev.deviceId)
 
     cancelAssignmentsOk(Seq(regDev.deviceId)) shouldBe Seq.empty
   }
@@ -342,7 +342,7 @@ class AssignmentsResourceSpec extends DirectorSpec
       status shouldBe StatusCodes.NoContent
     }
 
-    val targets = getTargetsOk(regDev)
+    val targets = getTargetsOk(regDev.deviceId)
     targets.signed.targets shouldBe empty
   }
 
@@ -350,14 +350,14 @@ class AssignmentsResourceSpec extends DirectorSpec
     val regDev = registerAdminDeviceOk()
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
-    val targets0 = getTargetsOk(regDev)
+    val targets0 = getTargetsOk(regDev.deviceId)
     targets0.signed.targets shouldNot be(empty)
 
     Patch(apiUri(s"assignments/${regDev.deviceId.show}")).addHeader(new ForceHeader(true)).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.NoContent
     }
 
-    val targets = getTargetsOk(regDev)
+    val targets = getTargetsOk(regDev.deviceId)
     targets.signed.targets shouldBe empty
   }
 
@@ -365,13 +365,13 @@ class AssignmentsResourceSpec extends DirectorSpec
     val regDev = registerAdminDeviceOk()
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
-    getTargetsOk(regDev)
+    getTargetsOk(regDev.deviceId)
 
     Patch(apiUri(s"assignments/${regDev.deviceId.show}")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Conflict
     }
 
-    val targets = getTargetsOk(regDev)
+    val targets = getTargetsOk(regDev.deviceId)
     targets.signed.targets shouldNot be(empty)
   }
 
@@ -392,12 +392,12 @@ class AssignmentsResourceSpec extends DirectorSpec
 
     cancelAssignmentsOk(Seq(regDev.deviceId)) shouldBe Seq(regDev.deviceId)
 
-    val t1 = getTargetsOk(regDev)
+    val t1 = getTargetsOk(regDev.deviceId)
     t1.signed.targets shouldBe empty
 
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
-    val t2 = getTargetsOk(regDev)
+    val t2 = getTargetsOk(regDev.deviceId)
     // check if a target is addressing our ECU:
     val targetItemCustom = t2.signed.targets.headOption.value._2.customParsed[TargetItemCustom]
     targetItemCustom.get.ecuIdentifiers.keys.head shouldBe regDev.ecus.keys.head

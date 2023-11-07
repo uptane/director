@@ -98,7 +98,7 @@ object ManifestCompiler {
 
         val newStatus = status.copy(
           currentAssignments = knownStatus.currentAssignments -- assignmentsProcessedInManifest,
-          processedAssignments = knownStatus.processedAssignments ++ assignmentsProcessedInManifest.map(_.toProcessedAssignment(successful = true, canceled = false, desc.some))
+          processedAssignments = knownStatus.processedAssignments ++ assignmentsProcessedInManifest.map(_.toProcessedAssignment(successful = true, canceled = false, desc.some)),
         )
 
         val msgs = resultMsgFromEcuManifests(ns, knownStatus, manifest)
@@ -113,7 +113,7 @@ object ManifestCompiler {
 
         val newStatus = status.copy(
           currentAssignments = Set.empty,
-          processedAssignments = knownStatus.processedAssignments ++ cancelledAssignments
+          processedAssignments = knownStatus.processedAssignments ++ cancelledAssignments,
         )
 
         val msgs = buildMessagesFromCancelledAssignments(ns, knownStatus.deviceId, desc, cancelledAssignments,
@@ -137,14 +137,18 @@ object ManifestCompiler {
 
         val processedCorrelationIds = assignmentsProcessedInManifest.map(_.correlationId).toList
 
-        val msgs = if(assignmentsProcessedInManifest.isEmpty)
+        var msgs = if(assignmentsProcessedInManifest.isEmpty)
           buildMessagesFromCancelledAssignments(ns, knownStatus.deviceId, desc, cancelledAssignments, ResultCodes.DirectorCancelledAssignment)
-        else
+        else {
           resultMsgFromInstallationReport(ns, knownStatus.deviceId, manifest, processedCorrelationIds, report)
+        }
+
+        if(!processedCorrelationIds.contains(report.correlation_id))
+          msgs = msgs ++ resultMsgFromInstallationReport(ns, knownStatus.deviceId, manifest, List(report.correlation_id), report)
 
         newStatus -> msgs
 
-      case Right(_) if assignmentsProcessedInManifest.isEmpty =>
+      case Right(report) if assignmentsProcessedInManifest.isEmpty =>
         val desc = "Device sent a successful installation report, but no assignments were processed in the manifest"
         _log.info(s"${knownStatus.deviceId} " + desc)
 
@@ -156,7 +160,10 @@ object ManifestCompiler {
           generatedMetadataOutdated = true
         )
 
-        val msgs = buildMessagesFromCancelledAssignments(ns, knownStatus.deviceId, desc, cancelledAssignments, ResultCodes.DirectorCancelledAssignment)
+        var msgs = buildMessagesFromCancelledAssignments(ns, knownStatus.deviceId, desc, cancelledAssignments, ResultCodes.DirectorCancelledAssignment)
+
+        if(!cancelledAssignments.map(_.correlationId).contains(report.correlation_id))
+          msgs = msgs ++ resultMsgFromInstallationReport(ns, knownStatus.deviceId, manifest, List(report.correlation_id), report)
 
         newStatus -> msgs
 
@@ -169,8 +176,8 @@ object ManifestCompiler {
           processedAssignments = knownStatus.processedAssignments ++ assignmentsProcessedInManifest.map(_.toProcessedAssignment(successful = true, canceled = false, desc.some))
         )
 
-        val correlationIds = assignmentsProcessedInManifest.map(_.correlationId).toList
-        val msg = resultMsgFromInstallationReport(ns, knownStatus.deviceId, manifest, correlationIds, report)
+        val correlationIds = assignmentsProcessedInManifest.map(_.correlationId).toSet + report.correlation_id
+        val msg = resultMsgFromInstallationReport(ns, knownStatus.deviceId, manifest,  correlationIds.toList, report)
 
         newStatus -> msg
     }

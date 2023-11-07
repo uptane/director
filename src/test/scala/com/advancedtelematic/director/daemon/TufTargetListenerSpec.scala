@@ -49,7 +49,7 @@ class TufTargetListenerSpec extends DirectorSpec
     ecuTarget.checksum shouldBe checksum
     ecuTarget.length shouldBe 1L
 
-    val targets = getTargetsOk(dev)
+    val targets = getTargetsOk(dev.deviceId)
     targets.signed.targets.keys.headOption should contain(filename)
   }
 
