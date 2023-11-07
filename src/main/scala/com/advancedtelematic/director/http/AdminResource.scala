@@ -115,7 +115,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
       (path("offline-updates" / AdminRoleNamePathMatcher) & UserRepoId(ns)){ (offlineTargetName, repoId) =>
         (post & entity(as[OfflineUpdateRequest])) { req =>
           val f = offlineUpdates.set(repoId, offlineTargetName, req.values, req.expiresAt)
-          complete(f.map(_ => StatusCodes.OK))
+          complete(f.map(_.content))
         }
       } ~
       (path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") & UserRepoId(ns)) { (offlineTargetName, repoId) =>
