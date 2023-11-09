@@ -35,13 +35,6 @@ class DeviceRegistryRoutes(
             new GroupsResource(namespaceExtractor, deviceNamespaceAuthorizer).route
           }
         }
-      } ~
-      pathPrefix("v2") {
-        handleRejections(rejectionHandler) {
-          ErrorHandler.handleErrors {
-            new DeviceResource2(namespaceExtractor, deviceNamespaceAuthorizer).route
-          }
-        }
       }
     }
 }
