@@ -68,7 +68,7 @@ object EcuReplacementRepository {
       .handleForeignKeyError(Errors.MissingDevice)
       .map(_ => ())
 
-  def fetchForDevice(deviceId: DeviceId)(implicit ec: ExecutionContext): DBIO[Seq[EcuReplacement]] =
+  def fetchForDevice(deviceId: DeviceId): DBIO[Seq[EcuReplacement]] =
     ecuReplacements
       .filter(_.deviceId === deviceId)
       .result

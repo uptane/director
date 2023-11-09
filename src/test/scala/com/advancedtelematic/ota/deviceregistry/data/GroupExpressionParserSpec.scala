@@ -14,12 +14,11 @@ import com.advancedtelematic.ota.deviceregistry.db.TaggedDeviceRepository.tagDev
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
 import slick.jdbc.MySQLProfile.api._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import scala.language.implicitConversions
 
 class GroupExpressionParserSpec extends AnyFunSuite with Matchers {
 
@@ -265,7 +264,7 @@ class GroupExpressionRunSpec extends AnyFunSuite with Matchers with DatabaseSpec
   }
 
   def runGroupExpression(strExp: String) = {
-    val exp = GroupExpression.from(strExp).right.get
+    val exp = GroupExpression.from(strExp).toOption.get
     db.run(DeviceRepository.searchByExpression(ns, exp)).futureValue
   }
 

@@ -23,7 +23,7 @@ class DynamicGroupsResourceSpec extends AnyFunSuite with ResourceSpec with Event
   }
 
   test("dynamic group gets created.") {
-    createGroup(GroupType.dynamic, Some(GroupExpression.from("deviceid contains something").right.get), None) ~> route ~> check {
+    createGroup(GroupType.dynamic, Some(GroupExpression.from("deviceid contains something").toOption.get), None) ~> route ~> check {
       status shouldBe Created
     }
   }
@@ -42,7 +42,7 @@ class DynamicGroupsResourceSpec extends AnyFunSuite with ResourceSpec with Event
   }
 
   test("dynamic group is empty when no device matches the expression") {
-    val groupId    = createDynamicGroupOk(GroupExpression.from("deviceid contains nothing").right.get)
+    val groupId    = createDynamicGroupOk(GroupExpression.from("deviceid contains nothing").toOption.get)
 
     listDevicesInGroup(groupId) ~> route ~> check {
       status shouldBe OK
@@ -117,13 +117,13 @@ class DynamicGroupsResourceSpec extends AnyFunSuite with ResourceSpec with Event
   }
 
   test("getting the groups of a device returns the correct dynamic groups") {
-    val deviceT = genDeviceT.sample.get.copy(deviceName = validatedDeviceType.from("12347890800808").right.get)
+    val deviceT = genDeviceT.sample.get.copy(deviceName = validatedDeviceType.from("12347890800808").toOption.get)
     val deviceId: DeviceOemId = deviceT.deviceId
     val deviceUuid = createDeviceOk(deviceT)
 
-    val expression1 = GroupExpression.from(s"deviceid contains ${deviceId.show.substring(0, 5)}").right.get // To test "starts with"
+    val expression1 = GroupExpression.from(s"deviceid contains ${deviceId.show.substring(0, 5)}").toOption.get // To test "starts with"
     val groupId1    = createDynamicGroupOk(expression1)
-    val expression2 = GroupExpression.from(s"deviceid contains ${deviceId.show.substring(2, 10)}").right.get // To test "contains"
+    val expression2 = GroupExpression.from(s"deviceid contains ${deviceId.show.substring(2, 10)}").toOption.get // To test "contains"
     val groupId2    = createDynamicGroupOk(expression2)
 
     getGroupsOfDevice(deviceUuid) ~> route ~> check {
@@ -136,13 +136,13 @@ class DynamicGroupsResourceSpec extends AnyFunSuite with ResourceSpec with Event
   }
 
   test("getting the groups of a device using two 'contains' returns the correct dynamic groups") {
-    val deviceT = genDeviceT.sample.get.copy(deviceName = validatedDeviceType.from("ABCDEFGHIJ").right.get)
+    val deviceT = genDeviceT.sample.get.copy(deviceName = validatedDeviceType.from("ABCDEFGHIJ").toOption.get)
     val deviceId: DeviceOemId = deviceT.deviceId
     val deviceUuid = createDeviceOk(deviceT)
 
-    val expression1 = GroupExpression.from(s"deviceid contains ${deviceId.show.substring(0, 3)} and deviceid contains ${deviceId.show.substring(6, 9)}").right.get
+    val expression1 = GroupExpression.from(s"deviceid contains ${deviceId.show.substring(0, 3)} and deviceid contains ${deviceId.show.substring(6, 9)}").toOption.get
     val groupId1    = createDynamicGroupOk(expression1)
-    val expression2 = GroupExpression.from(s"deviceid contains 0empty0").right.get
+    val expression2 = GroupExpression.from(s"deviceid contains 0empty0").toOption.get
     val _    = createDynamicGroupOk(expression2)
 
     getGroupsOfDevice(deviceUuid) ~> route ~> check {
@@ -154,7 +154,7 @@ class DynamicGroupsResourceSpec extends AnyFunSuite with ResourceSpec with Event
   }
 
   test("getting the groups of a device returns the correct groups (dynamic and static)") {
-    val deviceT = genDeviceT.sample.get.copy(deviceName = validatedDeviceType.from("ABCDE").right.get)
+    val deviceT = genDeviceT.sample.get.copy(deviceName = validatedDeviceType.from("ABCDE").toOption.get)
     val deviceUuid = createDeviceOk(deviceT)
 
     // Add the device to a static group
@@ -162,7 +162,7 @@ class DynamicGroupsResourceSpec extends AnyFunSuite with ResourceSpec with Event
     addDeviceToGroupOk(staticGroupId, deviceUuid)
 
     // Make the device show up for a dynamic group
-    val expression = GroupExpression.from(s"deviceid contains ${deviceT.deviceId.show.substring(1, 5)}").right.get
+    val expression = GroupExpression.from(s"deviceid contains ${deviceT.deviceId.show.substring(1, 5)}").toOption.get
     val dynamicGroupId = createDynamicGroupOk(expression)
 
     getGroupsOfDevice(deviceUuid) ~> route ~> check {

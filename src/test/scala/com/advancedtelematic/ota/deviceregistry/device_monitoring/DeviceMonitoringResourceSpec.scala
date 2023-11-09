@@ -10,7 +10,6 @@ import com.advancedtelematic.ota.deviceregistry.data.DataType.ObservationPublish
 import com.advancedtelematic.ota.deviceregistry.data.DeviceGenerators
 import com.advancedtelematic.ota.deviceregistry.{Resource, ResourceSpec}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import io.circe.Json
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.ScalaFutures
@@ -68,7 +67,7 @@ object TestPayloads {
       |        "type": "cpu-thermal0"
       |    }
       |}
-      |""".stripMargin).right.value
+      |""".stripMargin).value
 
   val jsonPayloadBufferedList = io.circe.jawn.parse(
     """
@@ -125,7 +124,7 @@ object TestPayloads {
       |    }
       |}
       |]
-      |""".stripMargin).right.value
+      |""".stripMargin).value
 }
 
 
@@ -152,7 +151,6 @@ class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with Sc
   }
 
   test("accepts metrics from device when they are buffered as a list") {
-    import com.advancedtelematic.ota.deviceregistry.data.Codecs.ObservationPublishResultCodec
     val uuid = createDeviceOk(genDeviceT.generate)
 
     Post(Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"), TestPayloads.jsonPayloadBufferedList) ~> route ~> check {

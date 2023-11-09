@@ -8,9 +8,8 @@
 
 package com.advancedtelematic.ota.deviceregistry.common
 
-import com.advancedtelematic.libats.data.{EcuIdentifier, ErrorCode}
+import com.advancedtelematic.libats.data.ErrorCode
 import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, RawError}
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.ota.deviceregistry.data.DataType.PackageListItem
 import com.advancedtelematic.ota.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.ota.deviceregistry.data.{DeviceName, Group, GroupExpression, GroupName}
@@ -51,14 +50,14 @@ object Errors {
   def ConflictingGroupName(groupName: GroupName) =
     RawError(Codes.ConflictingGroupName, StatusCodes.Conflict, s"$groupName already in use")
 
-  val MissingSystemInfo     = MissingEntity[SystemInfo]
-  val ConflictingSystemInfo = EntityAlreadyExists[SystemInfo]
+  val MissingSystemInfo     = MissingEntity[SystemInfo]()
+  val ConflictingSystemInfo = EntityAlreadyExists[SystemInfo]()
 
-  val MissingGroup        = MissingEntity[Group]
-  val ConflictingGroup    = EntityAlreadyExists[Group]
-  val MemberAlreadyExists = EntityAlreadyExists[GroupMember]
+  val MissingGroup        = MissingEntity[Group]()
+  val ConflictingGroup    = EntityAlreadyExists[Group]()
+  val MemberAlreadyExists = EntityAlreadyExists[GroupMember]()
 
-  val MissingDevicePublicCredentials = MissingEntity[DevicePublicCredentials]
+  val MissingDevicePublicCredentials = MissingEntity[DevicePublicCredentials]()
   val RequestNeedsCredentials =
     RawError(Codes.RequestNeedsCredentials, StatusCodes.BadRequest, "request should contain credentials")
 
@@ -82,6 +81,6 @@ object Errors {
 
   val MalformedInputFile = RawError(Codes.MalformedInput, StatusCodes.BadRequest, "The file cannot be read because it is malformed.")
 
-  val MissingPackageListItem = MissingEntity[PackageListItem]
-  val ConflictingPackageListItem = EntityAlreadyExists[PackageListItem]
+  val MissingPackageListItem = MissingEntity[PackageListItem]()
+  val ConflictingPackageListItem = EntityAlreadyExists[PackageListItem]()
 }

@@ -43,7 +43,7 @@ object TaggedDeviceRepository {
       }
     } yield tagIdsAndDelibles.map((TagInfo.apply _).tupled)
 
-  def fetchForDevice(deviceUuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Seq[(TagId, String)]] =
+  def fetchForDevice(deviceUuid: DeviceId): DBIO[Seq[(TagId, String)]] =
     taggedDevices
       .filter(_.deviceUuid === deviceUuid)
       .map(td => td.tagId -> td.tagValue)
@@ -56,7 +56,7 @@ object TaggedDeviceRepository {
       .map(_.tagId)
       .update(newTagId)
 
-  def delete(deviceUuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Int] =
+  def delete(deviceUuid: DeviceId): DBIO[Int] =
     taggedDevices
       .filter(_.deviceUuid === deviceUuid)
       .delete

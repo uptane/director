@@ -11,7 +11,6 @@ package com.advancedtelematic.ota.deviceregistry.daemon
 import akka.Done
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceEventMessage
-import com.advancedtelematic.ota.deviceregistry.common.Errors
 import com.advancedtelematic.ota.deviceregistry.db.EventJournal
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._

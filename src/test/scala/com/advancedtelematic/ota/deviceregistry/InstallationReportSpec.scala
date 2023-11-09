@@ -7,7 +7,7 @@ import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{deviceUpdateCompletedCodec, ecuReplacementCodec}
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceUpdateCompleted, DeviceUpdateInFlight, EcuReplaced, EcuReplacement, EcuReplacementFailed}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceUpdateCompleted, EcuReplaced, EcuReplacement, EcuReplacementFailed}
 import com.advancedtelematic.ota.deviceregistry.daemon.{DeleteDeviceListener, DeviceUpdateEventListener, EcuReplacementListener}
 import com.advancedtelematic.ota.deviceregistry.data.Codecs.installationStatDecoder
 import com.advancedtelematic.ota.deviceregistry.data.DataType.{InstallationStat, InstallationStatsLevel}
@@ -128,10 +128,10 @@ class InstallationReportSpec extends ResourcePropSpec with ScalaFutures with Eve
     getReportBlob(deviceId) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Json]].values
-      result(0).as[EcuReplacement].right.value.asInstanceOf[EcuReplacementFailed] shouldBe failedReplacement
-      result(1).as[DeviceUpdateCompleted].right.value.result.code shouldBe ResultCode("1")
-      result(2).as[EcuReplacement].right.value.asInstanceOf[EcuReplaced] shouldBe successfulReplacement
-      result(3).as[DeviceUpdateCompleted].right.value.result.code shouldBe ResultCode("0")
+      result(0).as[EcuReplacement].value.asInstanceOf[EcuReplacementFailed] shouldBe failedReplacement
+      result(1).as[DeviceUpdateCompleted].value.result.code shouldBe ResultCode("1")
+      result(2).as[EcuReplacement].value.asInstanceOf[EcuReplaced] shouldBe successfulReplacement
+      result(3).as[DeviceUpdateCompleted].value.result.code shouldBe ResultCode("0")
     }
     fetchDeviceOk(deviceId).deviceStatus shouldBe DeviceStatus.Error
   }
@@ -175,7 +175,7 @@ class InstallationReportSpec extends ResourcePropSpec with ScalaFutures with Eve
     getReportBlob(deviceId) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Json]].values
-      result.head.as[EcuReplacement].right.value.asInstanceOf[EcuReplaced] shouldBe ecuReplaced
+      result.head.as[EcuReplacement].value.asInstanceOf[EcuReplaced] shouldBe ecuReplaced
     }
 
     val deleteDeviceRequest = DeleteDeviceRequest(defaultNs, deviceId)

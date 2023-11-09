@@ -9,15 +9,14 @@
 package com.advancedtelematic.ota.deviceregistry
 
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.{NetworkInfo, removeIdNrs, systemInfos}
-import io.circe.{Encoder, Json}
+import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.{NetworkInfo, removeIdNrs}
+import io.circe.Json
 import org.scalacheck.Shrink
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
 import com.advancedtelematic.ota.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.ota.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.ota.deviceregistry.data.GeneratorOps._
-import io.circe
 import org.scalatest.concurrent.Eventually._
 import org.scalatest.OptionValues._
 import toml.Toml
@@ -73,7 +72,6 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   property("POST /devices/list-network-info returns empty strings if network info was not reported") {
     import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
     import io.circe.Json
-    import io.circe.generic.semiauto._
     forAll { (devices: Seq[DeviceT], json: Option[Json]) =>
       val uuids = devices.map(d => createDeviceOk(d))
 
@@ -97,7 +95,6 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
 
   property("POST /devices/list-network-info returns network info") {
     import io.circe.parser._
-    import io.circe._
     val jsonStr = """
     {
       "local_ipv4":"10.12.224.9",
@@ -249,7 +246,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         |    "product": "test-product"
         |}
         |""".stripMargin
-    ).right.get
+    ).toOption.get
 
     createSystemInfo(uuid, json) ~> route ~> check {
       status shouldBe Created
@@ -271,7 +268,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         |    "not-product": "somethingelse"
         |}
         |""".stripMargin
-    ).right.get
+    ).toOption.get
 
     createSystemInfo(uuid, json) ~> route ~> check {
       status shouldBe Created
@@ -296,7 +293,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         |
         |""".stripMargin
 
-    val t = Toml.parse(content).right.get
+    val t = Toml.parse(content).toOption.get
     val pacmanSection = t.values("pacman")
     val pacmanTable = pacmanSection.asInstanceOf[Tbl]
     pacmanTable.values("type").asInstanceOf[Str].value shouldBe "ostree"
@@ -340,7 +337,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         secondary_preinstall_wait_sec = 60
         force_install_completion = true"""
 
-    SystemInfoResource.parseAktualizrConfigToml(content) shouldBe 'success
+    SystemInfoResource.parseAktualizrConfigToml(content) shouldBe Symbol("success")
   }
 
   property("section order doesn't matter") {
@@ -354,7 +351,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         type = "ostree"
         """
 
-    SystemInfoResource.parseAktualizrConfigToml(content) shouldBe 'success
+    SystemInfoResource.parseAktualizrConfigToml(content) shouldBe Symbol("success")
   }
 
   property("additional section key is allowed") {
@@ -368,7 +365,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         secondary_preinstall_wait_sec = 60
         force_install_completion = true"""
 
-    SystemInfoResource.parseAktualizrConfigToml(content) shouldBe 'success
+    SystemInfoResource.parseAktualizrConfigToml(content) shouldBe Symbol("success")
   }
 
   property("only key, no value in section") {

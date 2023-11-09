@@ -15,7 +15,6 @@ import com.advancedtelematic.ota.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.ota.deviceregistry.data.SortDirection.SortDirection
 import io.circe.Json
 
-import java.util
 
 object DataType {
   case class IndexedEvent(device: DeviceId, eventID: String, eventType: IndexedEventType, correlationId: Option[CorrelationId])

@@ -48,6 +48,6 @@ object PublicCredentialsRepository {
       .insertOrUpdate(DevicePublicCredentials(uuid, cType, creds))
       .map(_ => ())
 
-  def delete(uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Int] =
+  def delete(uuid: DeviceId): DBIO[Int] =
     allPublicCredentials.filter(_.device === uuid).delete
 }

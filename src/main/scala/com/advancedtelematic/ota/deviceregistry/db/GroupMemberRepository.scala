@@ -8,14 +8,12 @@
 
 package com.advancedtelematic.ota.deviceregistry.db
 
-import akka.NotUsed
-import akka.stream.scaladsl.{Sink, Source}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.libats.slick.db.SlickAnyVal._
-import com.advancedtelematic.libats.slick.db.SlickExtensions._
-import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
+import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
+import com.advancedtelematic.libats.slick.db.SlickExtensions.*
+import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.ota.deviceregistry.common.Errors
 import com.advancedtelematic.ota.deviceregistry.common.Errors.MemberAlreadyExists
 import com.advancedtelematic.ota.deviceregistry.data.DataType.HibernationStatus
@@ -23,19 +21,21 @@ import com.advancedtelematic.ota.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.ota.deviceregistry.data.{Device, GroupExpression, GroupExpressionAST, GroupType, TagId}
 import com.advancedtelematic.ota.deviceregistry.db.DbOps.PaginationResultOps
 import slick.jdbc.{PositionedParameters, SetParameter}
-import slick.jdbc.MySQLProfile.api._
+import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.Tag
 
+import scala.annotation.unused
 import scala.concurrent.ExecutionContext
 import scala.util.Failure
 
 object GroupMemberRepository {
-  def setHibernationStatus(groupId: GroupId, status: HibernationStatus): DBIO[_] = {
+  def setHibernationStatus(ns:Namespace, groupId: GroupId, status: HibernationStatus): DBIO[_] = {
+    @unused
     implicit val setGroupId: SetParameter[GroupId] = (groupId: GroupId, pos: PositionedParameters) => pos.setString(groupId.uuid.toString)
 
     sql"""
             update Device d, #$tableName gm SET d.hibernated = $status WHERE
-            d.uuid = gm.device_uuid AND gm.group_id = $groupId
+            d.uuid = gm.device_uuid AND gm.group_id = $groupId AND d.namespace = ${ns.get}
         """.asUpdate
   }
 
@@ -70,16 +70,16 @@ object GroupMemberRepository {
       .delete
       .handleSingleUpdateError(Errors.MissingGroup)
 
-  def removeAllGroupMembers(groupId: GroupId)(implicit ec: ExecutionContext): DBIO[Int] =
+  def removeAllGroupMembers(groupId: GroupId): DBIO[Int] =
     groupMembers.filter(_.groupId === groupId).delete
 
-  def removeDeviceFromAllGroups(deviceUuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Int] =
+  def removeDeviceFromAllGroups(deviceUuid: DeviceId): DBIO[Int] =
     groupMembers
       .filter(_.deviceUuid === deviceUuid)
       .delete
 
   def listDevicesInGroup(groupId: GroupId, offset: Option[Long], limit: Option[Long])
-                        (implicit db: Database, ec: ExecutionContext): DBIO[PaginationResult[DeviceId]] =
+                        (implicit ec: ExecutionContext): DBIO[PaginationResult[DeviceId]] =
     listDevicesInGroupAction(groupId, offset, limit)
 
   def listDevicesInGroupAction(groupId: GroupId, offset: Option[Long], limit: Option[Long])

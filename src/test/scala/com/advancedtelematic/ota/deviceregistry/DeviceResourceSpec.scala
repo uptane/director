@@ -32,16 +32,11 @@ import com.advancedtelematic.ota.deviceregistry.db.InstalledPackages.{DevicesCou
 import com.advancedtelematic.ota.deviceregistry.db.{InstalledPackages, TaggedDeviceRepository}
 import io.circe.Json
 import io.circe.generic.auto._
-import io.circe.syntax.EncoderOps
 import org.scalacheck.Arbitrary._
 import org.scalacheck.{Gen, Shrink}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import org.scalatest.time.{Millis, Seconds, Span}
 import cats.syntax.show._
-import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.NetworkInfo
-import org.scalatest.OptionValues._
-
 
 /**
   * Spec for DeviceRepository REST actions
@@ -75,7 +70,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     deviceIds.take(4).foreach(addDeviceToGroupOk(staticGroup, _))
     val expr = deviceTs.slice(4, 8).map(_.deviceId.underlying.take(6)).map(n => s"deviceid contains $n").reduce(_ + " or " + _)
-    createDynamicGroupOk(GroupExpression.from(expr).right.get)
+    createDynamicGroupOk(GroupExpression.from(expr).toOption.get)
 
     Map("all" -> deviceIds, "groupedStatic" -> deviceIds.take(4),
       "groupedDynamic" -> deviceIds.slice(4, 8), "ungrouped" -> deviceIds.drop(8))
@@ -106,7 +101,6 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   property("uses correct codec for device") {
     import org.scalatest.EitherValues._
     import org.scalatest.OptionValues._
-    import io.circe.syntax._
 
     forAll { (dt1: DeviceT) =>
       val d1 = createDeviceInNamespaceOk(dt1, defaultNs)
@@ -375,12 +369,12 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       }
     }
 
-    updateDevice(uuid, newName = Option(DeviceName("New name")), notes = None) ~> route ~> check {
+    updateDevice(uuid, newName = DeviceName.from("New name").toOption, notes = None) ~> route ~> check {
       status shouldBe OK
       fetchDevice(uuid) ~> route ~> check {
         status shouldBe OK
         val updatedDevice: Device = responseAs[Device]
-        updatedDevice.deviceName shouldBe DeviceName("New name")
+        updatedDevice.deviceName shouldBe DeviceName.from("New name").toOption.get
         updatedDevice.notes should contain("some notes")
       }
     }
@@ -390,12 +384,12 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val deviceT = genDeviceT.generate
     val uuid = createDeviceOk(deviceT)
 
-    updateDevice(uuid, newName = DeviceName("myname").some, notes = "some \uD83D\uDD25 notes".some) ~> route ~> check {
+    updateDevice(uuid, newName = DeviceName.from("myname").toOption, notes = "some \uD83D\uDD25 notes".some) ~> route ~> check {
       status shouldBe OK
       fetchDevice(uuid) ~> route ~> check {
         status shouldBe OK
         val updatedDevice: Device = responseAs[Device]
-        updatedDevice.deviceName shouldBe DeviceName("myname")
+        updatedDevice.deviceName shouldBe DeviceName.from("myname").toOption.get
         updatedDevice.notes should contain("some \uD83D\uDD25 notes")
       }
     }
@@ -630,7 +624,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val originalDeviceName = genDeviceName.generate.value
     val deviceUuids =
       Seq(originalDeviceName, originalDeviceName.toLowerCase, originalDeviceName.toUpperCase)
-        .map(DeviceName.from(_).right.get)
+        .map(DeviceName.from(_).toOption.get)
         .map(deviceName => genDeviceT.generate.copy(deviceName = deviceName))
         .map(createDeviceOk)
 
@@ -659,11 +653,11 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("can search dynamic group devices") {
-    val deviceT1    = genDeviceTWith(Gen.const(validatedDeviceType.from("d1-xxyy-1234").right.get), Gen.const(DeviceOemId("d1-xxyy-1234"))).generate
-    val deviceT2    = genDeviceTWith(Gen.const(validatedDeviceType.from("d2-xxyy-5678").right.get), Gen.const(DeviceOemId("d2-xxyy-5678"))).generate
+    val deviceT1    = genDeviceTWith(Gen.const(validatedDeviceType.from("d1-xxyy-1234").toOption.get), Gen.const(DeviceOemId("d1-xxyy-1234"))).generate
+    val deviceT2    = genDeviceTWith(Gen.const(validatedDeviceType.from("d2-xxyy-5678").toOption.get), Gen.const(DeviceOemId("d2-xxyy-5678"))).generate
     val deviceUuid1 = createDeviceOk(deviceT1)
     val deviceUuid2 = createDeviceOk(deviceT2)
-    createDynamicGroupOk(GroupExpression.from("deviceid contains xxyy").right.get)
+    createDynamicGroupOk(GroupExpression.from("deviceid contains xxyy").toOption.get)
 
     val nameContains = "1234"
     getDevicesByGrouping(grouped = true, GroupType.dynamic.some, nameContains.some) ~> route ~> check {
@@ -795,7 +789,6 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
       listener.apply(DeleteDeviceRequest(defaultNs, uuid))
 
-      import org.scalatest.time.SpanSugar._
       eventually {
         fetchByGroupId(groupId, offset = 0, limit = 10) ~> route ~> check {
           status shouldBe OK
@@ -829,7 +822,6 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     listener.apply(new DeleteDeviceRequest(defaultNs, uuid))
 
-    import org.scalatest.time.SpanSugar._
     eventually {
       (0 until groupNumber).foreach { i =>
         fetchByGroupId(groupIds(i), offset = 0, limit = deviceNumber) ~> route ~> check {
@@ -883,9 +875,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
   property("counts devices that satisfy a dynamic group expression") {
     val testDevices = Map(
-      validatedDeviceType.from("device1").right.get -> DeviceOemId("abc123"),
-      validatedDeviceType.from("device2").right.get -> DeviceOemId("123abc456"),
-      validatedDeviceType.from("device3").right.get -> DeviceOemId("123aba456")
+      validatedDeviceType.from("device1").toOption.get -> DeviceOemId("abc123"),
+      validatedDeviceType.from("device2").toOption.get -> DeviceOemId("123abc456"),
+      validatedDeviceType.from("device3").toOption.get -> DeviceOemId("123aba456")
     )
     testDevices
       .map(t => (Gen.const(t._1), Gen.const(t._2)))
@@ -893,7 +885,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       .map(_.sample.get)
       .map(createDeviceOk)
 
-    val expression: GroupExpression = GroupExpression.from("deviceid contains abc and deviceid position(5) is b and deviceid position(9) is 6").right.get
+    val expression: GroupExpression = GroupExpression.from("deviceid contains abc and deviceid position(5) is b and deviceid position(9) is 6").toOption.get
     countDevicesForExpression(expression.some) ~> route ~> check {
       status shouldBe OK
       responseAs[Int] shouldBe 1
@@ -983,8 +975,8 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
   property("finds dynamic group devices only once") {
     val deviceUuid = createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd-1234")))
-    createDynamicGroupOk(GroupExpression.from("deviceid contains abcd").right.get)
-    createDynamicGroupOk(GroupExpression.from("deviceid contains 1234").right.get)
+    createDynamicGroupOk(GroupExpression.from("deviceid contains abcd").toOption.get)
+    createDynamicGroupOk(GroupExpression.from("deviceid contains 1234").toOption.get)
 
     getDevicesByGrouping(grouped = true, Some(GroupType.dynamic)) ~> route ~> check {
       status shouldBe OK
@@ -995,7 +987,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
   property("finds grouped devices only once") {
     val deviceUuid = createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd")))
-    createDynamicGroupOk(GroupExpression.from("deviceid contains abcd").right.get)
+    createDynamicGroupOk(GroupExpression.from("deviceid contains abcd").toOption.get)
     val group = createStaticGroupOk()
     addDeviceToGroupOk(group, deviceUuid)
 
@@ -1363,7 +1355,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val duid2 = createDeviceOk(deviceT2)
     val expression = GroupExpression.from("tag(country) contains Ita").valueOr(throw _)
     val groupId = createDynamicGroupOk(expression = expression)
-    val tagId = TagId.from("country").right.get
+    val tagId = TagId.from("country").toOption.get
 
     val csvRows = Seq(
       Seq(deviceT1.deviceId.underlying, "Italy"),
@@ -1406,7 +1398,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       responseAs[PaginationResult[DeviceId]].values should contain only duid
     }
 
-    val updatedTags = updateDeviceTagOk(duid, TagId.from("nonsense").right.get, "NotItaly")
+    val updatedTags = updateDeviceTagOk(duid, TagId.from("nonsense").toOption.get, "NotItaly")
     updatedTags should contain only "land" -> "Italy"
 
     listDevicesInGroup(groupId) ~> route ~> check {

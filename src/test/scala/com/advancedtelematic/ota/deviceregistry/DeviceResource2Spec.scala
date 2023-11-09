@@ -8,7 +8,6 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceEventMessa
 import com.advancedtelematic.ota.deviceregistry.daemon.DeviceEventListener
 import com.advancedtelematic.ota.deviceregistry.data.DataType.IndexedEventType
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import com.advancedtelematic.libats.codecs.CirceCodecs._
 import com.advancedtelematic.libats.data.DataType.CampaignId
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.ota.deviceregistry.DeviceResource2.ApiDeviceEvents
@@ -16,7 +15,6 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.testing.ArbitraryInstances
 import cats.syntax.either._
 import org.scalatest.OptionValues._
-import org.scalatest.EitherValues._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
 

@@ -14,12 +14,10 @@ import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.{NamespaceDirectives, ServiceHttpClientSupport}
 import com.advancedtelematic.libats.http.tracing.NullServerRequestTracing
-import com.advancedtelematic.libats.messaging.MessageBus
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.ota.deviceregistry.data.{DeviceGenerators, GroupGenerators, PackageIdGenerators, SimpleJsonGenerator}
 import com.advancedtelematic.ota.deviceregistry.db.DeviceRepository
-import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 

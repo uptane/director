@@ -13,7 +13,7 @@ object DeleteDevicePublisherBoot extends DatabaseSupport with BootAppDefaultConf
 
   lazy val messageBus = MessageBus.publisher(system, globalConfig)
 
-  val publishingF = new DeletedDevicePublisher(messageBus).run.map { res =>
+  val publishingF = new DeletedDevicePublisher(messageBus).run().map { res =>
     log.info(s"Migration finished $res")
   }
 

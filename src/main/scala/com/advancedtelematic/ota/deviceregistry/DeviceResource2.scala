@@ -44,7 +44,7 @@ class DeviceResource2(namespaceExtractor: Directive1[Namespace], deviceNamespace
 
   val eventJournal = new EventJournal()
 
-  def findUpdateEvents(namespace: Namespace, deviceId: DeviceId, correlationId: Option[CorrelationId]): Future[ApiDeviceEvents] = async {
+  def findUpdateEvents(deviceId: DeviceId, correlationId: Option[CorrelationId]): Future[ApiDeviceEvents] = async {
     val indexedEvents = await(eventJournal.getIndexedEvents(deviceId, correlationId))
 
     val events = indexedEvents.toVector.map { case (event, indexedEvent) =>
@@ -58,8 +58,8 @@ class DeviceResource2(namespaceExtractor: Directive1[Namespace], deviceNamespace
   def route: Route = namespaceExtractor { ns =>
     pathPrefix("devices") {
       deviceNamespaceAuthorizer { uuid =>
-        (get & path("events") & parameter('updateId.as[CorrelationId].?)) { correlationId =>
-          val f = findUpdateEvents(ns, uuid, correlationId)
+        (get & path("events") & parameter(Symbol("updateId").as[CorrelationId].?)) { correlationId =>
+          val f = findUpdateEvents(uuid, correlationId)
           complete(f)
         }
       }

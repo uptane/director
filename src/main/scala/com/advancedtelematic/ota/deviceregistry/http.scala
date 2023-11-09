@@ -11,7 +11,7 @@ package object http {
 
   val nonNegativeLong: Unmarshaller[String, Long] =
     PredefinedFromStringUnmarshallers.longFromStringUnmarshaller
-      .flatMap { ec => mat => value =>
+      .flatMap { _ => _ => value =>
         if (value < 0) FastFuture.failed(new IllegalArgumentException("Value cannot be negative"))
         else FastFuture.successful(value)
       }

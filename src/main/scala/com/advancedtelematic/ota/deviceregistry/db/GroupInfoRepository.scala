@@ -92,7 +92,7 @@ object GroupInfoRepository {
           WHERE namespace = ${namespace.get} AND expression LIKE '%tag(#${tagId.value})%';
          """
 
-  private[db] def findSmartGroupsUsingTag(namespace: Namespace, tagId: TagId)(implicit ec: ExecutionContext): DBIO[Seq[(GroupId, GroupExpression)]] =
+  private[db] def findSmartGroupsUsingTag(namespace: Namespace, tagId: TagId): DBIO[Seq[(GroupId, GroupExpression)]] =
     groupInfos
       .filter(_.namespace === namespace)
       .filter(_.groupType === GroupType.dynamic)
