@@ -8,4 +8,6 @@ trait DatabaseSpec extends MysqlDatabaseSpec {
   self: Suite =>
 
   override val testDbConfig = ConfigFactory.load().getConfig("ats.device-registry.database")
+
+  override def dbPlaceHolders: Map[String, String] = super.dbPlaceHolders ++ Map("old-schema" -> s"${schemaName}_dev_reg")
 }

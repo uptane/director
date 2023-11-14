@@ -8,18 +8,22 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.{Directives, Route}
 import com.advancedtelematic.director.http.DirectorRoutes
-import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
+import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig, NamespaceDirectives}
 import com.advancedtelematic.libats.http.LogDirectives.logResponseMetrics
 import com.advancedtelematic.libats.http.VersionDirectives.versionHeaders
 import com.advancedtelematic.libats.http.monitoring.ServiceHealthCheck
 import com.advancedtelematic.libats.http.tracing.Tracing
 import com.advancedtelematic.libats.http.tracing.Tracing.ServerRequestTracing
 import com.advancedtelematic.libats.messaging.MessageBus
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.{CheckMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.{DatabaseMetrics, DbHealthResource}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverHttpClient
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.advancedtelematic.metrics.{AkkaHttpConnectionMetrics, AkkaHttpRequestMetrics, MetricsSupport}
+import com.advancedtelematic.ota.deviceregistry.db.DeviceRepository
+import com.advancedtelematic.ota.deviceregistry.{AllowUUIDPath, DeviceRegistryRoutes}
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -50,17 +54,29 @@ class DirectorBoot(override val globalConfig: Config,
 
   log.info(s"Starting $nameVersion on http://$host:$port")
 
-  lazy val tracing = Tracing.fromConfig(globalConfig, projectName)
+  private lazy val tracing = Tracing.fromConfig(globalConfig, projectName)
 
-  def keyserverClient(implicit tracing: ServerRequestTracing) = KeyserverHttpClient(tufUri)
-  implicit val msgPublisher = MessageBus.publisher(system, globalConfig)
+  private def keyserverClient(implicit tracing: ServerRequestTracing) = KeyserverHttpClient(tufUri)
+  private implicit val msgPublisher = MessageBus.publisher(system, globalConfig)
+
+  private lazy val authNamespace = NamespaceDirectives.fromConfig()
+
+  // TODO: Device table + repo needs to be renamed
+  def deviceAllowed(deviceId: DeviceId): Future[Namespace] =
+    db.run(DeviceRepository.deviceNamespace(deviceId))
+
+  private lazy val namespaceAuthorizer = AllowUUIDPath.deviceUUID(authNamespace, deviceAllowed)
 
   def bind(): Future[ServerBinding] = {
     val routes: Route =
       DbHealthResource(versionMap, dependencies = Seq(new ServiceHealthCheck(tufUri))).route ~
         (logRequestResult("directorv2-request-result" -> requestLogLevel) & versionHeaders(nameVersion) & requestMetrics(metricRegistry) & logResponseMetrics(projectName) & tracing.traceRequests) { implicit requestTracing =>
           prometheusMetricsRoutes ~
-            new DirectorRoutes(keyserverClient, allowEcuReplacement).routes
+            new DirectorRoutes(keyserverClient, allowEcuReplacement).routes ~
+            path("device-registry") {
+              // TODO: Wrong db? Or need migration? /
+              new DeviceRegistryRoutes(NamespaceDirectives.defaultNamespaceExtractor, namespaceAuthorizer, msgPublisher).route
+            }
         }
 
     Http().newServerAt(host, port).bindFlow(withConnectionMetrics(routes, metricRegistry))

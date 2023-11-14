@@ -34,10 +34,10 @@ import scala.util.Try
 trait Settings {
   private lazy val _config = ConfigFactory.load().getConfig("ats.device-registry")
 
-  val host = _config.getString("http.server.host")
-  val port = _config.getInt("http.server.port")
+  lazy val host = _config.getString("http.server.host")
+  lazy val port = _config.getInt("http.server.port")
 
-  val daemonPort = if(_config.hasPath("http.server.daemon-port")) _config.getInt("http.server.daemon-port") else port
+  lazy val daemonPort = if(_config.hasPath("http.server.daemon-port")) _config.getInt("http.server.daemon-port") else port
 }
 
 class DeviceRegistryBoot(override val globalConfig: Config,
@@ -85,7 +85,7 @@ class DeviceRegistryBoot(override val globalConfig: Config,
     val parserSettings = ParserSettings.forServer(system).withCustomMediaTypes(`application/toml`.mediaType)
     val serverSettings = ServerSettings(system).withParserSettings(parserSettings)
 
-    log.info(s"device ${nameVersion} at http://$host:$port/")
+    log.info(s"device $nameVersion at http://$host:$port/")
 
     sys.addShutdownHook {
       Try(db.close())

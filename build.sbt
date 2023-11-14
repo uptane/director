@@ -9,13 +9,71 @@ resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/reposi
 
 Global / bloopAggregateSourceDependencies := true
 
+Compile / unmanagedSourceDirectories += baseDirectory.value / "device-registry" / "src" / "main" / "scala"
+
+Test / unmanagedSourceDirectories += baseDirectory.value / "device-registry" / "src" / "test" / "scala"
+
+libraryDependencies += "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % "test"
+
+lazy val library =
+  new {
+    object Version {
+      val attoCore = "0.9.5"
+      val scalaTest  = "3.2.12"
+      val libAts     = "2.5.0"
+      val libTuf = "3.1.3"
+      val akka = "2.8.5"
+      val akkaHttp = "10.5.2"
+      val alpakkaCsv = "2.0.0"
+      val mariaDb = "2.7.3"
+      val circe = "0.14.1"
+      val toml = "0.2.2"
+    }
+
+    val scalaTest  = "org.scalatest"  %% "scalatest"  % Version.scalaTest
+    val libAts = Seq(
+      "libats-messaging",
+      "libats-messaging-datatype",
+      "libats-slick",
+      "libats-http",
+      "libats-metrics",
+      "libats-metrics-akka",
+      "libats-metrics-prometheus",
+      "libats-http-tracing",
+      "libats-logging"
+    ).map("io.github.uptane" %% _ % Version.libAts)
+    val libTuf = "io.github.uptane" %% "libtuf" % Version.libTuf
+    val akkaHttpTestKit = "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp
+    val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % Version.akka
+    val akkaAlpakkaCsv = "com.lightbend.akka" %% "akka-stream-alpakka-csv" % Version.alpakkaCsv
+    val mariaDb = "org.mariadb.jdbc" % "mariadb-java-client" % Version.mariaDb
+    val circeTesting = "io.circe" %% "circe-testing" % Version.circe
+    val akkaSlf4J = "com.typesafe.akka" %% "akka-slf4j" % Version.akka
+    val toml = "tech.sparse" %% "toml-scala" % Version.toml
+    val attoCore = "org.tpolecat" %% "atto-core" % Version.attoCore
+  }
+
+
+libraryDependencies ++= Seq(
+  library.akkaAlpakkaCsv,
+  library.akkaHttpTestKit % Test,
+  library.akkaSlf4J,
+  library.akkaStreamTestKit % Test,
+  library.attoCore,
+  library.circeTesting % Test,
+  library.libTuf,
+  library.mariaDb,
+  library.scalaTest % Test,
+  library.toml,
+)
+
 libraryDependencies ++= {
   val akkaV = "2.8.5"
   val akkaHttpV = "10.5.2"
   val tufV = "3.1.3"
   val scalaTestV = "3.2.17"
   val bouncyCastleV = "1.76"
-  val libatsV = "2.4.1-1-gcbe8dd6-SNAPSHOT"
+  val libatsV = "2.5.1-SNAPSHOT"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,

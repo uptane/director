@@ -8,8 +8,14 @@
 
 package com.advancedtelematic.ota.deviceregistry
 
-import com.advancedtelematic.deviceregistry.AppBuildInfo
 import com.advancedtelematic.libats.boot.VersionInfoProvider
+
+object AppBuildInfo extends VersionInfoProvider {
+  override val name: String = ???
+  override val version: String = ???
+  override val builtAtMillis: Long = ???
+  override val toMap: Map[String, Any] = ???
+}
 
 trait VersionInfo extends com.advancedtelematic.libats.boot.VersionInfo {
   override protected lazy val provider: VersionInfoProvider = AppBuildInfo
