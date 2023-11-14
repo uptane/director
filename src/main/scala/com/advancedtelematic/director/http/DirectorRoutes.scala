@@ -17,7 +17,8 @@ class DirectorRoutes(keyserverClient: KeyserverClient, allowEcuReplacement: Bool
   val extractNamespace = NamespaceDirectives.defaultNamespaceExtractor
 
   val routes: Route =
-    handleRejections(rejectionHandler) {
+    // Temporarily disabled to allow routing to go to dev registry before rejections are handled
+//    handleRejections(rejectionHandler) {
       ErrorHandler.handleErrors {
         pathPrefix("api" / "v1") {
           new AdminResource(extractNamespace, keyserverClient).route ~
@@ -28,5 +29,5 @@ class DirectorRoutes(keyserverClient: KeyserverClient, allowEcuReplacement: Bool
         } ~
           new DirectorDebugResource().route
       }
-    }
+//    }
 }

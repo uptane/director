@@ -9,6 +9,7 @@ import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.{Directives, Route}
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.http.DefaultRejectionHandler.rejectionHandler
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig, NamespaceDirectives}
 import com.advancedtelematic.libats.http.LogDirectives.logResponseMetrics
 import com.advancedtelematic.libats.http.VersionDirectives.versionHeaders
@@ -72,10 +73,11 @@ class DirectorBoot(override val globalConfig: Config,
       DbHealthResource(versionMap, dependencies = Seq(new ServiceHealthCheck(tufUri))).route ~
         (logRequestResult("directorv2-request-result" -> requestLogLevel) & versionHeaders(nameVersion) & requestMetrics(metricRegistry) & logResponseMetrics(projectName) & tracing.traceRequests) { implicit requestTracing =>
           prometheusMetricsRoutes ~
-            new DirectorRoutes(keyserverClient, allowEcuReplacement).routes ~
-            path("device-registry") {
-              // TODO: Wrong db? Or need migration? /
-              new DeviceRegistryRoutes(NamespaceDirectives.defaultNamespaceExtractor, namespaceAuthorizer, msgPublisher).route
+            handleRejections(rejectionHandler) {
+              new DirectorRoutes(keyserverClient, allowEcuReplacement).routes ~
+                pathPrefix("device-registry") {
+                  new DeviceRegistryRoutes(NamespaceDirectives.defaultNamespaceExtractor, namespaceAuthorizer, msgPublisher).route
+                }
             }
         }
 
