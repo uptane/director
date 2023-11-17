@@ -8,7 +8,7 @@
 
 package com.advancedtelematic.ota.deviceregistry
 
-import com.advancedtelematic.deviceregistry.AppBuildInfo
+import com.advancedtelematic.director.AppBuildInfo
 import com.advancedtelematic.libats.boot.VersionInfoProvider
 
 trait VersionInfo extends com.advancedtelematic.libats.boot.VersionInfo {
