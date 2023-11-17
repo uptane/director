@@ -7,6 +7,7 @@ import java.security.Security
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.settings.{ParserSettings, ServerSettings}
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.DefaultRejectionHandler.rejectionHandler
@@ -31,7 +32,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
-
+import com.advancedtelematic.ota.deviceregistry.http.`application/toml`
 
 class DirectorBoot(override val globalConfig: Config,
                    override val dbConfig: Config,
@@ -81,7 +82,10 @@ class DirectorBoot(override val globalConfig: Config,
             }
         }
 
-    Http().newServerAt(host, port).bindFlow(withConnectionMetrics(routes, metricRegistry))
+    val parserSettings = ParserSettings.forServer(system).withCustomMediaTypes(`application/toml`.mediaType)
+    val serverSettings = ServerSettings(system).withParserSettings(parserSettings)
+
+    Http().newServerAt(host, port).withSettings(serverSettings).bindFlow(withConnectionMetrics(routes, metricRegistry))
   }
 }
 

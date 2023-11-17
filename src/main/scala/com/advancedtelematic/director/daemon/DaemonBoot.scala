@@ -5,6 +5,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.util.FastFuture
 import com.advancedtelematic.director.{Settings, VersionInfo}
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
 import com.advancedtelematic.libats.messaging.{BusListenerMetrics, MessageListenerSupport, MetricsBusMonitor}
@@ -61,7 +62,9 @@ object DaemonBoot extends BootAppDefaultConfig with BootAppDatabaseConfig with V
   def main(args: Array[String]): Unit = {
     val directorDaemonFut = new DirectorDaemonBoot(globalConfig, dbConfig, MetricsSupport.metricRegistry).bind()
 
-    val deviceRegistryDaemonFut = new DeviceRegistryDaemon(globalConfig, dbConfig, MetricsSupport.metricRegistry).bind()
+//    val deviceRegistryDaemonFut = new DeviceRegistryDaemon(globalConfig, dbConfig, MetricsSupport.metricRegistry).bind()
+    // Disabled until we disable device-registry daemon
+    val deviceRegistryDaemonFut = FastFuture.successful(())
 
     val f = Future.sequence(List(directorDaemonFut, deviceRegistryDaemonFut))
 
