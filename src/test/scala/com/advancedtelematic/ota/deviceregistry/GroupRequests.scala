@@ -24,17 +24,15 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.Json
 import org.scalatest.Assertion
 
-import scala.concurrent.ExecutionContext
 import scala.util.Random
 
 trait GroupRequests {
   self: ResourceSpec =>
 
-  private val defaultExpression = GroupExpression.from("deviceid contains abcd").right.get
+  private val defaultExpression = GroupExpression.from("deviceid contains abcd").toOption.get
   protected val groupsApi = "device_groups"
 
-  def listDevicesInGroup(groupId: GroupId, offset: Option[Long] = None, limit: Option[Long] = None)
-                        (implicit ec: ExecutionContext): HttpRequest =
+  def listDevicesInGroup(groupId: GroupId, offset: Option[Long] = None, limit: Option[Long] = None): HttpRequest =
     (offset, limit) match {
       case (None, None) =>
         Get(Resource.uri("device_groups", groupId.show, "devices"))
@@ -54,10 +52,10 @@ trait GroupRequests {
       responseAs[PaginationResult[DeviceId]].values should contain theSameElementsAs deviceIds
     }
 
-  def getGroupDetails(groupId: GroupId)(implicit ec: ExecutionContext): HttpRequest =
+  def getGroupDetails(groupId: GroupId): HttpRequest =
     Get(Resource.uri(groupsApi, groupId.show))
 
-  def countDevicesInGroup(groupId: GroupId)(implicit ec: ExecutionContext): HttpRequest =
+  def countDevicesInGroup(groupId: GroupId): HttpRequest =
     Get(Resource.uri(groupsApi, groupId.show, "count"))
 
   def listGroups(sortBy: Option[GroupSortBy] = None, limit : Option[Long] = None, nameContains: Option[String] = None): HttpRequest = {
@@ -69,11 +67,10 @@ trait GroupRequests {
     Delete(Resource.uri("device_groups", groupId.show))
   }
 
-  def createGroup(body: Json)(implicit ec: ExecutionContext): HttpRequest =
+  def createGroup(body: Json): HttpRequest =
     Post(Resource.uri(groupsApi), body)
 
-  def createGroup(groupType: GroupType, expression: Option[GroupExpression], groupName: Option[GroupName] = None)
-                 (implicit ec: ExecutionContext): HttpRequest = {
+  def createGroup(groupType: GroupType, expression: Option[GroupExpression], groupName: Option[GroupName] = None): HttpRequest = {
     val name = groupName.getOrElse(genGroupName().sample.get)
     val expr = groupType match {
       case GroupType.static => None
@@ -106,7 +103,7 @@ trait GroupRequests {
   def createGroupOk(name: GroupName = genGroupName().sample.get): GroupId =
     if (Random.nextBoolean()) createStaticGroupOk(name) else createDynamicGroupOk(name = name)
 
-  def addDeviceToGroup(groupId: GroupId, deviceUuid: DeviceId)(implicit ec: ExecutionContext): HttpRequest =
+  def addDeviceToGroup(groupId: GroupId, deviceUuid: DeviceId): HttpRequest =
     Post(Resource.uri(groupsApi, groupId.show, "devices", deviceUuid.show))
 
   def addDeviceToGroupOk(groupId: GroupId, deviceUuid: DeviceId): Unit =
@@ -114,9 +111,9 @@ trait GroupRequests {
       status shouldBe OK
     }
 
-  def removeDeviceFromGroup(groupId: GroupId, deviceId: DeviceId)(implicit ec: ExecutionContext): HttpRequest =
+  def removeDeviceFromGroup(groupId: GroupId, deviceId: DeviceId): HttpRequest =
     Delete(Resource.uri(groupsApi, groupId.show, "devices", deviceId.show))
 
-  def renameGroup(groupId: GroupId, newGroupName: GroupName)(implicit ec: ExecutionContext): HttpRequest =
+  def renameGroup(groupId: GroupId, newGroupName: GroupName): HttpRequest =
     Put(Resource.uri(groupsApi, groupId.show, "rename").withQuery(Query("groupName" -> newGroupName.value)))
 }

@@ -57,7 +57,7 @@ class EventIndexSpec extends AnyFunSuite with ScalaFutures with DatabaseSpec wit
 
     eventTypeMap.foreach { case (eventType, indexedEventType) =>
       val (event, correlationId) = eventWithCorrelationIdGen(eventType).generate
-      val indexedEvent = EventIndex.index(event).right.value
+      val indexedEvent = EventIndex.index(event).value
       indexedEvent shouldBe IndexedEvent(event.deviceUuid, event.eventId, indexedEventType, correlationId.some)
     }
   }
@@ -71,7 +71,7 @@ class EventIndexSpec extends AnyFunSuite with ScalaFutures with DatabaseSpec wit
     eventTypeMap.foreach { case (eventType, indexedEventType) =>
       val (event, campaignId) = eventWithCampaignIdGen(eventType).generate
       val correlationId = CampaignId(campaignId)
-      val indexedEvent = EventIndex.index(event).right.value
+      val indexedEvent = EventIndex.index(event).value
       indexedEvent shouldBe IndexedEvent(event.deviceUuid, event.eventId, indexedEventType, correlationId.some)
     }
   }
@@ -79,7 +79,7 @@ class EventIndexSpec extends AnyFunSuite with ScalaFutures with DatabaseSpec wit
   test("indexes a DownloadComplete event by type") {
     val event = downloadCompleteEventGen.generate
 
-    val indexedEvent = EventIndex.index(event).right.value
+    val indexedEvent = EventIndex.index(event).value
 
     indexedEvent shouldBe IndexedEvent(event.deviceUuid, event.eventId, IndexedEventType.DownloadComplete, None)
   }

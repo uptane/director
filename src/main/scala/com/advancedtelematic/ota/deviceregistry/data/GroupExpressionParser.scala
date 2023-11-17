@@ -64,7 +64,7 @@ object GroupExpressionAST {
     compileString(groupExpression.value, evalToScala)
 
   private def compileString[T](str: String, fn: Expression => T): T =
-    GroupExpressionParser.parse(str).map(fn).right.get
+    GroupExpressionParser.parse(str).map(fn).toOption.get
 
   private def evalToScala(exp: Expression): (Device, Map[TagId, String]) => Boolean = exp match {
     case DeviceIdContains(word) =>

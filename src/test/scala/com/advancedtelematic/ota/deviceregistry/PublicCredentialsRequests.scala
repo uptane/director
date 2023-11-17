@@ -11,7 +11,6 @@ package com.advancedtelematic.ota.deviceregistry
 import java.util.Base64
 
 import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
-import com.advancedtelematic.libats.data.ValidationError
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.ota.deviceregistry.PublicCredentialsResource.FetchPublicCredentials
 import com.advancedtelematic.ota.deviceregistry.data.Codecs._
@@ -19,7 +18,6 @@ import com.advancedtelematic.ota.deviceregistry.data.CredentialsType.Credentials
 import com.advancedtelematic.ota.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.ota.deviceregistry.data.DeviceName.validatedDeviceType
 
-import scala.concurrent.ExecutionContext
 
 trait PublicCredentialsRequests { self: ResourceSpec =>
   import StatusCodes._
@@ -44,18 +42,16 @@ trait PublicCredentialsRequests { self: ResourceSpec =>
       base64Decoder.decode(resp.credentials)
     }
 
-  def createDeviceWithCredentials(devT: DeviceT)(implicit ec: ExecutionContext): HttpRequest =
+  def createDeviceWithCredentials(devT: DeviceT): HttpRequest =
     Put(Resource.uri(credentialsApi), devT)
 
-  def updatePublicCredentials(device: DeviceOemId, creds: Array[Byte], cType: Option[CredentialsType])
-                             (implicit ec: ExecutionContext): HttpRequest = {
+  def updatePublicCredentials(device: DeviceOemId, creds: Array[Byte], cType: Option[CredentialsType]): HttpRequest = {
     val devT = validatedDeviceType.from(device.underlying)
       .map(DeviceT(None, _, device, DeviceType.Other, Some(base64Encoder.encodeToString(creds)), cType))
-    createDeviceWithCredentials(devT.right.get)
+    createDeviceWithCredentials(devT.toOption.get)
   }
 
-  def updatePublicCredentialsOk(device: DeviceOemId, creds: Array[Byte], cType: Option[CredentialsType] = None)
-                               (implicit ec: ExecutionContext): DeviceId =
+  def updatePublicCredentialsOk(device: DeviceOemId, creds: Array[Byte], cType: Option[CredentialsType] = None): DeviceId =
     updatePublicCredentials(device, creds, cType) ~> route ~> check {
       status shouldBe OK
       responseAs[DeviceId]

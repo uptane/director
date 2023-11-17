@@ -4,7 +4,6 @@ import akka.http.scaladsl.model.StatusCodes.{Created, NoContent}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.ota.deviceregistry.data.Codecs._
 import com.advancedtelematic.ota.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount}
 import com.advancedtelematic.ota.deviceregistry.data.PackageId
@@ -31,9 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * instead of "blacklisted packages", for lack of a better description
   * of what the feature was being used for.
   */
-class PackageListsResource(namespaceExtractor: Directive1[Namespace],
-                           deviceNamespaceAuthorizer: Directive1[DeviceId],
-                          )(implicit db: Database, ec: ExecutionContext) {
+class PackageListsResource(namespaceExtractor: Directive1[Namespace])(implicit db: Database, ec: ExecutionContext) {
 
   private val extractPackageId: Directive1[PackageId] =
     pathPrefix(Segment / Segment).as(PackageId.apply)

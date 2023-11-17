@@ -15,28 +15,27 @@ import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.ota.deviceregistry.common.Errors
-import com.advancedtelematic.ota.deviceregistry.data.DataType.{DeletedDevice, DeviceT, HibernationStatus, SearchParams, TaggedDevice}
-import com.advancedtelematic.ota.deviceregistry.data.Device._
+import com.advancedtelematic.ota.deviceregistry.data.DataType.{DeletedDevice, DeviceT, HibernationStatus, SearchParams}
+import com.advancedtelematic.ota.deviceregistry.data.Device.*
 import com.advancedtelematic.ota.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.ota.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.ota.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.ota.deviceregistry.data._
+import com.advancedtelematic.ota.deviceregistry.data.*
 import com.advancedtelematic.ota.deviceregistry.db.DbOps.{PaginationResultOps, deviceTableToSlickOrder}
 import com.advancedtelematic.ota.deviceregistry.db.GroupInfoRepository.groupInfos
 import com.advancedtelematic.ota.deviceregistry.db.GroupMemberRepository.groupMembers
-import com.advancedtelematic.ota.deviceregistry.db.SlickMappings._
-import com.advancedtelematic.ota.deviceregistry.db.TaggedDeviceRepository.{TaggedDeviceTable, taggedDevices}
-import com.advancedtelematic.libats.slick.db.SlickAnyVal._
-import com.advancedtelematic.libats.slick.db.SlickExtensions._
-import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import slick.jdbc.MySQLProfile.api._
+import com.advancedtelematic.ota.deviceregistry.db.SlickMappings.*
+import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
+import com.advancedtelematic.libats.slick.db.SlickExtensions.*
+import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
+import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.ExecutionContext
-import cats.syntax.option._
-import eu.timepit.refined.string.Uuid
-import slick.jdbc.PositionedParameters
+import cats.syntax.option.*
+import slick.jdbc.{PositionedParameters, SetParameter}
 
 import java.sql.Timestamp
+import scala.annotation.unused
 
 object DeviceRepository {
 
@@ -82,7 +81,7 @@ object DeviceRepository {
   val deletedDevices = TableQuery[DeletedDeviceTable]
 
   def create(ns: Namespace, device: DeviceT)(implicit ec: ExecutionContext): DBIO[DeviceId] = {
-    val uuid = device.uuid.getOrElse(DeviceId.generate)
+    val uuid = device.uuid.getOrElse(DeviceId.generate())
 
     val dbDevice = Device(ns,
       uuid,
@@ -125,7 +124,7 @@ object DeviceRepository {
     .map(_.uuid)
     .result
 
-  def findByDeviceIdQuery(ns: Namespace, deviceId: DeviceOemId)(implicit ec: ExecutionContext): Query[DeviceTable, Device, Seq] =
+  def findByDeviceIdQuery(ns: Namespace, deviceId: DeviceOemId): Query[DeviceTable, Device, Seq] =
     devices.filter(d => d.namespace === ns && d.deviceId === deviceId)
 
   def devicesForExpressionQuery(ns: Namespace, expression: GroupExpression) = {
@@ -133,12 +132,10 @@ object DeviceRepository {
     GroupExpressionAST.compileToSlick(expression)(all).distinct
   }
 
-  def searchByExpression(ns: Namespace, expression: GroupExpression)
-                        (implicit db: Database, ec: ExecutionContext): DBIO[Seq[DeviceId]] =
+  def searchByExpression(ns: Namespace, expression: GroupExpression): DBIO[Seq[DeviceId]] =
     devicesForExpressionQuery(ns, expression).result
 
-  def countDevicesForExpression(ns: Namespace, expression: GroupExpression)
-                               (implicit db: Database, ec: ExecutionContext): DBIO[Int] =
+  def countDevicesForExpression(ns: Namespace, expression: GroupExpression): DBIO[Int] =
     devicesForExpressionQuery(ns, expression).length.result
 
   private def searchQuery(ns: Namespace,
@@ -172,8 +169,7 @@ object DeviceRepository {
       .filter(notSeenSinceFilter)
   }
 
-  private def runQueryFilteringByName(ns: Namespace, query: Query[DeviceTable, Device, Seq], nameContains: Option[String])
-                                     (implicit ec: ExecutionContext) = {
+  private def runQueryFilteringByName(ns: Namespace, query: Query[DeviceTable, Device, Seq], nameContains: Option[String]) = {
     val deviceIdsByName = searchQuery(ns, nameContains, None, None).map(_.uuid)
     query.filter(_.uuid in deviceIdsByName)
   }
@@ -254,11 +250,11 @@ object DeviceRepository {
     devices.filter(d => (d.namespace === ns) && (d.uuid inSet ids))
   }
 
-  def findByOemIds(ns: Namespace, oemIds: Seq[DeviceOemId])(implicit ec: ExecutionContext): DBIO[Seq[Device]] = {
+  def findByOemIds(ns: Namespace, oemIds: Seq[DeviceOemId]): DBIO[Seq[Device]] = {
     devices.filter(d => (d.namespace === ns) && (d.deviceId inSet oemIds)).result
   }
 
-  def findByDeviceUuids(ns: Namespace, deviceIds: Seq[DeviceId])(implicit ec: ExecutionContext): DBIO[Seq[Device]] = {
+  def findByDeviceUuids(ns: Namespace, deviceIds: Seq[DeviceId]): DBIO[Seq[Device]] = {
     findByUuids(ns, deviceIds).result
   }
 
@@ -301,10 +297,9 @@ object DeviceRepository {
       .failIfNotSingle(Errors.MissingDevice)
 
   def countActivatedDevices(ns: Namespace, start: Instant, end: Instant): DBIO[Int] = {
-    implicit val setInstant = new slick.jdbc.SetParameter[Instant] {
-      override def apply(value: Instant, pos: PositionedParameters): Unit = {
-        pos.setTimestamp(Timestamp.from(value))
-      }
+    @unused
+    implicit val setInstant: SetParameter[Instant] = (value: Instant, pos: PositionedParameters) => {
+      pos.setTimestamp(Timestamp.from(value))
     }
 
     // Using raw sql because SQL will it's own instant mapping for the comparisons, instead of javaInstantMapping
@@ -327,8 +322,9 @@ object DeviceRepository {
       .handleSingleUpdateError(Errors.MissingDevice)
 
   // Returns the previous hibernation status
-  def setHibernationStatus(id: DeviceId, status: HibernationStatus)(implicit ec: ExecutionContext): DBIO[HibernationStatus] = {
+  def setHibernationStatus(ns: Namespace, id: DeviceId, status: HibernationStatus)(implicit ec: ExecutionContext): DBIO[HibernationStatus] = {
     devices
+      .filter(_.namespace === ns)
       .filter(_.uuid === id)
       .map(_.hibernated)
       .update(status)

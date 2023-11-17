@@ -20,7 +20,6 @@ import akka.stream.scaladsl.{Framing, Sink, Source}
 import akka.util.ByteString
 import cats.syntax.either._
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.ota.deviceregistry.common.Errors
 import com.advancedtelematic.ota.deviceregistry.data.DataType.UpdateHibernationStatusRequest
@@ -35,11 +34,9 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.{Decoder, Encoder}
 import slick.jdbc.MySQLProfile.api._
 
-import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
-class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceAuthorizer: Directive1[DeviceId],
-                     messageBus: MessageBusPublisher)
+class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceAuthorizer: Directive1[DeviceId])
                     (implicit ec: ExecutionContext, db: Database, materializer: Materializer) extends Directives {
 
   private val DEVICE_OEM_ID_MAX_BYTES = 128
@@ -64,7 +61,7 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceA
   val groupMembership = new GroupMembership()
 
   def getDevicesInGroup(groupId: GroupId): Route =
-    parameters('offset.as(nonNegativeLong).?, 'limit.as(nonNegativeLong).?) { (offset, limit) =>
+    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (offset, limit) =>
       complete(groupMembership.listDevices(groupId, offset, limit))
     }
 
@@ -137,7 +134,7 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceA
   def updateGroupHibernationStatus(ns: Namespace, groupId: GroupId): Route = {
     post {
       entity(as[UpdateHibernationStatusRequest]) { req =>
-        val f = db.run(GroupMemberRepository.setHibernationStatus(groupId, req.status))
+        val f = db.run(GroupMemberRepository.setHibernationStatus(ns, groupId, req.status))
         complete(f.map(_ => StatusCodes.OK))
       }
     }
@@ -146,14 +143,14 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceA
   val route: Route =
     (pathPrefix("device_groups") & namespaceExtractor) { ns =>
       pathEnd {
-        (get & parameters('offset.as(nonNegativeLong).?, 'limit.as(nonNegativeLong).?, 'sortBy.as[GroupSortBy].?, 'nameContains.as[String].?)) {
+        (get & parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?, Symbol("sortBy").as[GroupSortBy].?, Symbol("nameContains").as[String].?)) {
           (offset, limit, sortBy, nameContains) => listGroups(ns, offset, limit, sortBy.getOrElse(GroupSortBy.Name), nameContains)
         } ~
         post {
           entity(as[CreateGroup]) { req =>
             createGroup(req.name, ns, req.groupType, req.expression)
           } ~
-          (fileUpload("deviceIds") & parameter('groupName.as[GroupName])) {
+          (fileUpload("deviceIds") & parameter(Symbol("groupName").as[GroupName])) {
             case ((_, byteSource), groupName) =>
               createGroupWithDevices(groupName, ns, byteSource)
           }
@@ -182,7 +179,7 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceA
         delete {
           deleteGroup(groupId)
         } ~
-        (put & path("rename") & parameter('groupName.as[GroupName])) { groupName =>
+        (put & path("rename") & parameter(Symbol("groupName").as[GroupName])) { groupName =>
           renameGroup(groupId, groupName)
         } ~
         (get & path("count") & pathEnd) {

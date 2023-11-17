@@ -1,6 +1,5 @@
 package com.advancedtelematic.ota.deviceregistry.db
 
-import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.ota.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.ota.deviceregistry.data.GroupSortBy.GroupSortBy
@@ -10,7 +9,7 @@ import com.advancedtelematic.ota.deviceregistry.db.DeviceRepository.DeviceTable
 import com.advancedtelematic.ota.deviceregistry.db.GroupInfoRepository.GroupInfoTable
 import slick.ast.Ordering
 import slick.jdbc.MySQLProfile.api._
-import slick.lifted.{ColumnOrdered, Rep}
+import slick.lifted.ColumnOrdered
 
 object DbOps {
   implicit class SortBySlickOrderedGroupConversion(sortBy: GroupSortBy) {

@@ -64,7 +64,7 @@ object InstalledPackages {
 
   private[db] val installedPackages = TableQuery[InstalledPackageTable]
 
-  def setInstalled(device: DeviceId, packages: Set[PackageId])(implicit ec: ExecutionContext): DBIO[Unit] =
+  def setInstalled(device: DeviceId, packages: Set[PackageId]): DBIO[Unit] =
     DBIO
       .seq(
         installedPackages.filter(_.device === device).delete,
@@ -145,8 +145,7 @@ object InstalledPackages {
     }
 
   //this isn't paginated as it's only intended to be called by core, hence it also not being in swagger
-  def allInstalledPackagesById(namespace: Namespace, ids: Set[PackageId])
-                              (implicit db: Database, ec: ExecutionContext): DBIO[Seq[(DeviceId, PackageId)]] =
+  def allInstalledPackagesById(namespace: Namespace, ids: Set[PackageId]): DBIO[Seq[(DeviceId, PackageId)]] =
     inSetQuery(ids)
       .join(DeviceRepository.devices)
       .on(_.device === _.uuid)

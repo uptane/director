@@ -31,15 +31,8 @@ class DeviceRegistryRoutes(
             new DeviceMonitoringResource(namespaceExtractor, deviceNamespaceAuthorizer, messageBus).route ~
             new SystemInfoResource(messageBus, namespaceExtractor, deviceNamespaceAuthorizer).route ~
             new PublicCredentialsResource(namespaceExtractor, messageBus, deviceNamespaceAuthorizer).route ~
-            new PackageListsResource(namespaceExtractor, deviceNamespaceAuthorizer).route ~
-            new GroupsResource(namespaceExtractor, deviceNamespaceAuthorizer, messageBus).route
-          }
-        }
-      } ~
-      pathPrefix("v2") {
-        handleRejections(rejectionHandler) {
-          ErrorHandler.handleErrors {
-            new DeviceResource2(namespaceExtractor, deviceNamespaceAuthorizer).route
+            new PackageListsResource(namespaceExtractor).route ~
+            new GroupsResource(namespaceExtractor, deviceNamespaceAuthorizer).route
           }
         }
       }

@@ -9,7 +9,6 @@
 package com.advancedtelematic.ota.deviceregistry
 
 import java.time.{Instant, OffsetDateTime}
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server._
@@ -21,7 +20,7 @@ import akka.util.ByteString
 import cats.syntax.either._
 import cats.syntax.show._
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
-import com.advancedtelematic.libats.http.Errors.{JsonError, RawError}
+import com.advancedtelematic.libats.http.Errors.JsonError
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
 import com.advancedtelematic.libats.http.ValidatedGenericMarshalling.validatedStringUnmarshaller
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
@@ -34,11 +33,10 @@ import com.advancedtelematic.ota.deviceregistry.common.Errors
 import com.advancedtelematic.ota.deviceregistry.common.Errors.{Codes, MissingDevice}
 import com.advancedtelematic.ota.deviceregistry.data.Codecs._
 import com.advancedtelematic.ota.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.ota.deviceregistry.data.DataType.{DeviceT, DeviceUuids, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
+import com.advancedtelematic.ota.deviceregistry.data.DataType.{DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
 import com.advancedtelematic.ota.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.ota.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.ota.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.ota.deviceregistry.data.GroupExpressionAST.DeviceIdsQuery
 import com.advancedtelematic.ota.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.ota.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.ota.deviceregistry.data.SortDirection.SortDirection
@@ -123,7 +121,7 @@ class DevicesResource(
     namespaceExtractor: Directive1[Namespace],
     messageBus: MessageBusPublisher,
     deviceNamespaceAuthorizer: Directive1[DeviceId]
-)(implicit system: ActorSystem, db: Database, mat: Materializer, ec: ExecutionContext) {
+)(implicit db: Database, mat: Materializer, ec: ExecutionContext) {
 
   import DevicesResource._
   import Directives._
@@ -138,16 +136,16 @@ class DevicesResource(
 
   def searchDevice(ns: Namespace): Route =
     parameters(
-      'deviceId.as[DeviceOemId].?,
-      'grouped.as[Boolean].?,
-      'groupType.as[GroupType].?,
-      'groupId.as[GroupId].?,
-      'nameContains.as[String].?,
-      'notSeenSinceHours.as[Int].?,
-      'sortBy.as[DeviceSortBy].?,
-      'sortDirection.as[SortDirection].?,
-      'offset.as(nonNegativeLong).?,
-      'limit.as(nonNegativeLong).?).as(SearchParams.apply _) { params =>
+      Symbol("deviceId").as[DeviceOemId].?,
+      Symbol("grouped").as[Boolean].?,
+      Symbol("groupType").as[GroupType].?,
+      Symbol("groupId").as[GroupId].?,
+      Symbol("nameContains").as[String].?,
+      Symbol("notSeenSinceHours").as[Int].?,
+      Symbol("sortBy").as[DeviceSortBy].?,
+      Symbol("sortDirection").as[SortDirection].?,
+      Symbol("offset").as(nonNegativeLong).?,
+      Symbol("limit").as(nonNegativeLong).?).as(SearchParams.apply _) { params =>
         complete(db.run(DeviceRepository.search(ns, params)))
       }
 
@@ -205,7 +203,7 @@ class DevicesResource(
     complete(db.run(DeviceRepository.countDevicesForExpression(ns, expression)))
 
   def getGroupsForDevice(uuid: DeviceId): Route =
-    parameters('offset.as(nonNegativeLong).?, 'limit.as(nonNegativeLong).?) { (offset, limit) =>
+    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (offset, limit) =>
       complete(db.run(GroupMemberRepository.listGroupsForDevice(uuid, offset, limit)))
     }
 
@@ -219,7 +217,7 @@ class DevicesResource(
     complete(db.run(InstalledPackages.getDevicesCount(pkg, ns)))
 
   def listPackagesOnDevice(device: DeviceId): Route =
-    parameters('nameContains.as[String].?, 'offset.as(nonNegativeLong).?, 'limit.as(nonNegativeLong).?) { (nameContains, offset, limit) =>
+    parameters(Symbol("nameContains").as[String].?, Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (nameContains, offset, limit) =>
       complete(db.run(InstalledPackages.installedOn(device, nameContains, offset, limit)))
     }
 
@@ -227,7 +225,7 @@ class DevicesResource(
     Unmarshaller.strict(OffsetDateTime.parse)
 
   def getActiveDeviceCount(ns: Namespace): Route =
-    parameters('start.as[OffsetDateTime], 'end.as[OffsetDateTime]) { (start, end) =>
+    parameters(Symbol("start").as[OffsetDateTime], Symbol("end").as[OffsetDateTime]) { (start, end) =>
       complete(
         db.run(DeviceRepository.countActivatedDevices(ns, start.toInstant, end.toInstant))
           .map(ActiveDeviceCount.apply)
@@ -235,20 +233,20 @@ class DevicesResource(
     }
 
   def getDistinctPackages(ns: Namespace): Route =
-    parameters('offset.as(nonNegativeLong).?, 'limit.as(nonNegativeLong).?) { (offset, limit) =>
+    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (offset, limit) =>
       complete(db.run(InstalledPackages.getInstalledForAllDevices(ns, offset, limit)))
     }
 
   def findAffected(ns: Namespace): Route =
     entity(as[Set[PackageId]]) { packageIds =>
       val f = InstalledPackages.allInstalledPackagesById(ns, packageIds).map {
-        _.groupBy(_._1).mapValues(_.map(_._2).toSet)
+        _.groupBy(_._1).view.mapValues(_.map(_._2).toSet).toMap
       }
       complete(db.run(f))
     }
 
   def getPackageStats(ns: Namespace, name: PackageId.Name): Route =
-    parameters('offset.as(nonNegativeLong).?, 'limit.as(nonNegativeLong).?) { (offset, limit) =>
+    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (offset, limit) =>
       val f = db.run(InstalledPackages.listAllWithPackageByName(ns, name, offset, limit))
       complete(f)
     }
@@ -327,7 +325,7 @@ class DevicesResource(
   private def updateHibernationStatus(ns: Namespace, uuid: DeviceId): Route = {
     post {
       entity(as[UpdateHibernationStatusRequest]) { req =>
-        val f = db.run(DeviceRepository.setHibernationStatus(uuid, req.status))
+        val f = db.run(DeviceRepository.setHibernationStatus(ns, uuid, req.status))
         complete(f.map(_ => StatusCodes.OK))
       }
     }
@@ -339,11 +337,11 @@ class DevicesResource(
         createDevice(ns, device)
       } ~
       get {
-        (path("count") & parameter('expression.as[GroupExpression].?)) {
+        (path("count") & parameter(Symbol("expression").as[GroupExpression].?)) {
           case None      => complete(Errors.InvalidGroupExpression(""))
           case Some(exp) => countDynamicGroupCandidates(ns, exp)
         } ~
-        (path("stats") & parameters('correlationId.as[CorrelationId], 'reportLevel.as[InstallationStatsLevel].?)) {
+        (path("stats") & parameters(Symbol("correlationId").as[CorrelationId], Symbol("reportLevel").as[InstallationStatsLevel].?)) {
           (cid, reportLevel) => fetchInstallationStats(cid, reportLevel)
         } ~
         (pathEnd & entity(as[DevicesQuery])) { devicesQuery =>
@@ -364,10 +362,10 @@ class DevicesResource(
           path("active_device_count") {
             getActiveDeviceCount(ns)
           } ~
-          (path("installation_reports") & parameters('offset.as(nonNegativeLong).?, 'limit.as(nonNegativeLong).?)) {
+          (path("installation_reports") & parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?)) {
             (offset, limit) => installationReports(uuid, offset, limit)
           } ~
-          (path("installation_history") & parameters('offset.as(nonNegativeLong).?, 'limit.as(nonNegativeLong).?)) {
+          (path("installation_history") & parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?)) {
             (offset, limit) => fetchInstallationHistory(uuid, offset, limit)
           } ~
           (pathPrefix("device_count") & extractPackageId) { pkg =>
@@ -397,7 +395,7 @@ class DevicesResource(
         } ~
         path("events") {
           import DevicesResource.EventPayloadDecoder
-          (get & parameter('correlationId.as[CorrelationId].?)) { correlationId =>
+          (get & parameter(Symbol("correlationId").as[CorrelationId].?)) { correlationId =>
             // TODO: This should not return raw Events
             // https://saeljira.it.here.com/browse/OTA-4163
             // API should not return arbitrary json (`payload`) to the clients. This is why we index interesting events, so we can give this info to clients
@@ -449,7 +447,7 @@ class DevicesResource(
     }
   }
 
-  def mydeviceRoutes: Route = namespaceExtractor { authedNs => // Don't use this as a namespace
+  def mydeviceRoutes: Route = namespaceExtractor { _ => // Don't use this as a namespace
     pathPrefix("mydevice" / DeviceId.Path) { uuid =>
       (get & pathEnd) {
         fetchDevice(uuid)

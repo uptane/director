@@ -60,7 +60,6 @@ object SystemInfoRepository {
                                hostname: Option[String]=None,
                                macAddress: Option[String]=None)
   object NetworkInfo {
-    import com.advancedtelematic.libats.codecs.CirceCodecs._
     implicit val NetworkInfoEncoder: Encoder[NetworkInfo] = Encoder.instance { x =>
       import io.circe.syntax._
       Json.obj(
@@ -87,7 +86,6 @@ object SystemInfoRepository {
     )
   }
   implicit val networkInfoWithDeviceIdDecoder: Decoder[NetworkInfo] = Decoder.instance { x =>
-    import io.circe.syntax._
     for {
       id <- x.get[DeviceId]("deviceUuid")
       ip <- x.getOrElse[Option[String]]("local_ipv4")(None)
@@ -143,7 +141,7 @@ object SystemInfoRepository {
 
   def addUniqueIdNrs(j: Json): Json = addUniqueIdsSIM(j).run(0).value._2
 
-  def list(ns: Namespace)(implicit ec: ExecutionContext): DBIO[Seq[SystemInfo]] =
+  def list(ns: Namespace): DBIO[Seq[SystemInfo]] =
     DeviceRepository.devices
       .filter(_.namespace === ns)
       .join(systemInfos)
@@ -188,6 +186,6 @@ object SystemInfoRepository {
       _ <- systemInfos.insertOrUpdate(SystemInfo(uuid, newData))
     } yield ()
 
-  def delete(uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Int] =
+  def delete(uuid: DeviceId): DBIO[Int] =
     systemInfos.filter(_.uuid === uuid).delete
 }

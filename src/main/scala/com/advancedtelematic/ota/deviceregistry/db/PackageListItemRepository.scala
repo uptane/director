@@ -47,8 +47,7 @@ object PackageListItemRepository {
                           (implicit ec: ExecutionContext): DBIO[PackageListItem] =
     findQuery(namespace, packageId).resultHead(MissingPackageListItem)
 
-  def fetchPackageListItemCounts(namespace: Namespace)
-                                (implicit ec: ExecutionContext): DBIO[Seq[PackageListItemCount]] =
+  def fetchPackageListItemCounts(namespace: Namespace): DBIO[Seq[PackageListItemCount]] =
     devices
       .filter(_.namespace === namespace)
       .join(installedPackages)
@@ -64,12 +63,12 @@ object PackageListItemRepository {
   def create(packageListItem: PackageListItem)(implicit ec: ExecutionContext): DBIO[Int] =
     (packageListItems += packageListItem).handleIntegrityErrors(ConflictingPackageListItem)
 
-  def update(packageListItem: PackageListItem)(implicit ec: ExecutionContext): DBIO[Int] =
+  def update(packageListItem: PackageListItem): DBIO[Int] =
     findQuery(packageListItem.namespace, packageListItem.packageId)
       .map(_.comment)
       .update(packageListItem.comment)
 
-  def remove(namespace: Namespace, packageId: PackageId)(implicit ec: ExecutionContext): DBIO[Int] =
+  def remove(namespace: Namespace, packageId: PackageId): DBIO[Int] =
     findQuery(namespace, packageId).delete
 
 }

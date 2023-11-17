@@ -126,7 +126,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
   test("gets all existing groups that contain a string") {
     val names = Seq("aabb", "baaxbc", "a123ba", "cba3b")
-    val groupNames = names.map(GroupName.from(_).right.get)
+    val groupNames = names.map(GroupName.from(_).toOption.get)
     groupNames.foreach(n => createGroupOk(n))
 
     val tests = Map("" -> names, "a1" -> Seq("a123ba"), "aa" -> Seq("aabb", "baaxbc"), "3b" -> Seq("a123ba", "cba3b"), "3" -> Seq("a123ba", "cba3b"))

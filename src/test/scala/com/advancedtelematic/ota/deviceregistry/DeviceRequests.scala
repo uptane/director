@@ -17,11 +17,10 @@ import cats.instances.string._
 import cats.syntax.option._
 import cats.syntax.show._
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
-import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.ota.deviceregistry.data.Codecs._
 import com.advancedtelematic.ota.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.ota.deviceregistry.data.DataType.{DeviceT, DeviceUuids, DevicesQuery, SetDevice, TagInfo, UpdateDevice, UpdateTagValue}
+import com.advancedtelematic.ota.deviceregistry.data.DataType.{DeviceT, DevicesQuery, SetDevice, TagInfo, UpdateDevice, UpdateTagValue}
 import com.advancedtelematic.ota.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.ota.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.ota.deviceregistry.data.DeviceSortBy.DeviceSortBy
@@ -31,10 +30,7 @@ import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.NetworkI
 import com.advancedtelematic.ota.deviceregistry.http.`application/toml`
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.Json
-
-import scala.concurrent.ExecutionContext
-import scala.util.matching.Regex.Match
-
+import com.advancedtelematic.libats.http.HttpOps.*
 
 /**
   * Generic test resource object
@@ -128,51 +124,51 @@ trait DeviceRequests { self: ResourceSpec =>
   def fetchNotSeenSince(hours: Int): HttpRequest =
     Get(Resource.uri(api).withQuery(Query("notSeenSinceHours" -> hours.toString, "limit" -> 1000.toString)))
 
-  def setDevice(uuid: DeviceId, newName: DeviceName, notes: Option[String] = None)(implicit ec: ExecutionContext): HttpRequest =
+  def setDevice(uuid: DeviceId, newName: DeviceName, notes: Option[String] = None): HttpRequest =
     Put(Resource.uri(api, uuid.show), SetDevice(newName, notes))
 
-  def updateDevice(uuid: DeviceId, newName: Option[DeviceName], notes: Option[String] = None)(implicit ec: ExecutionContext): HttpRequest =
+  def updateDevice(uuid: DeviceId, newName: Option[DeviceName], notes: Option[String] = None): HttpRequest =
     Patch(Resource.uri(api, uuid.show), UpdateDevice(newName, notes))
 
-  def createDevice(device: DeviceT)(implicit ec: ExecutionContext): HttpRequest =
+  def createDevice(device: DeviceT): HttpRequest =
     Post(Resource.uri(api), device)
 
-  def createDeviceOk(device: DeviceT)(implicit ec: ExecutionContext): DeviceId =
+  def createDeviceOk(device: DeviceT): DeviceId =
     createDevice(device) ~> route ~> check {
       status shouldBe Created
       responseAs[DeviceId]
   }
 
-  def createDeviceInNamespaceOk(device: DeviceT, ns: Namespace)(implicit ec: ExecutionContext): DeviceId =
+  def createDeviceInNamespaceOk(device: DeviceT, ns: Namespace): DeviceId =
     Post(Resource.uri(api), device).withNs(ns) ~> route ~> check {
       status shouldBe Created
       responseAs[DeviceId]
     }
 
-  def deleteDevice(uuid: DeviceId)(implicit ec: ExecutionContext): HttpRequest =
+  def deleteDevice(uuid: DeviceId): HttpRequest =
     Delete(Resource.uri(api, uuid.show))
 
   def fetchSystemInfo(uuid: DeviceId): HttpRequest =
     Get(Resource.uri(api, uuid.show, "system_info"))
 
-  def createSystemInfo(uuid: DeviceId, json: Json)(implicit ec: ExecutionContext): HttpRequest =
+  def createSystemInfo(uuid: DeviceId, json: Json): HttpRequest =
     Post(Resource.uri(api, uuid.show, "system_info"), json)
 
-  def updateSystemInfo(uuid: DeviceId, json: Json)(implicit ec: ExecutionContext): HttpRequest =
+  def updateSystemInfo(uuid: DeviceId, json: Json): HttpRequest =
     Put(Resource.uri(api, uuid.show, "system_info"), json)
 
-  def fetchNetworkInfo(uuid: DeviceId)(implicit ec: ExecutionContext): HttpRequest = {
+  def fetchNetworkInfo(uuid: DeviceId): HttpRequest = {
     val uri = Resource.uri(api, uuid.show, "system_info", "network")
     Get(uri)
   }
 
-  def createNetworkInfo(uuid: DeviceId, networkInfo: NetworkInfo)(implicit ec: ExecutionContext): HttpRequest = {
+  def createNetworkInfo(uuid: DeviceId, networkInfo: NetworkInfo): HttpRequest = {
     val uri = Resource.uri(api, uuid.show, "system_info", "network")
     import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdEncoder
     Put(uri, networkInfo)
   }
 
-  def postListNetworkInfos(uuids: Seq[DeviceId])(implicit ec: ExecutionContext): HttpRequest = {
+  def postListNetworkInfos(uuids: Seq[DeviceId]): HttpRequest = {
     val uri = Resource.uri(api, "list-network-info")
     Post(uri, uuids)
   }
@@ -180,7 +176,7 @@ trait DeviceRequests { self: ResourceSpec =>
   def uploadSystemConfig(uuid: DeviceId, config: String): HttpRequest =
     Post(Resource.uri(api, uuid.show, "system_info", "config")).withEntity(`application/toml`, config)
 
-  def listGroupsForDevice(device: DeviceId)(implicit ec: ExecutionContext): HttpRequest =
+  def listGroupsForDevice(device: DeviceId): HttpRequest =
     Get(Resource.uri(api, device.show, "groups"))
 
   def installSoftware(device: DeviceId, packages: Set[PackageId]): HttpRequest =
@@ -191,7 +187,7 @@ trait DeviceRequests { self: ResourceSpec =>
       status shouldBe StatusCodes.NoContent
     }
 
-  def listPackages(device: DeviceId, nameContains: Option[String] = None)(implicit ec: ExecutionContext): HttpRequest = {
+  def listPackages(device: DeviceId, nameContains: Option[String] = None): HttpRequest = {
     val uri = Resource.uri("devices", device.show, "packages")
     nameContains match {
       case None => Get(uri)
@@ -199,7 +195,7 @@ trait DeviceRequests { self: ResourceSpec =>
     }
   }
 
-  def getStatsForPackage(pkg: PackageId)(implicit ec: ExecutionContext): HttpRequest =
+  def getStatsForPackage(pkg: PackageId): HttpRequest =
     Get(Resource.uri("device_count", pkg.name, pkg.version))
 
   def getActiveDeviceCount(start: OffsetDateTime, end: OffsetDateTime): HttpRequest =
@@ -239,7 +235,7 @@ trait DeviceRequests { self: ResourceSpec =>
                            nameContains: Option[String] = None, limit: Long = 2000): HttpRequest = {
     val m = Map("grouped" -> grouped, "limit" -> limit) ++
       List("groupType" -> groupType, "nameContains" -> nameContains).collect { case (k, Some(v)) => k -> v }.toMap
-    Get(Resource.uri(api).withQuery(Query(m.mapValues(_.toString))))
+    Get(Resource.uri(api).withQuery(Query(m.view.mapValues(_.toString).toMap)))
   }
 
   def getStats(correlationId: CorrelationId, level: InstallationStatsLevel): HttpRequest =

@@ -15,7 +15,6 @@ import akka.http.scaladsl.marshalling.Marshaller._
 import akka.http.scaladsl.server.{Directive1, Route}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.util.FastFuture
-import akka.stream.Materializer
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.ota.deviceregistry.common.Errors
@@ -40,7 +39,7 @@ class PublicCredentialsResource(
     authNamespace: Directive1[Namespace],
     messageBus: MessageBusPublisher,
     deviceNamespaceAuthorizer: Directive1[DeviceId]
-)(implicit db: Database, mat: Materializer, ec: ExecutionContext) {
+)(implicit db: Database, ec: ExecutionContext) {
   import PublicCredentialsResource._
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   lazy val base64Decoder = Base64.getDecoder()

@@ -2,14 +2,10 @@ package com.advancedtelematic.ota.deviceregistry.db
 
 import java.time.Instant
 
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, ResultCode, ResultDescription}
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, ResultCode}
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuInstallationReport}
-import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
-import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceUpdateCompleted
 import com.advancedtelematic.ota.deviceregistry.data.DataType.{DeviceInstallationResult, EcuInstallationResult, InstallationStat}
-import com.advancedtelematic.libats.slick.db.SlickAnyVal._
-import com.advancedtelematic.ota.deviceregistry.data.Device.DeviceOemId
 import io.circe.Json
 import slick.jdbc.MySQLProfile.api._
 import com.advancedtelematic.libats.slick.db.SlickAnyVal._
@@ -104,13 +100,13 @@ object InstallationReportRepository {
   def installationStatsPerEcu(correlationId: CorrelationId)(implicit ec: ExecutionContext): DBIO[Seq[InstallationStat]] =
     statsQuery(ecuInstallationResults, correlationId)
 
-  def fetchDeviceInstallationResult(correlationId: CorrelationId)(implicit ec: ExecutionContext): DBIO[Seq[DeviceInstallationResult]] =
+  def fetchDeviceInstallationResult(correlationId: CorrelationId): DBIO[Seq[DeviceInstallationResult]] =
     deviceInstallationResults.filter(_.correlationId === correlationId).result
 
-  def fetchDeviceInstallationResultFor(deviceId: DeviceId, correlationId: CorrelationId)(implicit ec: ExecutionContext): DBIO[Seq[DeviceInstallationResult]] =
+  def fetchDeviceInstallationResultFor(deviceId: DeviceId, correlationId: CorrelationId): DBIO[Seq[DeviceInstallationResult]] =
     deviceInstallationResults.filter(_.deviceUuid === deviceId).filter(_.correlationId === correlationId).result
 
-  def fetchEcuInstallationReport(correlationId: CorrelationId)(implicit ec: ExecutionContext): DBIO[Seq[EcuInstallationResult]] =
+  def fetchEcuInstallationReport(correlationId: CorrelationId): DBIO[Seq[EcuInstallationResult]] =
     ecuInstallationResults.filter(_.correlationId === correlationId).result
 
   private[db] def queryInstallationHistory(deviceId: DeviceId): Query[Rep[Json], Json, Seq] =

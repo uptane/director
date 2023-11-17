@@ -10,14 +10,12 @@ package com.advancedtelematic.ota.deviceregistry
 
 import java.time.Instant
 import akka.Done
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 import cats.syntax.option._
-import cats.syntax.show._
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.Errors.RawError
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
@@ -25,13 +23,11 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
 import com.advancedtelematic.ota.deviceregistry.common.Errors.{Codes, MissingSystemInfo}
-import com.advancedtelematic.ota.deviceregistry.data.DataType.DeviceUuids
 import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository
 import com.advancedtelematic.ota.deviceregistry.db.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.ota.deviceregistry.http.`application/toml`
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Json
 import io.circe.generic.auto._
-import de.heikoseeberger.akkahttpcirce._
 import slick.jdbc.MySQLProfile.api._
 import toml.Toml
 import toml.Value.{Bool, Num, Str, Tbl}
@@ -58,7 +54,7 @@ class SystemInfoResource(
     messageBus: MessageBusPublisher,
     authNamespace: Directive1[Namespace],
     deviceNamespaceAuthorizer: Directive1[DeviceId]
-)(implicit db: Database, actorSystem: ActorSystem, ec: ExecutionContext) {
+)(implicit db: Database, ec: ExecutionContext) {
   import SystemInfoResource._
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 

@@ -34,10 +34,10 @@ lazy val library =
     object Version {
       val attoCore = "0.9.5"
       val scalaTest  = "3.2.12"
-      val libAts     = "2.1.1"
-      val libTuf = "1.0.1"
-      val akka = "2.6.20"
-      val akkaHttp = "10.2.10"
+      val libAts     = "2.5.0"
+      val libTuf = "3.1.3"
+      val akka = "2.8.5"
+      val akkaHttp = "10.5.2"
       val alpakkaCsv = "2.0.0"
       val mariaDb = "2.7.3"
       val circe = "0.14.1"
@@ -79,23 +79,15 @@ dockerSettings
 
 lazy val commonSettings =
   Seq(
-    scalaVersion := "2.12.14",
+    scalaVersion := "2.13.10",
     organization := "io.github.uptane",
     organizationName := "ATS Advanced Telematic Systems GmbH",
     name := "device-registry",
     startYear := Some(2017),
-    resolvers += Resolver.sonatypeRepo("releases"),
     resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots",
+    resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases",
     licenses += ("MPL-2.0", url("http://mozilla.org/MPL/2.0/")),
-    scalacOptions ++= Seq(
-      "-Ypartial-unification",
-      "-unchecked",
-      "-deprecation",
-      "-language:_",
-      "-target:jvm-1.8",
-      "-encoding",
-      "UTF-8"
-    ),
+    scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused"),
     Compile / unmanagedSourceDirectories := Seq((Compile / scalaSource).value),
     Test / unmanagedSourceDirectories := Seq((Test / scalaSource).value),
   )

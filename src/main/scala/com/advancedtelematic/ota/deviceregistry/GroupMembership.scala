@@ -80,7 +80,7 @@ class GroupMembership(implicit val db: Database, ec: ExecutionContext) {
   def listDevices(groupId: GroupId, offset: Option[Long], limit: Option[Long]): Future[PaginationResult[DeviceId]] =
     db.run(GroupMemberRepository.listDevicesInGroup(groupId, offset, limit))
 
-  def addGroupMember(groupId: GroupId, deviceId: DeviceId)(implicit ec: ExecutionContext): Future[Unit] =
+  def addGroupMember(groupId: GroupId, deviceId: DeviceId): Future[Unit] =
     runGroupOperation(groupId) { (g, m) =>
       m.addMember(g.id, deviceId)
     }

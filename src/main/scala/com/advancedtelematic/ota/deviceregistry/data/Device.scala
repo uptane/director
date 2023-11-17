@@ -16,7 +16,7 @@ import cats.syntax.show._
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.ota.deviceregistry.data.Device.{DeviceOemId, DeviceType}
 import com.advancedtelematic.ota.deviceregistry.data.DeviceStatus._
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.{Decoder, Encoder}
 
 final case class Device(namespace: Namespace,
                         uuid: DeviceId,

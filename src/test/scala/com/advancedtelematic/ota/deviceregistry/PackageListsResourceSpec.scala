@@ -2,19 +2,17 @@ package com.advancedtelematic.ota.deviceregistry
 
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.StatusCodes.{Created, NoContent, NotFound, OK}
-import cats.syntax.show._
+import cats.syntax.show.*
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.ota.deviceregistry.Resource.uri
 import com.advancedtelematic.ota.deviceregistry.data.Codecs.{packageListItemCodec, packageListItemCountCodec}
 import com.advancedtelematic.ota.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount, DeviceT}
-import com.advancedtelematic.ota.deviceregistry.data.GeneratorOps._
+import com.advancedtelematic.ota.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.ota.deviceregistry.data.PackageId
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.concurrent.ScalaFutures
-
-import scala.concurrent.ExecutionContext
 
 class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
 
@@ -31,7 +29,7 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
   private def createListedPackage(listedPackage: PackageListItem): HttpRequest =
     Post(uri("package_lists"), listedPackage)
 
-  private def createListedPackageOk(listedPackage: PackageListItem)(implicit ec: ExecutionContext): Unit =
+  private def createListedPackageOk(listedPackage: PackageListItem): Unit =
     createListedPackage(listedPackage) ~> route ~> check {
       status shouldBe Created
     }
@@ -39,7 +37,7 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
   private def getListedPackage(packageId: PackageId): HttpRequest =
     Get(uri("package_lists", packageId.name, packageId.version))
 
-  private def getListedPackageOk(packageId: PackageId)(implicit ec: ExecutionContext): PackageListItem =
+  private def getListedPackageOk(packageId: PackageId): PackageListItem =
     getListedPackage(packageId) ~> route ~> check {
       status shouldBe OK
       responseAs[PackageListItem]
@@ -48,7 +46,7 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
   private def deleteListedPackage(packageId: PackageId): HttpRequest =
     Delete(uri("package_lists", packageId.name, packageId.version))
 
-  private def deleteListedPackageOk(packageId: PackageId)(implicit ec: ExecutionContext): Unit =
+  private def deleteListedPackageOk(packageId: PackageId): Unit =
     deleteListedPackage(packageId) ~> route ~> check {
       status shouldBe NoContent
     }
@@ -128,13 +126,14 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
       val expected = devicesWithPackages
         .flatMap { case (did, pids) => pids.map(pid => pid -> did) }
         .groupBy(_._1)
+        .view
         .filterKeys(listedPackages.map(_.packageId).contains)
         .mapValues(_.map(_._2).length)
         .map((PackageListItemCount.apply _).tupled)
         .toSeq
 
       listedPackages.foreach(createListedPackageOk)
-      devicesWithPackages.foreach((updateInstalledPackages _).tupled)
+      devicesWithPackages.foreach { case (id, pkgs) => updateInstalledPackages(id, pkgs.toSeq) }
 
       val actual = Get(uri("package_lists")) ~> route ~> check {
         status shouldBe OK

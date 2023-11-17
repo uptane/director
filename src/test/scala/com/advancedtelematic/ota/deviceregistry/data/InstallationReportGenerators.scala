@@ -17,7 +17,7 @@ trait InstallationReportGenerators extends DeviceGenerators {
     Gen.uuid.flatMap(uuid => Gen.oneOf(CampaignId(uuid), MultiTargetUpdateId(uuid)))
 
   val genEcuIdentifier: Gen[EcuIdentifier] =
-    Gen.listOfN(64, Gen.alphaNumChar).map(_.mkString("")).map(validatedEcuIdentifier.from(_).right.get)
+    Gen.listOfN(64, Gen.alphaNumChar).map(_.mkString("")).map(validatedEcuIdentifier.from(_).toOption.get)
 
   private def genInstallationResult(resultCode: ResultCode, resultDescription: Option[ResultDescription] = None): Gen[InstallationResult] = {
     val success = Try(resultCode.value.toInt == 0).orElse(Success(false))

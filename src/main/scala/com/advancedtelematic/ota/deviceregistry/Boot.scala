@@ -11,17 +11,16 @@ package com.advancedtelematic.ota.deviceregistry
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.settings.{ParserSettings, ServerSettings}
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.http._
+import com.advancedtelematic.libats.http.*
 import com.advancedtelematic.libats.http.tracing.Tracing
-import com.advancedtelematic.libats.messaging._
+import com.advancedtelematic.libats.messaging.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.{BootMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.{DatabaseMetrics, DbHealthResource}
-import com.advancedtelematic.metrics.prometheus.metrics.prometheus.PrometheusMetricsSupport
+import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.advancedtelematic.metrics.{AkkaHttpConnectionMetrics, AkkaHttpRequestMetrics, MetricsSupport}
 import com.advancedtelematic.ota.deviceregistry.db.DeviceRepository
 import com.advancedtelematic.ota.deviceregistry.http.`application/toml`
@@ -78,7 +77,7 @@ class DeviceRegistryBoot(override val globalConfig: Config,
     val routes: Route =
       (LogDirectives.logResponseMetrics("device-registry") & requestMetrics(metricRegistry) & versionHeaders(version)) {
         prometheusMetricsRoutes ~
-          tracing.traceRequests { implicit serverRequestTracing =>
+          tracing.traceRequests { _ =>
             new DeviceRegistryRoutes(authNamespace, namespaceAuthorizer, messageBus).route
           }
       } ~ DbHealthResource(versionMap, healthMetrics = Seq(new BusListenerMetrics(metricRegistry))).route
