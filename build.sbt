@@ -13,7 +13,7 @@ libraryDependencies ++= {
   val akkaV = "2.6.20"
   val akkaHttpV = "10.2.10"
   val scalaTestV = "3.2.17"
-  val bouncyCastleV = "1.76"
+  val bouncyCastleV = "1.77"
   val tufV = "3.0.0"
   val libatsV = "2.3.1"
 
@@ -44,7 +44,7 @@ libraryDependencies ++= {
     "org.scala-lang.modules" %% "scala-async" % "1.0.1",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
 
-    "org.mariadb.jdbc" % "mariadb-java-client" % "3.2.0"
+    "org.mariadb.jdbc" % "mariadb-java-client" % "3.3.0"
   )
 }
 
