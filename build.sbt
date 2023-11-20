@@ -9,13 +9,17 @@ resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/reposi
 
 Global / bloopAggregateSourceDependencies := true
 
+Compile / unmanagedSourceDirectories += baseDirectory.value / "device-registry" / "src" / "main" / "scala"
+
+Test / unmanagedSourceDirectories += baseDirectory.value / "device-registry" / "src" / "test" / "scala"
+
 libraryDependencies ++= {
   val akkaV = "2.8.5"
   val akkaHttpV = "10.5.2"
   val tufV = "3.1.3"
   val scalaTestV = "3.2.17"
   val bouncyCastleV = "1.76"
-  val libatsV = "2.5.1"
+  val libatsV = "2.5.1-1-g79e40d8-SNAPSHOT"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -44,7 +48,14 @@ libraryDependencies ++= {
     "org.scala-lang.modules" %% "scala-async" % "1.0.1",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
 
-    "org.mariadb.jdbc" % "mariadb-java-client" % "3.2.0"
+    "org.mariadb.jdbc" % "mariadb-java-client" % "3.2.0",
+
+    // Device registry specific dependencies
+    "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "2.0.0",
+    "io.circe" %% "circe-testing" % "0.14.1",
+    "tech.sparse" %% "toml-scala" % "0.2.2",
+    "org.tpolecat" %% "atto-core" % "0.9.5",
+    "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test,
   )
 }
 

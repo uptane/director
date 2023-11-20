@@ -5,6 +5,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.util.FastFuture
 import com.advancedtelematic.director.{Settings, VersionInfo}
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
 import com.advancedtelematic.libats.messaging.{BusListenerMetrics, MessageListenerSupport, MetricsBusMonitor}
@@ -17,10 +18,12 @@ import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import com.advancedtelematic.libats.http.VersionDirectives.*
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
+import com.advancedtelematic.ota.deviceregistry.DeviceRegistryDaemon
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 import java.security.Security
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 class DirectorDaemonBoot(override val globalConfig: Config, override val dbConfig: Config,
                          override val metricRegistry: MetricRegistry)
@@ -57,6 +60,14 @@ object DaemonBoot extends BootAppDefaultConfig with BootAppDatabaseConfig with V
   Security.addProvider(new BouncyCastleProvider())
 
   def main(args: Array[String]): Unit = {
-    new DirectorDaemonBoot(globalConfig, dbConfig, MetricsSupport.metricRegistry).bind()
+    val directorDaemonFut = new DirectorDaemonBoot(globalConfig, dbConfig, MetricsSupport.metricRegistry).bind()
+
+//    val deviceRegistryDaemonFut = new DeviceRegistryDaemon(globalConfig, dbConfig, MetricsSupport.metricRegistry).bind()
+    // Disabled until we disable device-registry daemon
+    val deviceRegistryDaemonFut = FastFuture.successful(())
+
+    val f = Future.sequence(List(directorDaemonFut, deviceRegistryDaemonFut))
+
+    Await.result(f, Duration.Inf)
   }
 }
