@@ -10,7 +10,7 @@ package com.advancedtelematic.ota.deviceregistry.db
 
 import java.time.Instant
 import cats.syntax.show.*
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
+import com.advancedtelematic.libats.data.DataType.CorrelationId
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.javaInstantMapping

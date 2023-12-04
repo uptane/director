@@ -1,11 +1,14 @@
 package com.advancedtelematic.ota.deviceregistry.data
 
-import cats.syntax.either._
+import cats.syntax.either.*
 import com.advancedtelematic.libats.codecs.CirceValidatedGeneric
 import com.advancedtelematic.libats.data.{ValidatedGeneric, ValidationError}
 import com.advancedtelematic.ota.deviceregistry.data.GroupExpressionParser.parse
 import io.circe.{Decoder, Encoder}
 
+import scala.annotation.nowarn
+
+@nowarn
 final case class GroupExpression private (value: String) extends AnyVal {
   def droppingTag(tagId: TagId): Option[GroupExpression] =
     parse(value)
@@ -18,7 +21,7 @@ final case class GroupExpression private (value: String) extends AnyVal {
 
 object GroupExpression {
 
-  implicit val validatedGroupExpression = new ValidatedGeneric[GroupExpression, String] {
+  implicit val validatedGroupExpression: com.advancedtelematic.libats.data.ValidatedGeneric[com.advancedtelematic.ota.deviceregistry.data.GroupExpression,String] = new ValidatedGeneric[GroupExpression, String] {
     override def to(expression: GroupExpression): String                   = expression.value
     override def from(s: String): Either[ValidationError, GroupExpression] = GroupExpression.from(s)
   }

@@ -31,7 +31,7 @@ object SystemInfoRepository {
 
   private val _log = LoggerFactory.getLogger(this.getClass)
 
-  private implicit val lenientJsonMapper = MappedColumnType.base[Json, String](
+  private implicit val lenientJsonMapper: slick.jdbc.MySQLProfile.BaseColumnType[io.circe.Json] = MappedColumnType.base[Json, String](
     _.noSpaces
     ,
     { str =>

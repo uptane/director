@@ -55,7 +55,7 @@ trait ResourceSpec
 
   lazy val messageBus = new MockMessageBus
 
-  implicit val tracing = new NullServerRequestTracing
+  implicit val tracing: NullServerRequestTracing = new NullServerRequestTracing
 
   // Route
   lazy implicit val route: Route =

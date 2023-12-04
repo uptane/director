@@ -32,7 +32,7 @@ object GroupType extends Enumeration {
 
   val static, dynamic = Value
 
-  implicit val groupTypeMapper = MappedColumnType.base[GroupType, String](_.toString, GroupType.withName)
+  implicit val groupTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.ota.deviceregistry.data.GroupType.GroupType] = MappedColumnType.base[GroupType, String](_.toString, GroupType.withName)
 
   implicit val groupTypeEncoder: Encoder[GroupType] = Encoder.encodeEnumeration(GroupType)
   implicit val groupTypeDecoder: Decoder[GroupType] = Decoder.decodeEnumeration(GroupType)

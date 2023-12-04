@@ -38,7 +38,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   }
 
   property("GET /system_info/network returns 404 NotFound on non-existent device") {
-    forAll { uuid: DeviceId =>
+    forAll { (uuid: DeviceId) =>
       fetchNetworkInfo(uuid) ~> route ~> check { status shouldBe NotFound }
     }
   }
@@ -102,7 +102,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
       "hostname":"radical-johnson"
     }
     """.stripMargin
-    forAll { devices: Seq[DeviceT] =>
+    forAll { (devices: Seq[DeviceT]) =>
       whenever (devices.length > 0) {
         val uuids = devices.map(d => createDeviceOk(d))
         val sysinfoParseResult = parse(jsonStr)
@@ -132,7 +132,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   }
 
   property("GET /system_info return empty if device have not set system_info") {
-    forAll { device: DeviceT =>
+    forAll { (device: DeviceT) =>
       val uuid = createDeviceOk(device)
 
       fetchSystemInfo(uuid) ~> route ~> check {

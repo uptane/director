@@ -12,6 +12,6 @@ final object CredentialsType extends Enumeration {
   type CredentialsType = Value
   val PEM, OAuthClientCredentials = Value
 
-  implicit val EncoderInstance = io.circe.Encoder.encodeEnumeration(CredentialsType)
-  implicit val DecoderInstance = io.circe.Decoder.decodeEnumeration(CredentialsType)
+  implicit val EncoderInstance: io.circe.Encoder[com.advancedtelematic.ota.deviceregistry.data.CredentialsType.Value] = io.circe.Encoder.encodeEnumeration(CredentialsType)
+  implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.data.CredentialsType.Value] = io.circe.Decoder.decodeEnumeration(CredentialsType)
 }

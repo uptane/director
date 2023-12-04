@@ -11,11 +11,11 @@ import scala.concurrent.{ExecutionContext, Future}
 object DbDebug {
   import com.advancedtelematic.libats.debug.DebugDatatype.*
 
-  implicit val setDeviceId = SetParameter[DeviceId] { (id, pp) =>
+  implicit val setDeviceId: slick.jdbc.SetParameter[DeviceId] = SetParameter[DeviceId] { (id, pp) =>
     pp.setString(id.uuid.toString)
   }
 
-  implicit val setNamespace = SetParameter[Namespace] { (ns, pp) =>
+  implicit val setNamespace: slick.jdbc.SetParameter[Namespace] = SetParameter[Namespace] { (ns, pp) =>
     pp.setString(ns.get)
   }
 

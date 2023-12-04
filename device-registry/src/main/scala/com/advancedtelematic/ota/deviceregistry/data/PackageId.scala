@@ -16,8 +16,8 @@ object PackageId {
   type Name    = String
   type Version = String
 
-  implicit val EncoderInstance = io.circe.generic.semiauto.deriveEncoder[PackageId]
-  implicit val DecoderInstance = io.circe.generic.semiauto.deriveDecoder[PackageId]
+  implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.ota.deviceregistry.data.PackageId] = io.circe.generic.semiauto.deriveEncoder[PackageId]
+  implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.data.PackageId] = io.circe.generic.semiauto.deriveDecoder[PackageId]
 
   /**
     * Use the underlying (string) ordering, show and equality for

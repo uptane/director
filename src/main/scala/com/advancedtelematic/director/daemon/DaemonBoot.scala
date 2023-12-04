@@ -39,7 +39,7 @@ class DirectorDaemonBoot(override val globalConfig: Config, override val dbConfi
   with MessageListenerSupport
   with PrometheusMetricsSupport {
 
-  implicit val _db = db
+  implicit val _db: slick.jdbc.MySQLProfile.backend.Database = db
 
   import system.dispatcher
 

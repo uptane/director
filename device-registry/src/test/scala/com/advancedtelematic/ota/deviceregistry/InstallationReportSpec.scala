@@ -25,7 +25,7 @@ class InstallationReportSpec extends ResourcePropSpec with ScalaFutures with Eve
 
   implicit override val patienceConfig: PatienceConfig = PatienceConfig(Span(5, Seconds), Span(50, Millis))
 
-  implicit val msgPub = new MockMessageBus
+  implicit val msgPub: com.advancedtelematic.libats.messaging.test.MockMessageBus = new MockMessageBus
 
   val updateListener = new DeviceUpdateEventListener(msgPub)
   val ecuReplacementListener = new EcuReplacementListener

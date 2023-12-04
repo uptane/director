@@ -23,7 +23,7 @@ class DeviceManifestReportedListenerSpec extends DirectorSpec
 
   val defaultNs = DataType.Namespace(this.getClass.getName)
 
-  implicit lazy val ec = ExecutionContext.global
+  implicit lazy val ec: scala.concurrent.ExecutionContextExecutor = ExecutionContext.global
 
   lazy val listener = new DeviceManifestReportedListener()
 

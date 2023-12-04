@@ -28,7 +28,7 @@ class PublicCredentialsResourceSpec extends ResourcePropSpec {
   )
 
   property("GET requests fails on non-existent device") {
-    forAll { uuid: DeviceId =>
+    forAll { (uuid: DeviceId) =>
       fetchPublicCredentials(uuid) ~> route ~> check { status shouldBe NotFound }
     }
   }

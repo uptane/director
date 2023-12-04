@@ -1,7 +1,6 @@
 package com.advancedtelematic.director.http
 
 import akka.http.scaladsl.server.{Directives, _}
-import com.advancedtelematic.libats.http.DefaultRejectionHandler.rejectionHandler
 import com.advancedtelematic.libats.http.{ErrorHandler, NamespaceDirectives}
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient

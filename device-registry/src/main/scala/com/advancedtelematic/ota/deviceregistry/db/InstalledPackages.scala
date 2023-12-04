@@ -33,13 +33,13 @@ object InstalledPackages {
 
   object InstalledPackage {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
-    implicit val EncoderInstance = io.circe.generic.semiauto.deriveEncoder[InstalledPackage]
+    implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.ota.deviceregistry.db.InstalledPackages.InstalledPackage] = io.circe.generic.semiauto.deriveEncoder[InstalledPackage]
   }
 
   case class DevicesCount(deviceCount: Int, groupIds: Set[GroupId])
 
   object DevicesCount {
-    implicit val EncoderInstance = io.circe.generic.semiauto.deriveEncoder[DevicesCount]
+    implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.ota.deviceregistry.db.InstalledPackages.DevicesCount] = io.circe.generic.semiauto.deriveEncoder[DevicesCount]
   }
 
   private def toTuple(fp: InstalledPackage): Option[InstalledPkgRow] =

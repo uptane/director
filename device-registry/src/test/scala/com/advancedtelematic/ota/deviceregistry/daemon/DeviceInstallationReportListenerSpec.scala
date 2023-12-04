@@ -27,7 +27,7 @@ class DeviceUpdateEventListenerSpec
 
   implicit override val patienceConfig: PatienceConfig = PatienceConfig(Span(10, Seconds), Span(50, Millis))
 
-  implicit val msgPub = MessageBusPublisher.ignore
+  implicit val msgPub: com.advancedtelematic.libats.messaging.MessageBusPublisher = MessageBusPublisher.ignore
 
   val listener = new DeviceUpdateEventListener(msgPub)
 

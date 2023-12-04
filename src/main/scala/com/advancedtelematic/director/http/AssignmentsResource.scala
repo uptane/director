@@ -37,8 +37,8 @@ class AssignmentsResource(extractNamespace: Directive1[Namespace])
     }
   }
 
-  private implicit val updateIdUnmarshaller = UpdateId.unmarshaller
-  private implicit val deviceIdUnmarshaller = DeviceId.unmarshaller
+  private implicit val updateIdUnmarshaller: akka.http.scaladsl.unmarshalling.Unmarshaller[String,com.advancedtelematic.libats.messaging_datatype.DataType.UpdateId] = UpdateId.unmarshaller
+  private implicit val deviceIdUnmarshaller: akka.http.scaladsl.unmarshalling.Unmarshaller[String,com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId] = DeviceId.unmarshaller
 
   val route = extractNamespace { ns =>
     pathPrefix("assignments") {

@@ -16,7 +16,7 @@ class SystemInfoUpdatePublisherSpec extends AnyFunSuite
   with Matchers
   with ScalaFutures {
 
-  implicit val ec = ExecutionContexts.global()
+  implicit val ec: scala.concurrent.ExecutionContextExecutor = ExecutionContexts.global()
 
   lazy val messageBus = MessageBusPublisher.ignore
 

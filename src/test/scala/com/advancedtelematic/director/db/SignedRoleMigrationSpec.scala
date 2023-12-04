@@ -14,7 +14,7 @@ class SignedRoleMigrationSpec extends DirectorSpec with MysqlDatabaseSpec {
 
   implicit val system: ActorSystem = ActorSystem(this.getClass.getSimpleName)
 
-  implicit val ec = ExecutionContext.Implicits.global
+  implicit val ec: scala.concurrent.ExecutionContext = ExecutionContext.Implicits.global
 
   val subject = new SignedRoleMigration("director1_test")
 

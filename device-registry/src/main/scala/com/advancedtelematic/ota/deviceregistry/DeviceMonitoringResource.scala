@@ -21,7 +21,7 @@ import scala.util.{Failure, Success}
 protected case class DeviceObservationRequest(observedAt: Instant, payload: Json)
 
 protected object DeviceObservationRequest {
-  implicit val deviceObservationRequestDecoder = Decoder.instance { cursor =>
+  implicit val deviceObservationRequestDecoder: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.DeviceObservationRequest] = Decoder.instance { cursor =>
     for {
       observedAt <- cursor.get[Double]("date").map { epoch => Instant.ofEpochMilli((epoch * 1000).longValue()) } // Losing some precision here
       payload <- cursor.as[Json]

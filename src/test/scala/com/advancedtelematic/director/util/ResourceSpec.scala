@@ -1,5 +1,6 @@
 package com.advancedtelematic.director.util
 
+import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.advancedtelematic.director.client.FakeKeyserverClient
 import com.advancedtelematic.director.http.DirectorRoutes
@@ -20,6 +21,8 @@ import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 
+import scala.concurrent.ExecutionContextExecutor
+
 trait ResourceSpec extends ScalatestRouteTest with MysqlDatabaseSpec with Settings {
   self: Suite =>
 
@@ -27,9 +30,9 @@ trait ResourceSpec extends ScalatestRouteTest with MysqlDatabaseSpec with Settin
 
   val defaultNs = Namespace("default")
 
-  implicit val msgPub = new MockMessageBus
+  implicit val msgPub: MockMessageBus = new MockMessageBus
 
-  implicit val ec = executor
+  implicit val ec: ExecutionContextExecutor = executor
 }
 
 trait RouteResourceSpec extends ResourceSpec {
@@ -37,7 +40,7 @@ trait RouteResourceSpec extends ResourceSpec {
 
   val keyserverClient = new FakeKeyserverClient
 
-  lazy val routes = new DirectorRoutes(keyserverClient, allowEcuReplacement = true).routes
+  lazy val routes: Route = new DirectorRoutes(keyserverClient, allowEcuReplacement = true).routes
 }
 
 trait DeviceManifestSpec {

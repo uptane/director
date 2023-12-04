@@ -45,7 +45,7 @@ class LegacyApiResourceSpec extends DirectorSpec
     queue.head.targets.get(regDev.primary.ecuSerial).value.image.filepath shouldBe targetUpdate.to.target
     queue.head.targets.get(regDev.secondaries.keys.head) shouldBe empty
 
-    val msg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val msg = msgPub.findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == regDev.deviceId
     }
 
@@ -67,7 +67,7 @@ class LegacyApiResourceSpec extends DirectorSpec
     val queue = getDeviceAssignmentOk(regDev.deviceId)
     queue shouldBe empty
 
-    val msg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val msg = msgPub.findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == regDev.deviceId
     }
 

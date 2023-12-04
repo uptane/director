@@ -29,7 +29,7 @@ object DeviceCreated {
   import com.advancedtelematic.libats.codecs.CirceCodecs._
   import com.advancedtelematic.ota.deviceregistry.data.Codecs._
 
-  implicit val EncoderInstance     = io.circe.generic.semiauto.deriveEncoder[DeviceCreated]
-  implicit val DecoderInstance     = io.circe.generic.semiauto.deriveDecoder[DeviceCreated]
-  implicit val MessageLikeInstance = MessageLike[DeviceCreated](_.uuid.show)
+  implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.ota.deviceregistry.messages.DeviceCreated]     = io.circe.generic.semiauto.deriveEncoder[DeviceCreated]
+  implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.messages.DeviceCreated]     = io.circe.generic.semiauto.deriveDecoder[DeviceCreated]
+  implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[com.advancedtelematic.ota.deviceregistry.messages.DeviceCreated] = MessageLike[DeviceCreated](_.uuid.show)
 }

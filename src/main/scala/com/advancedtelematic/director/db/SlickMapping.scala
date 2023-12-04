@@ -15,10 +15,10 @@ object SlickMapping {
   import com.advancedtelematic.libats.slick.codecs.SlickEnumMapper
   import com.advancedtelematic.libtuf.data.TufDataType.TargetFormat
 
-  implicit val hashMethodColumn = MappedColumnType.base[HashMethod, String](_.toString, HashMethod.withName)
-  implicit val targetFormatMapper = SlickEnumMapper.enumMapper(TargetFormat)
+  implicit val hashMethodColumn: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.libats.data.DataType.HashMethod.HashMethod] = MappedColumnType.base[HashMethod, String](_.toString, HashMethod.withName)
+  implicit val targetFormatMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.libtuf.data.TufDataType.TargetFormat.Value] = SlickEnumMapper.enumMapper(TargetFormat)
 
-  implicit val targetUpdateMapper = SlickCirceMapper.circeMapper[TargetUpdate]
+  implicit val targetUpdateMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.director.data.AdminDataType.TargetUpdate] = SlickCirceMapper.circeMapper[TargetUpdate]
 
   private def validatedStringMapper[W <: ValidatedString : ClassTag](implicit validation: ValidatedStringValidation[W]) =
     MappedColumnType.base[W, String](
@@ -26,5 +26,5 @@ object SlickMapping {
       validation.apply(_).valueOr(err => throw new IllegalArgumentException(err.toList.mkString))
     )
 
-  implicit val adminRoleNameMapper = validatedStringMapper[AdminRoleName]
+  implicit val adminRoleNameMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.director.data.DataType.AdminRoleName] = validatedStringMapper[AdminRoleName]
 }

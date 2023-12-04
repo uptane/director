@@ -179,7 +179,7 @@ class DeviceMonitoringResourceSpecBadMsgPub extends AnyFunSuite with ResourceSpe
 
   override implicit def patienceConfig: PatienceConfig = super.patienceConfig.copy(timeout = Span(3, Seconds))
 
-  override lazy val messageBus = new BadMessageBus()
+  override lazy val messageBus: com.advancedtelematic.ota.deviceregistry.device_monitoring.BadMessageBus = new BadMessageBus()
 
   test("Buffered metrics that failed to be published are returned with partial results body") {
     import com.advancedtelematic.ota.deviceregistry.data.Codecs.ObservationPublishResultCodec
