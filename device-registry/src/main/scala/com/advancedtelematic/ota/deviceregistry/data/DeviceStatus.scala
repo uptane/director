@@ -15,6 +15,6 @@ object DeviceStatus extends Enumeration {
 
   val NotSeen, Error, UpToDate, UpdatePending, Outdated = Value
 
-  implicit val JsonEncoder = Encoder.encodeEnumeration(DeviceStatus)
-  implicit val JsonDecoder = Decoder.decodeEnumeration(DeviceStatus)
+  implicit val JsonEncoder: io.circe.Encoder[com.advancedtelematic.ota.deviceregistry.data.DeviceStatus.Value] = Encoder.encodeEnumeration(DeviceStatus)
+  implicit val JsonDecoder: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.data.DeviceStatus.Value] = Decoder.decodeEnumeration(DeviceStatus)
 }

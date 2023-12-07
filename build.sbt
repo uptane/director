@@ -1,8 +1,8 @@
 name := "director-v2"
 organization := "io.github.uptane"
-scalaVersion := "2.13.10"
+scalaVersion := "2.13.12"
 
-scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused")
+scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused","-quickfix:any")
 
 resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
 resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
@@ -19,7 +19,7 @@ libraryDependencies ++= {
   val tufV = "3.1.3"
   val scalaTestV = "3.2.17"
   val bouncyCastleV = "1.76"
-  val libatsV = "2.5.1-1-g79e40d8-SNAPSHOT"
+  val libatsV = "2.6.2"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,

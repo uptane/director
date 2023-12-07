@@ -45,16 +45,16 @@ object Device {
     import slick.jdbc.MySQLProfile.MappedJdbcType
     import slick.jdbc.MySQLProfile.api._
 
-    implicit val enumMapper = MappedJdbcType.base[Value, Int](_.id, this.apply)
+    implicit val enumMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.ota.deviceregistry.data.Device.DeviceType.Value] = MappedJdbcType.base[Value, Int](_.id, this.apply)
 
     type DeviceType = Value
     val Other, Vehicle = Value
 
-    implicit val JsonEncoder = Encoder.encodeEnumeration(DeviceType)
-    implicit val JsonDecoder = Decoder.decodeEnumeration(DeviceType)
+    implicit val JsonEncoder: io.circe.Encoder[com.advancedtelematic.ota.deviceregistry.data.Device.DeviceType.Value] = Encoder.encodeEnumeration(DeviceType)
+    implicit val JsonDecoder: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.data.Device.DeviceType.Value] = Decoder.decodeEnumeration(DeviceType)
   }
 
-  implicit val showDeviceType = Show.fromToString[DeviceType.Value]
+  implicit val showDeviceType: cats.Show[com.advancedtelematic.ota.deviceregistry.data.Device.DeviceType.Value] = Show.fromToString[DeviceType.Value]
 
   implicit val showDevice: Show[Device] = Show.show[Device] {
     case d if d.deviceType == DeviceType.Vehicle =>
@@ -62,12 +62,12 @@ object Device {
     case d => s"Device: uuid=${d.uuid.show}, lastSeen=${d.lastSeen}"
   }
 
-  implicit val EncoderInstance = {
+  implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.ota.deviceregistry.data.Device] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
     import Codecs.deviceOemIdEncoder
     io.circe.generic.semiauto.deriveEncoder[Device]
   }
-  implicit val DecoderInstance = {
+  implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.data.Device] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
     import Codecs.deviceOemIdDecoder
     io.circe.generic.semiauto.deriveDecoder[Device]
@@ -83,8 +83,8 @@ object Device {
   case class ActiveDeviceCount(deviceCount: Int) extends AnyVal
 
   object ActiveDeviceCount {
-    implicit val EncoderInstance = Encoder.encodeInt.contramap[ActiveDeviceCount](_.deviceCount)
-    implicit val DecoderInstance = Decoder.decodeInt.map(ActiveDeviceCount.apply)
+    implicit val EncoderInstance: io.circe.Encoder[com.advancedtelematic.ota.deviceregistry.data.Device.ActiveDeviceCount] = Encoder.encodeInt.contramap[ActiveDeviceCount](_.deviceCount)
+    implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.data.Device.ActiveDeviceCount] = Decoder.decodeInt.map(ActiveDeviceCount.apply)
   }
 }
 

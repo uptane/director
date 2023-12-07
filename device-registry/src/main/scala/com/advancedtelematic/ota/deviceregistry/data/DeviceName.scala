@@ -4,11 +4,14 @@ import com.advancedtelematic.libats.codecs.CirceValidatedGeneric
 import com.advancedtelematic.libats.data.{ValidatedGeneric, ValidationError}
 import io.circe.{Decoder, Encoder}
 
+import scala.annotation.nowarn
+
+@nowarn
 final case class DeviceName private(value: String) extends AnyVal
 
 object DeviceName {
 
-  implicit val validatedDeviceType = new ValidatedGeneric[DeviceName, String] {
+  implicit val validatedDeviceType: com.advancedtelematic.libats.data.ValidatedGeneric[com.advancedtelematic.ota.deviceregistry.data.DeviceName,String] = new ValidatedGeneric[DeviceName, String] {
     override def to(deviceType: DeviceName): String = deviceType.value
     override def from(s: String): Either[ValidationError, DeviceName] = DeviceName.from(s)
   }

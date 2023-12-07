@@ -316,7 +316,7 @@ class AssignmentsResourceSpec extends DirectorSpec
     val queue = getDeviceAssignmentOk(regDev.deviceId)
     queue shouldBe empty
 
-    val msg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val msg = msgPub.findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == regDev.deviceId
     }
 
@@ -379,7 +379,7 @@ class AssignmentsResourceSpec extends DirectorSpec
     val regDev = registerAdminDeviceOk()
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
-    val msg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val msg = msgPub.findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == regDev.deviceId
     }
 

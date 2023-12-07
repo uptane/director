@@ -17,7 +17,7 @@ object SignedRolesMigrationBoot extends BootApp
   with VersionInfo
   with DatabaseSupport {
 
-  implicit val _db = db
+  implicit val _db: slick.jdbc.MySQLProfile.backend.Database = db
 
 
   val migrationF = new SignedRoleMigration().run.map { res =>

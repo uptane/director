@@ -37,7 +37,7 @@ object EventJournalSpec {
                                                           eventType: EventType,
                                                           event: Json)
 
-  private[EventJournalSpec] implicit val EventPayloadEncoder = deriveEncoder[EventPayload]
+  private[EventJournalSpec] implicit val EventPayloadEncoder: io.circe.Encoder.AsObject[com.advancedtelematic.ota.deviceregistry.db.EventJournalSpec.EventPayload] = deriveEncoder[EventPayload]
 
   private[EventJournalSpec] implicit val EventPayloadFromResponse: Decoder[EventPayload] =
     Decoder.instance { c =>
@@ -70,7 +70,7 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
   val genCorrelationId: Gen[CorrelationId] =
     Gen.uuid.flatMap(uuid => Gen.oneOf(CampaignId(uuid), MultiTargetUpdateId(uuid)))
 
-  implicit val EventGen = for {
+  implicit val EventGen: org.scalacheck.Gen[com.advancedtelematic.ota.deviceregistry.db.EventJournalSpec.EventPayload] = for {
     id        <- Gen.uuid
     timestamp <- InstantGen
     eventType <- EventTypeGen
@@ -86,7 +86,7 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
     json = Json.obj("correlationId" -> correlationId.asJson)
   } yield event.copy(event = json, eventType = EventType("InstallationComplete", 0)) -> correlationId
 
-  implicit val ArbitraryEvents = Arbitrary(EventsGen)
+  implicit val ArbitraryEvents: org.scalacheck.Arbitrary[List[com.advancedtelematic.ota.deviceregistry.db.EventJournalSpec.EventPayload]] = Arbitrary(EventsGen)
 
   val listener = new DeviceEventListener()
 

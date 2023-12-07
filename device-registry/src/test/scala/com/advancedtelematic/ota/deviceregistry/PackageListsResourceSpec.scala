@@ -23,8 +23,8 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
       comment   <- Gen.alphaNumStr
     } yield PackageListItem(defaultNs, packageId, comment)
 
-  private implicit val arbListedPackage = Arbitrary(genListedPackage)
-  private implicit val arbNonConflictingDeviceTs = Arbitrary(genNonConflictingDeviceTs)
+  private implicit val arbListedPackage: org.scalacheck.Arbitrary[com.advancedtelematic.ota.deviceregistry.data.DataType.PackageListItem] = Arbitrary(genListedPackage)
+  private implicit val arbNonConflictingDeviceTs: org.scalacheck.Arbitrary[Seq[com.advancedtelematic.ota.deviceregistry.data.DataType.DeviceT]] = Arbitrary(genNonConflictingDeviceTs)
 
   private def createListedPackage(listedPackage: PackageListItem): HttpRequest =
     Post(uri("package_lists"), listedPackage)
@@ -62,13 +62,13 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
     }
 
   property("can create a listed package") {
-    forAll { listedPackage: PackageListItem =>
+    forAll { (listedPackage: PackageListItem) =>
       createListedPackageOk(listedPackage)
     }
   }
 
   property("can get a listed package") {
-    forAll { listedPackage: PackageListItem =>
+    forAll { (listedPackage: PackageListItem) =>
       createListedPackageOk(listedPackage)
       val actual = getListedPackageOk(listedPackage.packageId)
       actual shouldBe listedPackage
@@ -76,7 +76,7 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
   }
 
   property("fails to get a non-existing listed package") {
-    forAll { listedPackage: PackageListItem =>
+    forAll { (listedPackage: PackageListItem) =>
       getListedPackage(listedPackage.packageId) ~> route ~> check {
         status shouldBe NotFound
         responseAs[ErrorRepresentation].code shouldBe ErrorCodes.MissingEntity
@@ -85,14 +85,14 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
   }
 
   property("can delete a listed package") {
-    forAll { listedPackage: PackageListItem =>
+    forAll { (listedPackage: PackageListItem) =>
       createListedPackageOk(listedPackage)
       deleteListedPackageOk(listedPackage.packageId)
     }
   }
 
   property("deleting a non-existing listed package succeeds") {
-    forAll { listedPackage: PackageListItem =>
+    forAll { (listedPackage: PackageListItem) =>
       deleteListedPackageOk(listedPackage.packageId)
     }
   }

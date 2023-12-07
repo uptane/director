@@ -29,7 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
   object DeviceUpdateStatus {
     import cats.syntax.show._
     import com.advancedtelematic.libats.codecs.CirceCodecs._
-    implicit val MessageLikeInstance = MessageLike.derive[DeviceUpdateStatus](_.device.show)
+    implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[com.advancedtelematic.ota.deviceregistry.daemon.DeviceUpdateStatus] = MessageLike.derive[DeviceUpdateStatus](_.device.show)
   }
 
 class DeviceUpdateEventListener(messageBus: MessageBusPublisher)

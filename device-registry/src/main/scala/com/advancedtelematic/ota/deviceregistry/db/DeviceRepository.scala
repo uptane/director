@@ -39,7 +39,7 @@ import scala.annotation.unused
 
 object DeviceRepository {
 
-  private[this] implicit val DeviceStatusColumnType =
+  private[this] implicit val DeviceStatusColumnType: BaseColumnType[DeviceStatus.Value] =
     MappedColumnType.base[DeviceStatus.Value, String](_.toString, DeviceStatus.withName)
 
   // scalastyle:off

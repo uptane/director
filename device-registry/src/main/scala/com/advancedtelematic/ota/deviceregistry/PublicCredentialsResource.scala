@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object PublicCredentialsResource {
   final case class FetchPublicCredentials(uuid: DeviceId, credentialsType: CredentialsType, credentials: String)
-  implicit val fetchPublicCredentialsEncoder =
+  implicit val fetchPublicCredentialsEncoder: io.circe.Encoder.AsObject[com.advancedtelematic.ota.deviceregistry.PublicCredentialsResource.FetchPublicCredentials] =
     io.circe.generic.semiauto.deriveEncoder[FetchPublicCredentials]
 }
 

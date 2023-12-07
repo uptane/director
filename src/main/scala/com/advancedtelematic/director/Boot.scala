@@ -49,7 +49,7 @@ class DirectorBoot(override val globalConfig: Config,
   with PrometheusMetricsSupport
   with CheckMigrations {
 
-  implicit val _db = db
+  implicit val _db: slick.jdbc.MySQLProfile.backend.Database = db
   import system.dispatcher
 
   private lazy val log = LoggerFactory.getLogger(this.getClass)
@@ -59,7 +59,7 @@ class DirectorBoot(override val globalConfig: Config,
   private lazy val tracing = Tracing.fromConfig(globalConfig, projectName)
 
   private def keyserverClient(implicit tracing: ServerRequestTracing) = KeyserverHttpClient(tufUri)
-  private implicit val msgPublisher = MessageBus.publisher(system, globalConfig)
+  private implicit val msgPublisher: com.advancedtelematic.libats.messaging.MessageBusPublisher = MessageBus.publisher(system, globalConfig)
 
   private lazy val authNamespace = NamespaceDirectives.fromConfig()
 

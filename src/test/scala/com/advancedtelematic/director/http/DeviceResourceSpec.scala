@@ -716,7 +716,7 @@ class DeviceResourceSpec extends DirectorSpec
 
     fetchRoleOk[TargetsRole](regDev.deviceId)
 
-    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid === regDev.deviceId
     }.map(_.asInstanceOf[DeviceUpdateInFlight]).value
 
@@ -735,7 +735,7 @@ class DeviceResourceSpec extends DirectorSpec
 
     putManifestOk(regDev.deviceId, deviceManifest)
 
-    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid === regDev.deviceId
     }.map(_.asInstanceOf[DeviceUpdateCompleted])
 
@@ -762,7 +762,7 @@ class DeviceResourceSpec extends DirectorSpec
 
     putManifestOk(regDev.deviceId, deviceManifest)
 
-    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid === regDev.deviceId
     }.map(_.asInstanceOf[DeviceUpdateCompleted]).value
 
@@ -924,7 +924,7 @@ class DeviceResourceSpec extends DirectorSpec
     processed.canceled shouldBe true
     processed.successful shouldBe false
 
-    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+    val allMessages = msgPub.findReceivedAll { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid === regDev.deviceId
     }
 
@@ -993,7 +993,7 @@ class DeviceResourceSpec extends DirectorSpec
     processed.canceled shouldBe false
     processed.successful shouldBe false
 
-    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { msg: DeviceUpdateEvent =>
+    val reportMsg = msgPub.findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid === regDev.deviceId
     }.map(_.asInstanceOf[DeviceUpdateCompleted])
 
@@ -1034,7 +1034,7 @@ class DeviceResourceSpec extends DirectorSpec
     processed.canceled shouldBe false
     processed.successful shouldBe true
 
-    val reportMsg = msgPub.findReceived { msg: DeviceUpdateEvent =>
+    val reportMsg = msgPub.findReceived { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == regDev.deviceId
     }.map(_.asInstanceOf[DeviceUpdateCompleted])
 
@@ -1089,7 +1089,7 @@ class DeviceResourceSpec extends DirectorSpec
     val targetsBefore = getTargetsOk(deviceId)
     targetsBefore.signed.targets shouldBe empty
 
-    val inFlightMsg = msgPub.findReceived { msg: DeviceUpdateEvent =>
+    val inFlightMsg = msgPub.findReceived { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == deviceId && msg.isInstanceOf[DeviceUpdateInFlight]
     }
 
@@ -1100,7 +1100,7 @@ class DeviceResourceSpec extends DirectorSpec
 
     getDeviceAssignmentOk(deviceId) shouldBe empty
 
-    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+    val allMessages = msgPub.findReceivedAll { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == deviceId
     }
 
@@ -1127,7 +1127,7 @@ class DeviceResourceSpec extends DirectorSpec
 
     getDeviceAssignmentOk(deviceId) shouldBe empty
 
-    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+    val allMessages = msgPub.findReceivedAll { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == deviceId
     }
 
@@ -1154,7 +1154,7 @@ class DeviceResourceSpec extends DirectorSpec
 
     getDeviceAssignmentOk(deviceId) shouldBe empty
 
-    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+    val allMessages = msgPub.findReceivedAll { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == deviceId
     }
 
@@ -1178,7 +1178,7 @@ class DeviceResourceSpec extends DirectorSpec
     val targets = getTargetsOk(deviceId)
     targets.signed.targets shouldBe empty
 
-    val allMessages = msgPub.findReceivedAll { msg: DeviceUpdateEvent =>
+    val allMessages = msgPub.findReceivedAll { (msg: DeviceUpdateEvent) =>
       msg.deviceUuid == deviceId
     }
 

@@ -27,6 +27,8 @@ import io.circe.Json
 import com.advancedtelematic.libats.data.RefinedUtils.*
 import com.advancedtelematic.libtuf.data.TufCodecs
 
+import scala.annotation.nowarn
+
 
 object DbDataType {
   case class AutoUpdateDefinitionId(uuid: UUID) extends UUIDKey
@@ -171,9 +173,9 @@ object Messages {
 
   case class DeviceManifestReported(namespace: Namespace, deviceId: DeviceId, manifest: SignedPayload[Json], receivedAt: Instant)
 
-  implicit val deviceManifestReportedCodecs = io.circe.generic.semiauto.deriveCodec[DeviceManifestReported]
+  implicit val deviceManifestReportedCodecs: io.circe.Codec.AsObject[com.advancedtelematic.director.data.Messages.DeviceManifestReported] = io.circe.generic.semiauto.deriveCodec[DeviceManifestReported]
 
-  implicit val deviceManifestReportedMsgLike = MessageLike[DeviceManifestReported](_.deviceId.show)
+  implicit val deviceManifestReportedMsgLike: com.advancedtelematic.libats.messaging_datatype.MessageLike[com.advancedtelematic.director.data.Messages.DeviceManifestReported] = MessageLike[DeviceManifestReported](_.deviceId.show)
 }
 
 object DataType {
@@ -185,6 +187,7 @@ object DataType {
 
   final case class DeviceTargetsCustom(correlationId: Option[CorrelationId])
 
+  @nowarn
   final case class AdminRoleName protected[data] (value: String) extends ValidatedString {
     def asMetaPath: MetaPath =  (value + ".json").refineTry[ValidMetaPath].get // get safe due to Validation
   }
@@ -194,7 +197,7 @@ object DataType {
       adminRoleNameValidation.apply(name).toOption
     }
 
-    implicit val adminRoleNameValidation = ValidatedStringValidation(new AdminRoleName(_)) { v: String =>
+    implicit val adminRoleNameValidation: com.advancedtelematic.libtuf.data.ValidatedString.ValidatedStringValidation[com.advancedtelematic.director.data.DataType.AdminRoleName] = ValidatedStringValidation(new AdminRoleName(_)) { (v: String) =>
       cats.data.Validated.condNel(
         v.nonEmpty && v.length < 254 && v.matches("[A-Za-z0-9_-]+"),
         new AdminRoleName(v),

@@ -4,11 +4,11 @@ import com.advancedtelematic.libats.codecs.CirceValidatedGeneric.{validatedGener
 import com.advancedtelematic.libats.data.{ValidatedGeneric, ValidationError}
 import io.circe.Codec
 
-final case class TagId private(value: String) extends AnyVal
+final case class TagId(value: String) // extends AnyVal
 
 object TagId {
 
-  implicit val validatedTagId = new ValidatedGeneric[TagId, String] {
+  implicit val validatedTagId: com.advancedtelematic.libats.data.ValidatedGeneric[com.advancedtelematic.ota.deviceregistry.data.TagId,String] = new ValidatedGeneric[TagId, String] {
     override def to(expression: TagId): String = expression.value
     override def from(s: String): Either[ValidationError, TagId] = TagId.from(s)
   }

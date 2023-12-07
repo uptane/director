@@ -29,7 +29,7 @@ object PackageListItemRepository {
     def * = (namespace, packageName, packageVersion, comment) <>
       (
         { case (ns, pkgName, pkgVersion, comment) => PackageListItem(ns, PackageId(pkgName, pkgVersion), comment) },
-        { bp : PackageListItem => Some(bp.namespace, bp.packageId.name, bp.packageId.version, bp.comment) }
+        { (bp : PackageListItem) => Some(bp.namespace, bp.packageId.name, bp.packageId.version, bp.comment) }
       )
 
     def pk = primaryKey("pk_PackageListItem", (namespace, packageName, packageVersion))

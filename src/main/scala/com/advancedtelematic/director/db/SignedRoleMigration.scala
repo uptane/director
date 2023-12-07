@@ -32,15 +32,15 @@ class SignedRoleMigration(old_director_schema: String = "director")
 
   private val _log = LoggerFactory.getLogger(this.getClass)
 
-  implicit val getRoleTypeResult = GetResult(r => RoleType.withName(r.nextString()))
+  implicit val getRoleTypeResult: slick.jdbc.GetResult[com.advancedtelematic.libtuf.data.TufDataType.RoleType.Value] = GetResult(r => RoleType.withName(r.nextString()))
   implicit val setRoleTypeParameter: SetParameter[RoleType] =
     (roleType: RoleType, pp: PositionedParameters) => pp.setString(roleType.toString)
 
-  implicit val getDeviceIdResult = GetResult(r => DeviceId(UUID.fromString(r.nextString())))
+  implicit val getDeviceIdResult: slick.jdbc.GetResult[com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId] = GetResult(r => DeviceId(UUID.fromString(r.nextString())))
   implicit val setDeviceIdParameter: SetParameter[DeviceId] =
     (deviceId: DeviceId, pp: PositionedParameters) => pp.setString(deviceId.uuid.toString)
 
-  implicit val getInstantResult = GetResult(r => r.nextTimestamp().toInstant)
+  implicit val getInstantResult: slick.jdbc.GetResult[java.time.Instant] = GetResult(r => r.nextTimestamp().toInstant)
   implicit val setInstantParameter: SetParameter[Instant] =
     (instant: Instant, pp: PositionedParameters) => pp.setTimestamp(Timestamp.from(instant))
 

@@ -196,7 +196,7 @@ protected[db] class RepoNamespaceRepository()(implicit val db: Database, val ec:
 }
 
 object HardwareUpdateRepository {
-  implicit val showHardwareUpdateId = Show.show[(Namespace, UpdateId)] { case (ns, id) =>
+  implicit val showHardwareUpdateId: cats.Show[(com.advancedtelematic.libats.data.DataType.Namespace, com.advancedtelematic.libats.messaging_datatype.DataType.UpdateId)] = Show.show[(Namespace, UpdateId)] { case (ns, id) =>
     s"($ns, $id)"
   }
 

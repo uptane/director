@@ -15,13 +15,13 @@ import com.advancedtelematic.ota.deviceregistry.data.{CredentialsType, GroupType
 import slick.jdbc.MySQLProfile.api._
 
 object SlickMappings {
-  implicit val groupTypeMapper = SlickEnumMapper.enumMapper(GroupType)
+  implicit val groupTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.ota.deviceregistry.data.GroupType.Value] = SlickEnumMapper.enumMapper(GroupType)
 
-  implicit val credentialsTypeMapper = SlickEnumMapper.enumMapper(CredentialsType)
+  implicit val credentialsTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.ota.deviceregistry.data.CredentialsType.Value] = SlickEnumMapper.enumMapper(CredentialsType)
 
-  implicit val indexedEventTypeMapper = SlickEnumMapper.enumMapper(IndexedEventType)
+  implicit val indexedEventTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.ota.deviceregistry.data.DataType.IndexedEventType.Value] = SlickEnumMapper.enumMapper(IndexedEventType)
 
-  private[db] implicit val namespaceColumnType =
+  private[db] implicit val namespaceColumnType: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.libats.data.DataType.Namespace] =
     MappedColumnType.base[Namespace, String](_.get, Namespace.apply)
 
   private[db] case class LiftedPackageId(name: Rep[PackageId.Name], version: Rep[PackageId.Version])

@@ -168,7 +168,6 @@ class AdminResourceSpec extends DirectorSpec
 
   testWithRepo("devices/ecus gives a list of devices and it's ecus when multiple ecus") { implicit ns =>
     val dev = registerAdminDeviceWithSecondariesOk()
-    val secondaryEcu = dev.ecus.filter{case (ecuId, _) => ecuId != dev.primary.ecuSerial}.head._2
     val targetUpdate = GenTargetUpdate.generate
 
     putManifestOk(dev.deviceId, buildPrimaryManifest(dev.primary, dev.primaryKey, targetUpdate))

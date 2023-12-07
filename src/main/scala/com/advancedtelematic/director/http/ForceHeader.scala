@@ -7,7 +7,7 @@ import scala.util.Try
 final class ForceHeader(value: Boolean) extends ModeledCustomHeader[ForceHeader] {
   override def renderInRequests = true
   override def renderInResponses = true
-  override val companion = ForceHeader
+  override val companion : com.advancedtelematic.director.http.ForceHeader.type= ForceHeader
   override def value: String = value.toString
   def asBoolean: Boolean = value
 }

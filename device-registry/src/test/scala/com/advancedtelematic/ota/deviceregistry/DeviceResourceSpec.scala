@@ -47,7 +47,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   import GeneratorOps._
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
-  private implicit val exec = system.dispatcher
+  private implicit val exec: scala.concurrent.ExecutionContextExecutor = system.dispatcher
   private val publisher     = new DeviceSeenListener(MessageBusPublisher.ignore)
 
   implicit override val patienceConfig =
@@ -139,7 +139,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
 
   property("GET request (for Id) after POST yields same device") {
-    forAll { devicePre: DeviceT =>
+    forAll { (devicePre: DeviceT) =>
       val uuid: DeviceId = createDeviceOk(devicePre)
 
       fetchDevice(uuid) ~> route ~> check {
@@ -211,7 +211,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("POST request creates a new device.") {
-    forAll { devicePre: DeviceT =>
+    forAll { (devicePre: DeviceT) =>
       val uuid = createDeviceOk(devicePre)
       devicePre.uuid.foreach(_ should equal(uuid))
       fetchDevice(uuid) ~> route ~> check {
@@ -225,7 +225,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("POST request on 'ping' should update 'lastSeen' field for device.") {
-    forAll { devicePre: DeviceT =>
+    forAll { (devicePre: DeviceT) =>
       val uuid: DeviceId = createDeviceOk(devicePre)
 
       sendDeviceSeen(uuid)
@@ -263,7 +263,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("First POST request on 'ping' should update 'activatedAt' field for device.") {
-    forAll { devicePre: DeviceT =>
+    forAll { (devicePre: DeviceT) =>
       val uuid = createDeviceOk(devicePre)
 
       sendDeviceSeen(uuid)
@@ -285,7 +285,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("POST request on ping gets counted") {
-    forAll { devicePre: DeviceT =>
+    forAll { (devicePre: DeviceT) =>
       val start      = OffsetDateTime.now()
       val uuid = createDeviceOk(devicePre)
       val end        = start.plusHours(1)
@@ -425,7 +425,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     }
   }
 
-  private[this] implicit val InstalledPackageDecoderInstance = {
+  private[this] implicit val InstalledPackageDecoderInstance: io.circe.Decoder[com.advancedtelematic.ota.deviceregistry.db.InstalledPackages.InstalledPackage] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
     io.circe.generic.semiauto.deriveDecoder[InstalledPackage]
   }
@@ -764,7 +764,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("DELETE existing device returns 202") {
-    forAll { devicePre: DeviceT =>
+    forAll { (devicePre: DeviceT) =>
       val uuid = createDeviceOk(devicePre)
 
       deleteDevice(uuid) ~> route ~> check {
@@ -1240,7 +1240,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("can rename a device tag id and it's idempotent") {
-    forAll(sizeRange(10)) { deviceTs: Seq[DeviceT] =>
+    forAll(sizeRange(10)) { (deviceTs: Seq[DeviceT]) =>
       whenever(deviceTs.nonEmpty) {
         deviceTs.map(createDeviceOk)
         val csvRows = deviceTs.map(d => Seq(d.deviceId.underlying, "some tag value"))
