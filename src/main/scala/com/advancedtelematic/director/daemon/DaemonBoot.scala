@@ -53,7 +53,7 @@ class DirectorDaemonBoot(override val globalConfig: Config, override val dbConfi
     // Device Registry Listeners
     startMonitoredListener[DeviceSeen](new DeviceSeenListener(messageBus))
     startMonitoredListener[DeviceEventMessage](new DeviceEventListener)
-    startMonitoredListener[DeleteDeviceRequest](new DeleteDeviceListener, actorNamePrefix =  "device-registry-".some)
+    startMonitoredListener[DeleteDeviceRequest](new DeleteDeviceListener, actorNamePrefix =  "device-registry".some)
     startMonitoredListener[DeviceUpdateEvent](new DeviceUpdateEventListener(messageBus))
     startMonitoredListener[EcuReplacement](new EcuReplacementListener)
 
