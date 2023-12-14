@@ -21,6 +21,8 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
       readTable("ecu_targets", ns => sql"""select * from ecu_targets where namespace = $ns order by created_at ASC LIMIT #$DEFAULT_LIMIT""")),
     TableResource("repo_namespaces",
       readTable("repo_namespaces", ns => sql"""select * from repo_namespaces where namespace = $ns""")),
+    TableResource("dr-devices",
+      readTable("Device", ns => sql"""select * from Device where namespace = $ns order by created_at DESC LIMIT #$DEFAULT_LIMIT""")),
   ))
 
   lazy val device_resources = ResourceGroup[DeviceId]("devices", "device-id", List(
@@ -38,6 +40,8 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
     TableResource("processed_assignments",
       readTable("processed_assignments", id =>
         sql"select a.* from processed_assignments a join devices d on d.primary_ecu_id = a.ecu_serial where d.id = $id")),
+    TableResource("device_type",
+      readTable("DeviceType", id => sql"""select * from DeviceType where id = $id""")),
   ))
 }
 
