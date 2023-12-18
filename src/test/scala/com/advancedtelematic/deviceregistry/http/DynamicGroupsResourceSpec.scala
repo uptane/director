@@ -1,19 +1,19 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import akka.http.scaladsl.model.StatusCodes._
-import cats.syntax.either._
-import cats.syntax.show._
-import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import akka.http.scaladsl.model.StatusCodes.*
+import cats.syntax.either.*
+import cats.syntax.show.*
 import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.{GroupExpression, GroupType}
 import com.advancedtelematic.deviceregistry.db.DeviceRepository
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.SpanSugar._
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.time.SpanSugar.*
 
 class DynamicGroupsResourceSpec extends AnyFunSuite with ResourceSpec with Eventually {
 

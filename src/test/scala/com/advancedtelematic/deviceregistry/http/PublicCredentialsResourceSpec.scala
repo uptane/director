@@ -6,19 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import akka.http.scaladsl.model.StatusCodes._
-import com.advancedtelematic.deviceregistry.data.{CredentialsType, Device}
-import com.advancedtelematic.deviceregistry.PublicCredentialsResource.FetchPublicCredentials
-import io.circe.generic.auto._
-import org.scalacheck.{Arbitrary, Gen}
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import akka.http.scaladsl.model.StatusCodes.*
 import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.deviceregistry.data.{CredentialsType, Device}
+import com.advancedtelematic.deviceregistry.http.PublicCredentialsResource.FetchPublicCredentials
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import io.circe.generic.auto.*
+import org.scalacheck.{Arbitrary, Gen}
 
 class PublicCredentialsResourceSpec extends ResourcePropSpec {
-  import Device._
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+  import Device.*
+  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   val genCredentialsType: Gen[CredentialsType.CredentialsType] =
     Gen.oneOf(CredentialsType.values.toSeq)

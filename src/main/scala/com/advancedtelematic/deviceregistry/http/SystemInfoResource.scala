@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import java.time.Instant
 import akka.Done
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes.*
@@ -16,6 +15,8 @@ import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.{Directive1, Route}
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 import cats.syntax.option.*
+import com.advancedtelematic.deviceregistry.SystemInfoUpdatePublisher
+import com.advancedtelematic.deviceregistry.common.Errors.{Codes, MissingSystemInfo}
 import com.advancedtelematic.deviceregistry.db.SystemInfoRepository
 import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.libats.data.DataType.Namespace
@@ -24,14 +25,13 @@ import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
-import com.advancedtelematic.deviceregistry.common.Errors.{Codes, MissingSystemInfo}
-import com.advancedtelematic.deviceregistry.http.`application/toml`
 import io.circe.Json
 import io.circe.generic.auto.*
 import slick.jdbc.MySQLProfile.api.*
 import toml.Toml
 import toml.Value.{Bool, Num, Str, Tbl}
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext
 import scala.util.Try
 
@@ -55,8 +55,8 @@ class SystemInfoResource(
     authNamespace: Directive1[Namespace],
     deviceNamespaceAuthorizer: Directive1[DeviceId]
 )(implicit db: Database, ec: ExecutionContext) {
-  import SystemInfoResource._
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+  import SystemInfoResource.*
+  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   private val systemInfoUpdatePublisher = new SystemInfoUpdatePublisher(messageBus)
 

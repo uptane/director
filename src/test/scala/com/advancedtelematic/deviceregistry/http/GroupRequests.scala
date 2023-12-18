@@ -6,21 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpRequest, Multipart}
-import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query
-import cats.syntax.show._
-import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpRequest, Multipart}
+import cats.syntax.show.*
 import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.Group.GroupId._
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.deviceregistry.data.Group.GroupId.*
 import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
+import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.deviceregistry.data.{GroupExpression, GroupName, GroupType}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import com.advancedtelematic.libats.data.PaginationResult
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalatest.Assertion
 

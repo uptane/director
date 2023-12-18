@@ -6,26 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.{NetworkInfo, removeIdNrs}
-import io.circe.Json
-import org.scalacheck.Shrink
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
 import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.deviceregistry.data.GeneratorOps._
-import org.scalatest.concurrent.Eventually._
-import org.scalatest.OptionValues._
+import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
+import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.{NetworkInfo, removeIdNrs}
+import com.advancedtelematic.libats.messaging.test.MockMessageBus
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
+import io.circe.Json
+import org.scalacheck.Shrink
+import org.scalatest.OptionValues.*
+import org.scalatest.concurrent.Eventually.*
 import toml.Toml
 import toml.Value.{Str, Tbl}
 
 class SystemInfoResourceSpec extends ResourcePropSpec {
 
-  import akka.http.scaladsl.model.StatusCodes._
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+  import akka.http.scaladsl.model.StatusCodes.*
+  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   override lazy val messageBus = new MockMessageBus()
 
@@ -94,7 +94,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   }
 
   property("POST /devices/list-network-info returns network info") {
-    import io.circe.parser._
+    import io.circe.parser.*
     val jsonStr = """
     {
       "local_ipv4":"10.12.224.9",
@@ -382,7 +382,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   }
 
   property("system config can be uploaded") {
-    import akka.http.scaladsl.unmarshalling.Unmarshaller._
+    import akka.http.scaladsl.unmarshalling.Unmarshaller.*
 
     val deviceUuid = createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd-1234")))
     val config = """
@@ -409,7 +409,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   }
 
   property("system config without 'secondary_preinstall_wait_sec' can be uploaded") {
-    import akka.http.scaladsl.unmarshalling.Unmarshaller._
+    import akka.http.scaladsl.unmarshalling.Unmarshaller.*
 
     val deviceUuid = createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd-1234-legacy")))
     val config = """
@@ -435,7 +435,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   }
 
   property("system config TOML parsing error handling") {
-    import akka.http.scaladsl.unmarshalling.Unmarshaller._
+    import akka.http.scaladsl.unmarshalling.Unmarshaller.*
 
     val deviceUuid = createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd-1234-error")))
     val config =

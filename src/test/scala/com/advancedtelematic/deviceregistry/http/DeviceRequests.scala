@@ -6,31 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import java.time.OffsetDateTime
+import akka.http.scaladsl.model.*
 import akka.http.scaladsl.model.Uri.{Path, Query}
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpRequest, Multipart, StatusCodes, Uri}
 import akka.http.scaladsl.server.Route
-import cats.instances.int._
-import cats.instances.string._
-import cats.syntax.option._
-import cats.syntax.show._
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.deviceregistry.data.Codecs._
+import cats.instances.int.*
+import cats.instances.string.*
+import cats.syntax.option.*
+import cats.syntax.show.*
+import com.advancedtelematic.deviceregistry.data.*
+import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
 import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, SetDevice, TagInfo, UpdateDevice, UpdateTagValue}
+import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.deviceregistry.data.SortDirection.SortDirection
-import com.advancedtelematic.deviceregistry.data.{Device, DeviceName, GroupExpression, PackageId, TagId}
 import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.NetworkInfo
-import com.advancedtelematic.deviceregistry.http.`application/toml`
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import io.circe.Json
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.http.HttpOps.*
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import io.circe.Json
+
+import java.time.OffsetDateTime
 
 /**
   * Generic test resource object
@@ -53,8 +53,8 @@ object Resource {
   */
 trait DeviceRequests { self: ResourceSpec =>
 
-  import StatusCodes._
-  import com.advancedtelematic.deviceregistry.data.Device._
+  import StatusCodes.*
+  import com.advancedtelematic.deviceregistry.data.Device.*
 
   val api = "devices"
 

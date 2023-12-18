@@ -6,30 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import org.scalatest.Inspectors._
-import com.advancedtelematic.deviceregistry.data.Codecs._
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import org.scalacheck.Arbitrary._
-import org.scalacheck.Gen
-import akka.http.scaladsl.model.StatusCodes._
 import cats.implicits.toShow
-import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
+import com.advancedtelematic.deviceregistry.GroupMembership
 import com.advancedtelematic.deviceregistry.common.Errors.Codes.MalformedInput
+import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
 import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
+import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import org.scalacheck.Arbitrary.*
+import org.scalacheck.Gen
+import org.scalatest.EitherValues.*
+import org.scalatest.Inspectors.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.EitherValues._
 import org.scalatest.time.{Millis, Seconds, Span}
 
 class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures {
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   private val limit = 30
 
@@ -63,7 +64,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     }
   }
 
-  import com.advancedtelematic.deviceregistry.data.GeneratorOps._
+  import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
 
   test("DELETE deletes a static group and its members") {
     val groupId = createStaticGroupOk()

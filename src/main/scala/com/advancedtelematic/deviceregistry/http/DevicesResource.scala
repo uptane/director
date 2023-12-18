@@ -6,32 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import java.time.{Instant, OffsetDateTime}
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.server._
+import com.advancedtelematic.libats.http.ValidatedGenericMarshalling.validatedStringUnmarshaller
+import akka.http.scaladsl.model.*
+import akka.http.scaladsl.model.headers.*
+import akka.http.scaladsl.server.*
 import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
 import akka.stream.Materializer
 import akka.stream.alpakka.csv.scaladsl.{CsvParsing, CsvToMap}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
-import cats.syntax.either._
-import cats.syntax.show._
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
-import com.advancedtelematic.libats.http.Errors.JsonError
-import com.advancedtelematic.libats.http.UUIDKeyAkka._
-import com.advancedtelematic.libats.http.ValidatedGenericMarshalling.validatedStringUnmarshaller
-import com.advancedtelematic.libats.messaging.MessageBusPublisher
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId._
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
-import com.advancedtelematic.libats.messaging_datatype.MessageCodecs._
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
-import com.advancedtelematic.libats.slick.db.SlickExtensions._
+import cats.syntax.either.*
+import cats.syntax.show.*
 import com.advancedtelematic.deviceregistry.common.Errors
 import com.advancedtelematic.deviceregistry.common.Errors.{Codes, MissingDevice}
-import com.advancedtelematic.deviceregistry.data.Codecs._
+import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
 import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
 import com.advancedtelematic.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
@@ -43,13 +33,22 @@ import com.advancedtelematic.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.deviceregistry.data.TagId.validatedTagId
 import com.advancedtelematic.deviceregistry.data.{Device, DeviceSortBy, GroupExpression, GroupSortBy, PackageId, SortDirection, TagId}
 import com.advancedtelematic.deviceregistry.db.DbOps.PaginationResultOps
-import com.advancedtelematic.deviceregistry.db._
+import com.advancedtelematic.deviceregistry.db.{DeviceRepository, EcuReplacementRepository, EventJournal, GroupInfoRepository, GroupMemberRepository, InstallationReportRepository, InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.deviceregistry.messages.DeviceCreated
-import com.advancedtelematic.deviceregistry.http.nonNegativeLong
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
+import com.advancedtelematic.libats.http.Errors.JsonError
+import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+import com.advancedtelematic.libats.messaging.MessageBusPublisher
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
+import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
+import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import io.circe.Json
 import io.circe.syntax.EncoderOps
-import slick.jdbc.MySQLProfile.api._
+import slick.jdbc.MySQLProfile.api.*
 
+import java.time.{Instant, OffsetDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 
@@ -123,11 +122,11 @@ class DevicesResource(
     deviceNamespaceAuthorizer: Directive1[DeviceId]
 )(implicit db: Database, mat: Materializer, ec: ExecutionContext) {
 
-  import DevicesResource._
-  import Directives._
-  import StatusCodes._
-  import com.advancedtelematic.libats.http.AnyvalMarshallingSupport._
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+  import DevicesResource.*
+  import Directives.*
+  import StatusCodes.*
+  import com.advancedtelematic.libats.http.AnyvalMarshallingSupport.*
+  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   val extractPackageId: Directive1[PackageId] =
     pathPrefix(Segment / Segment).as(PackageId.apply)

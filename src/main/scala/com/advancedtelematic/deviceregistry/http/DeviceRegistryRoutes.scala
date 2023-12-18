@@ -1,17 +1,16 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.{Directive1, Directives, Route}
 import akka.stream.Materializer
-
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.DefaultRejectionHandler.rejectionHandler
 import com.advancedtelematic.libats.http.ErrorHandler
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.ExecutionContext
-import slick.jdbc.MySQLProfile.api._
 
 /**
   * Base API routing class.
@@ -21,7 +20,7 @@ class DeviceRegistryRoutes(
     deviceNamespaceAuthorizer: Directive1[DeviceId],
     messageBus: MessageBusPublisher
 )(implicit db: Database, system: ActorSystem, mat: Materializer, exec: ExecutionContext)
-    extends Directives with Settings {
+    extends Directives {
 
   val route: Route =
     pathPrefix("api") {

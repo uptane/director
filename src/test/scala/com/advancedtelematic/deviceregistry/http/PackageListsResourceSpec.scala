@@ -1,15 +1,15 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.StatusCodes.{Created, NoContent, NotFound, OK}
 import cats.syntax.show.*
-import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation}
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import Resource.uri
 import com.advancedtelematic.deviceregistry.data.Codecs.{packageListItemCodec, packageListItemCountCodec}
-import com.advancedtelematic.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount, DeviceT}
+import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, PackageListItem, PackageListItemCount}
 import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.deviceregistry.data.PackageId
+import com.advancedtelematic.deviceregistry.http.Resource.uri
+import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation}
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.concurrent.ScalaFutures

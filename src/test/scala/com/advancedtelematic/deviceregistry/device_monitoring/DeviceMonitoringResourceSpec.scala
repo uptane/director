@@ -2,13 +2,13 @@ package com.advancedtelematic.deviceregistry.device_monitoring
 
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
-import com.advancedtelematic.deviceregistry.{Resource, ResourceSpec}
 import com.advancedtelematic.deviceregistry.data.DeviceGenerators
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
 import com.advancedtelematic.deviceregistry.data.DataType.ObservationPublishResult
+import com.advancedtelematic.deviceregistry.http.{Resource, ResourceSpec}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalatest.EitherValues.*
 import org.scalatest.OptionValues.*

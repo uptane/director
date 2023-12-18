@@ -6,31 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
+
+import akka.http.scaladsl.marshalling.Marshaller.*
+import akka.http.scaladsl.server.Directives.*
+import akka.http.scaladsl.server.{Directive1, Route}
+import akka.http.scaladsl.util.FastFuture
+import com.advancedtelematic.deviceregistry.common.Errors
+import com.advancedtelematic.deviceregistry.data.Codecs.*
+import com.advancedtelematic.deviceregistry.data.CredentialsType
+import com.advancedtelematic.deviceregistry.data.CredentialsType.CredentialsType
+import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.deviceregistry.db.{DeviceRepository, PublicCredentialsRepository}
+import com.advancedtelematic.deviceregistry.messages.{DeviceCreated, DevicePublicCredentialsSet}
+import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.messaging.MessageBusPublisher
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant
 import java.util.Base64
-import akka.http.scaladsl.marshalling.Marshaller.*
-import akka.http.scaladsl.server.{Directive1, Route}
-import akka.http.scaladsl.server.Directives.*
-import akka.http.scaladsl.util.FastFuture
-import com.advancedtelematic.deviceregistry.db.{DeviceRepository, PublicCredentialsRepository}
-import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.messaging.MessageBusPublisher
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.data.CredentialsType
-import com.advancedtelematic.deviceregistry.data.CredentialsType.CredentialsType
-import com.advancedtelematic.deviceregistry.messages.{DeviceCreated, DevicePublicCredentialsSet}
-import slick.jdbc.MySQLProfile.api.*
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.deviceregistry.data.Codecs.*
-import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
-
 import scala.concurrent.{ExecutionContext, Future}
 
 object PublicCredentialsResource {
   final case class FetchPublicCredentials(uuid: DeviceId, credentialsType: CredentialsType, credentials: String)
-  implicit val fetchPublicCredentialsEncoder: io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.PublicCredentialsResource.FetchPublicCredentials] =
+  implicit val fetchPublicCredentialsEncoder: io.circe.Encoder.AsObject[PublicCredentialsResource.FetchPublicCredentials] =
     io.circe.generic.semiauto.deriveEncoder[FetchPublicCredentials]
 }
 
@@ -39,8 +39,8 @@ class PublicCredentialsResource(
     messageBus: MessageBusPublisher,
     deviceNamespaceAuthorizer: Directive1[DeviceId]
 )(implicit db: Database, ec: ExecutionContext) {
-  import PublicCredentialsResource._
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+  import PublicCredentialsResource.*
+  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
   lazy val base64Decoder = Base64.getDecoder()
   lazy val base64Encoder = Base64.getEncoder()
 

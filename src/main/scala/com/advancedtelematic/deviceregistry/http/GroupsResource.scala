@@ -6,33 +6,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import com.advancedtelematic.deviceregistry.data.Codecs._
-import akka.http.scaladsl.marshalling.Marshaller._
+import akka.http.scaladsl.marshalling.Marshaller.*
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.*
 import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
 import akka.stream.scaladsl.Framing.FramingException
 import akka.stream.scaladsl.{Framing, Sink, Source}
 import akka.util.ByteString
-import cats.syntax.either._
-import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import cats.syntax.either.*
 import com.advancedtelematic.deviceregistry.common.Errors
+import com.advancedtelematic.deviceregistry.data.*
+import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.UpdateHibernationStatusRequest
 import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.data._
 import com.advancedtelematic.deviceregistry.db.{DeviceRepository, GroupInfoRepository, GroupMemberRepository}
-import com.advancedtelematic.deviceregistry.http.nonNegativeLong
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import com.advancedtelematic.deviceregistry.{AllowUUIDPath, GroupMembership}
+import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.{Decoder, Encoder}
-import slick.jdbc.MySQLProfile.api._
+import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -192,7 +192,7 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceA
 case class CreateGroup(name: GroupName, groupType: GroupType, expression: Option[GroupExpression])
 
 object CreateGroup {
-  import io.circe.generic.semiauto._
+  import io.circe.generic.semiauto.*
 
   implicit val createGroupEncoder: Encoder[CreateGroup] = deriveEncoder
   implicit val createGroupDecoder: Decoder[CreateGroup] = deriveDecoder

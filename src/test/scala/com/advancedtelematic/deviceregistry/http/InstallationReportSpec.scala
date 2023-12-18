@@ -1,26 +1,26 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.StatusCodes.*
+import com.advancedtelematic.deviceregistry.daemon.{DeleteDeviceListener, DeviceUpdateEventListener, EcuReplacementListener}
+import com.advancedtelematic.deviceregistry.data.Codecs.installationStatDecoder
+import com.advancedtelematic.deviceregistry.data.DataType.{InstallationStat, InstallationStatsLevel}
+import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
+import com.advancedtelematic.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{deviceUpdateCompletedCodec, ecuReplacementCodec}
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceUpdateCompleted, EcuReplaced, EcuReplacement, EcuReplacementFailed}
-import com.advancedtelematic.deviceregistry.daemon.{DeleteDeviceListener, DeviceUpdateEventListener, EcuReplacementListener}
-import com.advancedtelematic.deviceregistry.data.Codecs.installationStatDecoder
-import com.advancedtelematic.deviceregistry.data.DataType.{InstallationStat, InstallationStatsLevel}
-import com.advancedtelematic.deviceregistry.data.GeneratorOps._
-import com.advancedtelematic.deviceregistry.data.InstallationReportGenerators
-import com.advancedtelematic.deviceregistry.data.{DeviceStatus}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalacheck.Gen
-import org.scalatest.EitherValues._
-import org.scalatest.LoneElement._
+import org.scalatest.EitherValues.*
+import org.scalatest.LoneElement.*
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Millis, Seconds, Span}
+
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class InstallationReportSpec extends ResourcePropSpec with ScalaFutures with Eventually with InstallationReportGenerators {
 

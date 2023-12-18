@@ -1,15 +1,14 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directive1, Route}
+import com.advancedtelematic.deviceregistry.data.Codecs.ObservationPublishResultCodec
+import com.advancedtelematic.deviceregistry.data.DataType.ObservationPublishResult
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType
-import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
-import com.advancedtelematic.deviceregistry.data.DataType.ObservationPublishResult
-import com.advancedtelematic.deviceregistry.data.Codecs.ObservationPublishResultCodec
-import com.advancedtelematic.libats.messaging_datatype.Messages.deviceMetricsObservationMessageLike
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceMetricsObservation, deviceMetricsObservationMessageLike}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.{Decoder, Json}
 import org.slf4j.LoggerFactory
@@ -21,7 +20,7 @@ import scala.util.{Failure, Success}
 protected case class DeviceObservationRequest(observedAt: Instant, payload: Json)
 
 protected object DeviceObservationRequest {
-  implicit val deviceObservationRequestDecoder: io.circe.Decoder[com.advancedtelematic.deviceregistry.DeviceObservationRequest] = Decoder.instance { cursor =>
+  implicit val deviceObservationRequestDecoder: io.circe.Decoder[DeviceObservationRequest] = Decoder.instance { cursor =>
     for {
       observedAt <- cursor.get[Double]("date").map { epoch => Instant.ofEpochMilli((epoch * 1000).longValue()) } // Losing some precision here
       payload <- cursor.as[Json]

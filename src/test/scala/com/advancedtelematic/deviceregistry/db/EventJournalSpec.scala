@@ -13,7 +13,6 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
-import com.advancedtelematic.deviceregistry.ResourcePropSpec
 import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.DataType.{CampaignId, CorrelationId, MultiTargetUpdateId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{Event, EventType}
@@ -22,6 +21,7 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceReq
 import EventJournalSpec.EventPayload
 import com.advancedtelematic.deviceregistry.daemon.{DeleteDeviceListener, DeviceEventListener}
 import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.deviceregistry.http.ResourcePropSpec
 import io.circe.generic.semiauto.*
 import io.circe.testing.ArbitraryInstances
 import io.circe.{Decoder, Json}

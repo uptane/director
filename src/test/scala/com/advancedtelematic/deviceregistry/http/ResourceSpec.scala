@@ -6,24 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.advancedtelematic.deviceregistry.data.{DeviceGenerators, GroupGenerators, PackageIdGenerators, SimpleJsonGenerator}
+import com.advancedtelematic.deviceregistry.db.DeviceRepository
+import com.advancedtelematic.deviceregistry.{AllowUUIDPath, DatabaseSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.http.{NamespaceDirectives, ServiceHttpClientSupport}
 import com.advancedtelematic.libats.http.tracing.NullServerRequestTracing
+import com.advancedtelematic.libats.http.{NamespaceDirectives, ServiceHttpClientSupport}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.deviceregistry.db.DeviceRepository
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.propspec.AnyPropSpec
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.propspec.AnyPropSpec
+import scala.concurrent.duration.*
 
 trait ResourceSpec
     extends ScalatestRouteTest

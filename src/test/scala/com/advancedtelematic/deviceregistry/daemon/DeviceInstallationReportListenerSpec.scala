@@ -1,7 +1,7 @@
 package com.advancedtelematic.deviceregistry.daemon
 
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.advancedtelematic.deviceregistry.{DatabaseSpec, ResourcePropSpec}
+import com.advancedtelematic.deviceregistry.DatabaseSpec
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
@@ -9,8 +9,9 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, Dev
 import com.advancedtelematic.deviceregistry.data.DataType.{DeviceInstallationResult, EcuInstallationResult}
 import com.advancedtelematic.deviceregistry.data.GeneratorOps._
 import com.advancedtelematic.deviceregistry.data.InstallationReportGenerators
-import com.advancedtelematic.deviceregistry.data.{DeviceStatus}
+import com.advancedtelematic.deviceregistry.data.DeviceStatus
 import com.advancedtelematic.deviceregistry.db.InstallationReportRepository
+import com.advancedtelematic.deviceregistry.http.ResourcePropSpec
 import io.circe.syntax._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}

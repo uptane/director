@@ -1,13 +1,13 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.deviceregistry.http
 
 import akka.http.scaladsl.model.StatusCodes.{Created, NoContent}
-import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.*
-import com.advancedtelematic.libats.data.DataType.Namespace
+import akka.http.scaladsl.server.Directives.*
 import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount}
 import com.advancedtelematic.deviceregistry.data.PackageId
 import com.advancedtelematic.deviceregistry.db.PackageListItemRepository
+import com.advancedtelematic.libats.data.DataType.Namespace
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.generic.auto.*
 import slick.jdbc.MySQLProfile.api.*
