@@ -18,7 +18,7 @@ import com.typesafe.config.Config
 import com.advancedtelematic.libats.http.VersionDirectives.*
 import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSupport
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
-import com.advancedtelematic.ota.deviceregistry.daemon.{DeleteDeviceListener, DeviceEventListener, DeviceSeenListener, DeviceUpdateEventListener, EcuReplacementListener}
+import com.advancedtelematic.deviceregistry.daemon.{DeleteDeviceListener, DeviceEventListener, DeviceSeenListener, DeviceUpdateEventListener, EcuReplacementListener}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 import cats.syntax.option.*

@@ -24,15 +24,15 @@ import com.advancedtelematic.libats.slick.monitoring.{DatabaseMetrics, DbHealthR
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverHttpClient
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.advancedtelematic.metrics.{AkkaHttpConnectionMetrics, AkkaHttpRequestMetrics, MetricsSupport}
-import com.advancedtelematic.ota.deviceregistry.db.DeviceRepository
-import com.advancedtelematic.ota.deviceregistry.{AllowUUIDPath, DeviceRegistryRoutes}
+import com.advancedtelematic.deviceregistry.db.DeviceRepository
+import com.advancedtelematic.deviceregistry.{AllowUUIDPath, DeviceRegistryRoutes}
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
-import com.advancedtelematic.ota.deviceregistry.http.`application/toml`
+import com.advancedtelematic.deviceregistry.http.`application/toml`
 
 class DirectorBoot(override val globalConfig: Config,
                    override val dbConfig: Config,

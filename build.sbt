@@ -9,10 +9,6 @@ resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/reposi
 
 Global / bloopAggregateSourceDependencies := true
 
-Compile / unmanagedSourceDirectories += baseDirectory.value / "device-registry" / "src" / "main" / "scala"
-
-Test / unmanagedSourceDirectories += baseDirectory.value / "device-registry" / "src" / "test" / "scala"
-
 libraryDependencies ++= {
   val akkaV = "2.8.5"
   val akkaHttpV = "10.5.2"
