@@ -27,9 +27,9 @@ import scala.concurrent.{ExecutionContext, Future}
                                       timestamp: Instant = Instant.now())
 
   object DeviceUpdateStatus {
-    import cats.syntax.show._
-    import com.advancedtelematic.libats.codecs.CirceCodecs._
-    implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[com.advancedtelematic.ota.deviceregistry.daemon.DeviceUpdateStatus] = MessageLike.derive[DeviceUpdateStatus](_.device.show)
+    import cats.syntax.show.*
+    import com.advancedtelematic.libats.codecs.CirceCodecs.*
+    implicit val MessageLikeInstance: MessageLike[DeviceUpdateStatus] = MessageLike.derive[DeviceUpdateStatus](_.device.show)
   }
 
 class DeviceUpdateEventListener(messageBus: MessageBusPublisher)
@@ -80,7 +80,7 @@ class DeviceUpdateEventListener(messageBus: MessageBusPublisher)
       FastFuture.failed(Unhandleable(msg.getClass.getSimpleName, msg.deviceUuid, msg.correlationId))
   }
 
-  def setDeviceStatus(deviceUuid: DeviceId, deviceStatus: DeviceStatus) = {
+  def setDeviceStatus(deviceUuid: DeviceId, deviceStatus: DeviceStatus): Future[Unit] = {
     val f = for {
       device <- DeviceRepository.findByUuid(deviceUuid)
       _ <- DeviceRepository.setDeviceStatus(
