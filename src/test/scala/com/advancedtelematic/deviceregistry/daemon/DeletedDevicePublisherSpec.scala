@@ -6,6 +6,7 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequ
 import com.advancedtelematic.deviceregistry.data.GeneratorOps.GenSample
 import cats.syntax.show.*
 import com.advancedtelematic.deviceregistry.http.{DeviceRequests, ResourceSpec}
+import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import org.scalatest.OptionValues.*
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
@@ -18,12 +19,12 @@ class DeletedDevicePublisherSpec extends AnyFunSuite with ResourceSpec with Devi
   implicit override val patienceConfig =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(15, Millis))
 
-  val deleteDeviceHandler = new DeleteDeviceListener()
+  val deleteDeviceHandler = new DeleteDeviceRequestListener()
   val msgPub = new MockMessageBus
   val subject = new DeletedDevicePublisher(msgPub)
 
   test("deleted devices are published") {
-    import org.scalatest.time.SpanSugar._
+    import org.scalatest.time.SpanSugar.*
 
     val device = genDeviceT.generate
     val deviceId = createDeviceOk(device)

@@ -1,11 +1,12 @@
 package com.advancedtelematic.deviceregistry.http
 
 import akka.http.scaladsl.model.StatusCodes.*
-import com.advancedtelematic.deviceregistry.daemon.{DeleteDeviceListener, DeviceUpdateEventListener, EcuReplacementListener}
+import com.advancedtelematic.deviceregistry.daemon.{DeviceUpdateEventListener, EcuReplacementListener}
 import com.advancedtelematic.deviceregistry.data.Codecs.installationStatDecoder
 import com.advancedtelematic.deviceregistry.data.DataType.{InstallationStat, InstallationStatsLevel}
 import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
+import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
@@ -30,8 +31,8 @@ class InstallationReportSpec extends ResourcePropSpec with ScalaFutures with Eve
 
   val updateListener = new DeviceUpdateEventListener(msgPub)
   val ecuReplacementListener = new EcuReplacementListener
-  val deleteDeviceListener = new DeleteDeviceListener()
-
+  val deleteDeviceListener = new DeleteDeviceRequestListener()
+  
   property("should save device reports and retrieve failed stats per devices") {
     val correlationId = genCorrelationId.generate
     val resultCodes = Seq("0", "1", "2", "2", "3", "3", "3").map(ResultCode)

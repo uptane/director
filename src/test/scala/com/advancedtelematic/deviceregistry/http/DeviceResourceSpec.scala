@@ -15,7 +15,7 @@ import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.deviceregistry.common.Errors.Codes
 import com.advancedtelematic.deviceregistry.common.{Errors, PackageStat}
-import com.advancedtelematic.deviceregistry.daemon.{DeleteDeviceListener, DeviceSeenListener}
+import com.advancedtelematic.deviceregistry.daemon.DeviceSeenListener
 import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, RenameTagId, TagInfo, UpdateHibernationStatusRequest}
 import com.advancedtelematic.deviceregistry.data.DeviceName.validatedDeviceType
@@ -23,6 +23,7 @@ import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.*
 import com.advancedtelematic.deviceregistry.db.InstalledPackages.{DevicesCount, InstalledPackage}
 import com.advancedtelematic.deviceregistry.db.{InstalledPackages, TaggedDeviceRepository}
+import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
@@ -774,7 +775,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     }
   }
 
-  val listener = new DeleteDeviceListener()
+  val listener = new DeleteDeviceRequestListener()
 
   property("DELETE device removes it from its group") {
     forAll { (devicePre: DeviceT, groupName: GroupName) =>
