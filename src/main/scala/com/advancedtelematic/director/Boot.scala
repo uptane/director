@@ -2,21 +2,22 @@ package com.advancedtelematic.director
 
 
 import akka.actor.ActorSystem
-
-import java.security.Security
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.settings.{ParserSettings, ServerSettings}
+import com.advancedtelematic.deviceregistry.AllowUUIDPath
+import com.advancedtelematic.deviceregistry.db.DeviceRepository
+import com.advancedtelematic.deviceregistry.http.{DeviceRegistryRoutes, `application/toml`}
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.DefaultRejectionHandler.rejectionHandler
-import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig, NamespaceDirectives}
 import com.advancedtelematic.libats.http.LogDirectives.logResponseMetrics
 import com.advancedtelematic.libats.http.VersionDirectives.versionHeaders
 import com.advancedtelematic.libats.http.monitoring.ServiceHealthCheck
 import com.advancedtelematic.libats.http.tracing.Tracing
 import com.advancedtelematic.libats.http.tracing.Tracing.ServerRequestTracing
+import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig, NamespaceDirectives}
 import com.advancedtelematic.libats.messaging.MessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.{CheckMigrations, DatabaseSupport}
@@ -24,15 +25,13 @@ import com.advancedtelematic.libats.slick.monitoring.{DatabaseMetrics, DbHealthR
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverHttpClient
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.advancedtelematic.metrics.{AkkaHttpConnectionMetrics, AkkaHttpRequestMetrics, MetricsSupport}
-import com.advancedtelematic.deviceregistry.db.DeviceRepository
-import com.advancedtelematic.deviceregistry.AllowUUIDPath
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
 
+import java.security.Security
 import scala.concurrent.Future
-import com.advancedtelematic.deviceregistry.http.{DeviceRegistryRoutes, `application/toml`}
 
 class DirectorBoot(override val globalConfig: Config,
                    override val dbConfig: Config,

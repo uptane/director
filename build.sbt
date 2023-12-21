@@ -2,7 +2,7 @@ name := "director-v2"
 organization := "io.github.uptane"
 scalaVersion := "2.13.12"
 
-scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused")
+scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused", "-Wconf:cat=other-match-analysis:error")
 
 resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
 resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
@@ -12,10 +12,10 @@ Global / bloopAggregateSourceDependencies := true
 libraryDependencies ++= {
   val akkaV = "2.8.5"
   val akkaHttpV = "10.5.2"
-  val tufV = "3.1.4-43-gf3586c1-SNAPSHOT"
+  val tufV = "3.1.6"
   val scalaTestV = "3.2.17"
   val bouncyCastleV = "1.76"
-  val libatsV = "2.6.4"
+  val libatsV = "2.6.5"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -46,6 +46,9 @@ libraryDependencies ++= {
 
     "org.mariadb.jdbc" % "mariadb-java-client" % "3.2.0",
 
+    "com.beachape" %% "enumeratum" % "1.7.3",
+    "com.beachape" %% "enumeratum-circe" % "1.7.3",
+
     // Device registry specific dependencies
     "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "2.0.0",
     "io.circe" %% "circe-testing" % "0.14.1",
@@ -54,6 +57,8 @@ libraryDependencies ++= {
     "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test,
   )
 }
+
+javacOptions ++= Seq("-source", "21", "-target", "21")
 
 Test / testOptions ++= Seq(
   Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports"),
@@ -81,7 +86,7 @@ dockerAliases ++= Seq(dockerAlias.value.withTag(git.gitHeadCommit.value))
 
 Docker / defaultLinuxInstallLocation := s"/opt/${moduleName.value}"
 
-dockerBaseImage := "eclipse-temurin:17.0.3_7-jre-jammy"
+dockerBaseImage := "eclipse-temurin:21.0.1_12-jre-jammy"
 
 Docker / daemonUser := "daemon"
 

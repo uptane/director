@@ -35,6 +35,10 @@ trait ResourceSpec extends ScalatestRouteTest with MysqlDatabaseSpec with Settin
   implicit val ec: ExecutionContextExecutor = executor
 }
 
+trait MysqlDatabaseSpec extends com.advancedtelematic.libats.test.MysqlDatabaseSpec {
+  self: Suite =>
+}
+
 trait RouteResourceSpec extends ResourceSpec {
   self: Suite =>
 

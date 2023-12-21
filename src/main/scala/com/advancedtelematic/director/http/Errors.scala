@@ -1,6 +1,5 @@
 package com.advancedtelematic.director.http
 
-import io.circe.syntax.*
 import akka.http.scaladsl.model.StatusCodes
 import cats.Show
 import cats.data.NonEmptyList
@@ -14,6 +13,7 @@ import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
 import com.advancedtelematic.libtuf.data.TufDataType.RepoId
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
 import io.circe.Encoder
+import io.circe.syntax.*
 
 object ErrorCodes {
   val PrimaryIsNotListedForDevice = ErrorCode("primary_is_not_listed_for_device")
@@ -46,13 +46,17 @@ object ErrorCodes {
   val TooManyOfflineRoles = ErrorCode("too_many_offline_roles")
 
   val InvalidSignedPayload = ErrorCode("invalid_signed_payload")
+
+  val UpdateScheduleError = ErrorCode("update_schedule_error")
+
+  val DeviceHasScheduledUpdate = ErrorCode("update_already_scheduled_error")
 }
 
 object Errors {
   val PrimaryIsNotListedForDevice = RawError(ErrorCodes.PrimaryIsNotListedForDevice, StatusCodes.BadRequest, "The given primary ecu isn't part of ecus for the device")
 
   case class NotAffectedRunningAssignment(deviceId: DeviceId, ecuIdentifier: EcuIdentifier) extends Error(ErrorCodes.NotAffectedRunningAssignment,
-    StatusCodes.BadRequest, s"${deviceId}/${ecuIdentifier} not affected because ecu has a running assignment")
+    StatusCodes.BadRequest, s"$deviceId/$ecuIdentifier not affected because ecu has a running assignment")
 
   case class InstalledTargetIsUpdate(deviceId: DeviceId, ecuIdentifier: EcuIdentifier, update: HardwareUpdate) extends Error(ErrorCodes.InstalledTargetIsUpdate,
     StatusCodes.BadRequest,
@@ -61,7 +65,12 @@ object Errors {
 
   case class DeviceNoCompatibleHardware(deviceId: DeviceId, mtuId: UpdateId) extends Error(ErrorCodes.DeviceNoCompatibleHardware,
     StatusCodes.BadRequest,
-    s"Ecu $deviceId not affected for $mtuId, device does not have any ecu with compatible hardware"
+    s"$deviceId not affected for $mtuId, device does not have any ecu with compatible hardware"
+  )
+
+  case class DeviceHasScheduledUpdate(deviceId: DeviceId, mtuId: UpdateId) extends Error(ErrorCodes.DeviceHasScheduledUpdate,
+    StatusCodes.BadRequest,
+    s"$deviceId not affected for $mtuId, there is an update scheduled for the device"
   )
 
   case class NotAffectedByMtu(deviceId: DeviceId, ecuIdentifier: EcuIdentifier, mtuId: UpdateId) extends Error(ErrorCodes.NotAffectedByMtu,
@@ -109,4 +118,7 @@ object Errors {
   def InvalidSignedPayload[E: Encoder](repoId: RepoId, reasons: NonEmptyList[E]) =
     JsonError(ErrorCodes.InvalidSignedPayload, StatusCodes.BadRequest, reasons.asJson,
       msg = s"Invalid signed payload received for $repoId: ${reasons.toList.mkString(", ")}")
+
+  def UpdateScheduleError[E : Encoder](deviceId: DeviceId, reasons: NonEmptyList[E]) =
+    JsonError(ErrorCodes.UpdateScheduleError, StatusCodes.BadRequest, reasons.asJson, msg = "Invalid ecu status for scheduled update")
 }

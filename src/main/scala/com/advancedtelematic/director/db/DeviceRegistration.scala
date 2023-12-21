@@ -34,7 +34,7 @@ class DeviceRegistration(keyserverClient: KeyserverClient)(implicit val db: Data
     }.toVector
   }
 
-  private def register(ns: Namespace, repoId: RepoId, deviceId: DeviceId, primaryEcuId: EcuIdentifier, ecus: Seq[RegisterEcu]): Future[DeviceCreateResult] = {
+  protected [db] def register(ns: Namespace, repoId: RepoId, deviceId: DeviceId, primaryEcuId: EcuIdentifier, ecus: Seq[RegisterEcu]): Future[DeviceCreateResult] = {
     if (ecus.exists(_.ecu_serial == primaryEcuId)) {
       val _ecus = ecus.map(_.toEcu(ns, deviceId))
 

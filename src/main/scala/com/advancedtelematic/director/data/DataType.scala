@@ -6,11 +6,12 @@ import java.util.UUID
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.PathMatcher
 import cats.implicits.*
-import com.advancedtelematic.director.data.DataType.AdminRoleName
+import com.advancedtelematic.director.data.DataType.{AdminRoleName, ScheduledUpdate, ScheduledUpdateId}
+import com.advancedtelematic.director.data.DataType.ScheduledUpdate.Status
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.UptaneDataType.{Hashes, TargetImage}
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, Namespace, ValidChecksum}
-import com.advancedtelematic.libats.data.UUIDKey.{UUIDKey, UUIDKeyObj}
+import com.advancedtelematic.libats.data.UUIDKey.{UUIDKey, UUIDKeyObj, UuidKeyObjTimeBased}
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
@@ -23,9 +24,11 @@ import com.advancedtelematic.libtuf.data.ValidatedString.{ValidatedString, Valid
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
 import eu.timepit.refined.api.Refined
-import io.circe.Json
+import io.circe.{Codec, Encoder, Json}
 import com.advancedtelematic.libats.data.RefinedUtils.*
 import com.advancedtelematic.libtuf.data.TufCodecs
+import enumeratum.EnumEntry.{Camelcase, Uppercase}
+import io.circe.syntax.EncoderOps
 
 import scala.annotation.nowarn
 
@@ -42,7 +45,9 @@ object DbDataType {
                                     ecuTargets: Map[EcuTargetId, EcuTarget],
                                     currentAssignments: Set[Assignment],
                                     processedAssignments: Set[ProcessedAssignment],
-                                    generatedMetadataOutdated: Boolean)
+                                    scheduledUpdates: Set[ScheduledUpdate],
+                                    generatedMetadataOutdated: Boolean,
+                                   )
 
   final case class Device(ns: Namespace, id: DeviceId, primaryEcuId: EcuIdentifier,
                           generatedMetadataOutdated: Boolean, deleted: Boolean)
@@ -205,6 +210,37 @@ object DataType {
       )
     }
   }
+
+
+
+  case class ScheduledUpdate(ns: Namespace, id: ScheduledUpdateId, deviceId: DeviceId, updateId: UpdateId, scheduledAt: Instant, status: Status)
+
+  object ScheduledUpdate {
+
+    import enumeratum.*
+
+    sealed trait Status extends EnumEntry with Camelcase
+
+    object Status extends Enum[Status] {
+      val values: IndexedSeq[Status] = findValues
+
+      case object Scheduled extends Status
+
+      case object Assigned extends Status
+
+      case object Completed extends Status
+
+      case object PartiallyCompleted extends Status
+
+      case object Cancelled extends Status
+    }
+  }
+
+  trait StatusInfo
+
+  case class ScheduledUpdateId(uuid: UUID) extends UUIDKey
+
+  object ScheduledUpdateId extends UuidKeyObjTimeBased[ScheduledUpdateId]
 }
 
 object ClientDataType {
@@ -245,4 +281,6 @@ object ClientDataType {
   }
 
   case class DevicesCurrentTarget(values: Map[DeviceId, Seq[EcuTarget]])
+
+  case class CreateScheduledUpdateRequest(device: DeviceId, updateId: UpdateId, scheduledAt: Instant)
 }

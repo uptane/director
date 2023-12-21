@@ -3,29 +3,29 @@ package com.advancedtelematic.director.http
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import akka.http.scaladsl.model.StatusCodes
-import cats.syntax.option._
-import cats.syntax.show._
+import cats.syntax.option.*
+import cats.syntax.show.*
 import com.advancedtelematic.director.data.ClientDataType
-import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, FindImageCount, RegisterDevice}
-import com.advancedtelematic.director.data.Codecs._
+import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, FindImageCount, MultiTargetUpdate, RegisterDevice}
+import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DbDataType.Ecu
-import com.advancedtelematic.director.data.GeneratorOps._
-import com.advancedtelematic.director.data.Generators._
+import com.advancedtelematic.director.data.GeneratorOps.*
+import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.db.{DbDeviceRoleRepositorySupport, RepoNamespaceRepositorySupport}
 import com.advancedtelematic.director.http.AdminResources.RegisterDeviceResult
-import com.advancedtelematic.director.util._
-import com.advancedtelematic.libats.codecs.CirceCodecs._
+import com.advancedtelematic.director.util.*
+import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
-import com.advancedtelematic.libtuf.data.ClientCodecs._
+import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{RootRole, TargetsRole}
-import com.advancedtelematic.libtuf.data.TufCodecs._
+import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetFilename, TufKey, TufKeyPair}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalactic.source.Position
 import org.scalatest.Assertion
-import io.circe.syntax._
+import io.circe.syntax.*
 
 object AdminResources {
   case class RegisterDeviceResult(deviceId: DeviceId,
@@ -82,10 +82,14 @@ trait AdminResources {
     }
   }
 
+  def createMtu(mtu: MultiTargetUpdate)(implicit ns: Namespace, pos: Position): RouteTestResult = {
+    Post(apiUri("multi_target_updates"), mtu).namespaced ~> routes
+  }
+
   def createMtuOk()(implicit ns: Namespace, pos: Position): UpdateId = {
     val mtu = GenMultiTargetUpdateRequest.generate
 
-    Post(apiUri("multi_target_updates"), mtu).namespaced ~> routes ~> check {
+    createMtu(mtu) ~> check {
       status shouldBe StatusCodes.Created
       responseAs[UpdateId]
     }

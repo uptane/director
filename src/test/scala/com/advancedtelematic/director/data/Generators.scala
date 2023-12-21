@@ -88,7 +88,6 @@ trait Generators {
     targets <- Gen.nonEmptyMap(Gen.zip(GenHardwareIdentifier, GenTargetUpdateRequest))
   } yield MultiTargetUpdate(targets)
 
-
   lazy val GenKeyType: Gen[KeyType] = Gen.oneOf(RsaKeyType, Ed25519KeyType)
 
   lazy val GenTufKeyPair: Gen[TufKeyPair] =
