@@ -17,4 +17,6 @@ trait Settings {
   val allowEcuReplacement = _config.getBoolean("allowEcuReplacement")
 
   val daemonPort = if(_config.hasPath("http.server.daemon-port")) _config.getInt("http.server.daemon-port") else port
+
+  val maxOfflineTargets = _config.getInt("max-offline-targets")
 }

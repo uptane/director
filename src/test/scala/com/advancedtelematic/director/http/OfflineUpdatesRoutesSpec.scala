@@ -24,6 +24,7 @@ import com.advancedtelematic.director.data.Codecs._
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import cats.syntax.option._
+import org.scalatest.Inspectors.*
 
 class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
   with RepoNamespaceRepositorySupport
@@ -286,6 +287,25 @@ class OfflineUpdatesRoutesSpec extends DirectorSpec with RouteResourceSpec
       val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
       resp.signed.version shouldBe 2
       resp.signed.expires shouldBe expiresAt
+    }
+  }
+
+  testWithRepo("returns 4xx when user has too many offline roles") { implicit ns =>
+    val expiresAt = Instant.now().plus(1 * 365, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
+
+    forAll(1 to 15) { idx =>
+      val req = GenOfflineUpdateRequest.generate.copy(expiresAt = expiresAt.some)
+
+      Post(apiUri(s"admin/repo/offline-updates/lockbox$idx"), req).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+      }
+    }
+
+    val req = GenOfflineUpdateRequest.generate.copy(expiresAt = expiresAt.some)
+
+    Post(apiUri(s"admin/repo/offline-updates/lockbox16"), req).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.BadRequest
+      responseAs[ErrorRepresentation].code shouldBe ErrorCodes.TooManyOfflineRoles
     }
   }
 }

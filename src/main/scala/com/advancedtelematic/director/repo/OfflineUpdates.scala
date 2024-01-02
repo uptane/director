@@ -1,22 +1,25 @@
 package com.advancedtelematic.director.repo
 
+import com.advancedtelematic.director.Settings
 import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.SignedPayloadToDbRole
 import com.advancedtelematic.director.db.AdminRolesRepositorySupport
+import com.advancedtelematic.director.http.Errors.TooManyOfflineRoles
 import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, OfflineSnapshotRole, OfflineUpdatesRole, TufRole, TufRoleOps}
 import com.advancedtelematic.libtuf.data.TufDataType.{JsonSignedPayload, RepoId, RoleType, TargetFilename}
-import slick.jdbc.MySQLProfile.api._
-import com.advancedtelematic.libtuf.data.ClientCodecs._
+import slick.jdbc.MySQLProfile.api.*
+import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
-import com.advancedtelematic.libtuf.data.ClientDataType.TufRole._
+import com.advancedtelematic.libtuf.data.ClientDataType.TufRole.*
 import io.circe.Codec
 
 import java.time.{Duration, Instant}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.async.Async._
+import scala.async.Async.*
 
-class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext) extends AdminRolesRepositorySupport {
+class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext) extends AdminRolesRepositorySupport
+with Settings {
 
   private val defaultExpire = Duration.ofDays(365)
   // Roles are marked as expired `EXPIRE_AHEAD` before the actual expire date
@@ -53,6 +56,12 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
   }
 
   def set(repoId: RepoId, offlineUpdatesName: AdminRoleName, values: Map[TargetFilename, ClientTargetItem], expireAt: Option[Instant]): Future[SignedRole[OfflineUpdatesRole]] = async {
+    val sizeOpt = await(adminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_SNAPSHOT, DEFAULT_SNAPSHOTS_NAME))
+      .map(_.toSignedRole[OfflineSnapshotRole].role.meta.size)
+
+    if(sizeOpt.getOrElse(0) >= maxOfflineTargets)
+      throw TooManyOfflineRoles(maxOfflineTargets)
+
     val existing = await(adminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_UPDATES, offlineUpdatesName))
 
     val expires = expireAt.getOrElse(nextExpires)
@@ -62,8 +71,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(implicit val db: Database
       OfflineUpdatesRole(values, expires = expires, version = 1)
     } else {
       val role = existing.get.toSignedRole[OfflineUpdatesRole].role
-      val newRole = role.copy(targets = values, expires = expires, version = role.version + 1)
-      newRole
+      role.copy(targets = values, expires = expires, version = role.version + 1)
     }
 
     await(signAndPersistWithSnapshot(repoId, offlineUpdatesName, newRole, expires))._1
