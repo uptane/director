@@ -54,7 +54,8 @@ object DataType {
                            deviceId: DeviceOemId,
                            deviceType: DeviceType = DeviceType.Other,
                            credentials: Option[String] = None,
-                           credentialsType: Option[CredentialsType] = None)
+                           credentialsType: Option[CredentialsType] = None,
+                           hibernated: Option[Boolean] = Some(false) )
 
   final case class SetDevice(deviceName: DeviceName, notes: Option[String] = None)
 
