@@ -2,16 +2,12 @@ name := "director-v2"
 organization := "io.github.uptane"
 scalaVersion := "2.13.12"
 
-scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused","-quickfix:any")
+scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused")
 
 resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
 resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
 
 Global / bloopAggregateSourceDependencies := true
-
-Compile / unmanagedSourceDirectories += baseDirectory.value / "device-registry" / "src" / "main" / "scala"
-
-Test / unmanagedSourceDirectories += baseDirectory.value / "device-registry" / "src" / "test" / "scala"
 
 libraryDependencies ++= {
   val akkaV = "2.8.5"

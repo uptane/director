@@ -41,6 +41,8 @@ object DbDebug {
             Json.fromString(v.toInstant.toString)
           case v: java.lang.Long =>
             Json.fromLong(v)
+          case v: java.lang.Short =>
+            Json.fromInt(v.intValue())
           case v: java.lang.Integer =>
             Json.fromInt(v)
           case v: java.lang.Float =>

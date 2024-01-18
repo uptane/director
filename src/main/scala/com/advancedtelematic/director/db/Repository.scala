@@ -79,17 +79,17 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
     db.run(existsIO(deviceId))
 
   def markDeleted(namespace: Namespace, deviceId: DeviceId): Future[Unit] = db.run {
-    for {
-      e <- Schema.allDevices
+    DBIO.seq(
+      Schema.allDevices
         .filter(d => d.namespace === namespace && d.id === deviceId)
         .map(_.deleted)
         .update(true)
-        .handleSingleUpdateError(MissingEntity[Device]())
-      _ <- Schema.allEcus
+        .handleSingleUpdateError(MissingEntity[Device]()),
+      Schema.allEcus
         .filter(e => e.namespace === namespace && e.deviceId === deviceId)
         .map(_.deleted)
         .update(true)
-    } yield e
+    ).transactionally
   }
 
   def findAllDeviceIds(ns: Namespace, offset: Long, limit: Long): Future[PaginationResult[DeviceId]] = db.run {

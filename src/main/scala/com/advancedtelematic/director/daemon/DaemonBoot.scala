@@ -18,10 +18,9 @@ import com.typesafe.config.Config
 import com.advancedtelematic.libats.http.VersionDirectives.*
 import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSupport
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
-import com.advancedtelematic.ota.deviceregistry.daemon.{DeleteDeviceListener, DeviceEventListener, DeviceSeenListener, DeviceUpdateEventListener, EcuReplacementListener}
+import com.advancedtelematic.deviceregistry.daemon.{DeviceEventListener, DeviceSeenListener, DeviceUpdateEventListener, EcuReplacementListener}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
-import cats.syntax.option.*
 import java.security.Security
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -53,7 +52,6 @@ class DirectorDaemonBoot(override val globalConfig: Config, override val dbConfi
     // Device Registry Listeners
     startMonitoredListener[DeviceSeen](new DeviceSeenListener(messageBus))
     startMonitoredListener[DeviceEventMessage](new DeviceEventListener)
-    startMonitoredListener[DeleteDeviceRequest](new DeleteDeviceListener, actorNamePrefix =  "device-registry".some)
     startMonitoredListener[DeviceUpdateEvent](new DeviceUpdateEventListener(messageBus))
     startMonitoredListener[EcuReplacement](new EcuReplacementListener)
 
