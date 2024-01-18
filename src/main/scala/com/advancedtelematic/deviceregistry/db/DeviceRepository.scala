@@ -88,7 +88,8 @@ object DeviceRepository {
       device.deviceName,
       device.deviceId,
       device.deviceType,
-      createdAt = Instant.now())
+      createdAt = Instant.now(),
+      hibernated = device.hibernated.getOrElse(false))
 
     val dbIO = devices += dbDevice
     dbIO
