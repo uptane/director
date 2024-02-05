@@ -20,6 +20,7 @@ import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
 import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, SetDevice, TagInfo, UpdateDevice, UpdateTagValue}
 import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
+import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.deviceregistry.data.SortDirection.SortDirection
@@ -88,6 +89,20 @@ trait DeviceRequests { self: ResourceSpec =>
         .uri(api)
         .withQuery(Query("regex" -> regex, "offset" -> offset.toString, "limit" -> limit.toString))
     )
+
+  def filterDevices(status: Option[DeviceStatus] = None,
+                    hibernated: Option[Boolean] = None,
+                    activatedAfter: Option[OffsetDateTime] = None,
+                    activatedBefore: Option[OffsetDateTime] = None
+                   ): HttpRequest = {
+    val m = Seq(
+      status.map("status" -> _.toString),
+      hibernated.map("isHibernating" -> _.toString),
+      activatedBefore.map("activatedBefore" -> _.toString),
+      activatedAfter.map("activatedAfter" -> _.toString),
+    ).collect { case Some(a) => a }
+    Get(Resource.uri(api).withQuery(Query(m.toMap)))
+  }
 
   def fetchByDeviceId(deviceId: DeviceOemId,
                       nameContains: Option[String] = None,
