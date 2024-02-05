@@ -139,17 +139,17 @@ object DeviceRepository {
   def countDevicesForExpression(ns: Namespace, expression: GroupExpression): DBIO[Int] =
     devicesForExpressionQuery(ns, expression).length.result
 
+  private def optionalFilter[T](o: Option[T])(fn: (DeviceTable, T) => Rep[Boolean]): DeviceTable => Rep[Boolean] =
+    dt => o match {
+      case None => true.bind
+      case Some(t) => fn(dt, t)
+    }
+
   private def searchQuery(ns: Namespace,
                           nameContains: Option[String],
                           groupId: Option[GroupId],
                           notSeenSinceHours: Option[Int],
                          ) = {
-
-    def optionalFilter[T](o: Option[T])(fn: (DeviceTable, T) => Rep[Boolean]): DeviceTable => Rep[Boolean] =
-      dt => o match {
-        case None => true.bind
-        case Some(t) => fn(dt, t)
-      }
 
     val groupFilter = optionalFilter(groupId) { (dt, gid) =>
       dt.uuid in groupMembers.filter(_.groupId === gid).map(_.deviceUuid)
@@ -190,17 +190,17 @@ object DeviceRepository {
             (implicit ec: ExecutionContext): DBIO[PaginationResult[Device]] = {
     val query = params match {
 
-      case SearchParams(Some(oemId), _, _, None, None, None, _, _, _, _) =>
+      case SearchParams(Some(oemId), _, _, None, None, None, _, _, _, _, _, _, _, _) =>
         findByDeviceIdQuery(ns, oemId)
 
-      case SearchParams(None, Some(true), gt, None, nameContains, None, _, _, _, _) =>
+      case SearchParams(None, Some(true), gt, None, nameContains, None, _, _, _, _, _, _, _, _) =>
         runQueryFilteringByName(ns, groupedDevicesQuery(ns, gt), nameContains)
 
-      case SearchParams(None, Some(false), gt, None, nameContains, None, _, _, _, _) =>
+      case SearchParams(None, Some(false), gt, None, nameContains, None, _, _, _, _, _, _, _, _) =>
         val ungroupedDevicesQuery = devices.filterNot(_.uuid.in(groupedDevicesQuery(ns, gt).map(_.uuid)))
         runQueryFilteringByName(ns, ungroupedDevicesQuery, nameContains)
 
-      case SearchParams(None, _, _, gid, nameContains, notSeenSinceHours, _, _, _, _) =>
+      case SearchParams(None, _, _, gid, nameContains, notSeenSinceHours, _, _, _, _, _, _, _, _) =>
         searchQuery(ns, nameContains, gid, notSeenSinceHours)
 
       case _ => throw new IllegalArgumentException("Invalid parameter combination.")
@@ -209,7 +209,27 @@ object DeviceRepository {
     val sortBy = params.sortBy.getOrElse(DeviceSortBy.Name)
     val sortDirection = params.sortDirection.getOrElse(SortDirection.Asc)
 
+    val deviceStatusFilter = optionalFilter(params.status) { (dt, s) =>
+      dt.deviceStatus === s
+    }
+
+    val activatedAfterFilter = optionalFilter(params.activatedAfter) { (dt, from) =>
+      dt.activatedAt.map(i => i >= from.toInstant).getOrElse(false.bind)
+    }
+
+    val activatedBeforeFilter = optionalFilter(params.activatedBefore) { (dt, to) =>
+      dt.activatedAt.map(i => i < to.toInstant).getOrElse(false.bind)
+    }
+
+    val isHibernatingFilter = optionalFilter(params.isHibernating) { (dt, h) =>
+      dt.hibernated === h
+    }
+
     query
+      .filter(deviceStatusFilter)
+      .filter(activatedAfterFilter)
+      .filter(activatedBeforeFilter)
+      .filter(isHibernatingFilter)
       .sortBy(devices => devices.ordered(sortBy, sortDirection))
       .paginateResult(params.offset.orDefaultOffset, params.limit.orDefaultLimit)
   }

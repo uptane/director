@@ -26,6 +26,7 @@ import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel
 import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
 import com.advancedtelematic.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
+import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
@@ -141,6 +142,10 @@ class DevicesResource(
       Symbol("groupId").as[GroupId].?,
       Symbol("nameContains").as[String].?,
       Symbol("notSeenSinceHours").as[Int].?,
+      Symbol("isHibernating").as[Boolean].?,
+      Symbol("status").as[DeviceStatus].?,
+      Symbol("activatedAfter").as[OffsetDateTime].?,
+      Symbol("activatedBefore").as[OffsetDateTime].?,
       Symbol("sortBy").as[DeviceSortBy].?,
       Symbol("sortDirection").as[SortDirection].?,
       Symbol("offset").as(nonNegativeLong).?,

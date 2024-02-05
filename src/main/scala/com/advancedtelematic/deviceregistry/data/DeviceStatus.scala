@@ -8,6 +8,7 @@
 
 package com.advancedtelematic.deviceregistry.data
 
+import akka.http.scaladsl.unmarshalling.Unmarshaller
 import io.circe.{Decoder, Encoder}
 
 object DeviceStatus extends Enumeration {
@@ -17,4 +18,7 @@ object DeviceStatus extends Enumeration {
 
   implicit val JsonEncoder: io.circe.Encoder[Value] = Encoder.encodeEnumeration(DeviceStatus)
   implicit val JsonDecoder: io.circe.Decoder[Value] = Decoder.decodeEnumeration(DeviceStatus)
+
+  implicit val deviceStatusUnmarshaller: Unmarshaller[String, DeviceStatus] =
+    Unmarshaller.strict(DeviceStatus.withName)
 }
