@@ -22,13 +22,12 @@ import com.advancedtelematic.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.*
 import com.advancedtelematic.deviceregistry.db.InstalledPackages.{DevicesCount, InstalledPackage}
-import com.advancedtelematic.deviceregistry.db.TaggedDeviceRepository.TaggedDeviceTable
-import com.advancedtelematic.deviceregistry.db.DeviceRepository.DeviceTable
 import com.advancedtelematic.deviceregistry.db.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.deviceregistry.data.DeviceStatus.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
+import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceSeen}
@@ -36,20 +35,17 @@ import io.circe.Json
 import io.circe.generic.auto.*
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.{Gen, Shrink}
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Millis, Seconds, Span}
-import slick.lifted.TableQuery
 
 import java.time.temporal.ChronoUnit
-import java.time.{Duration, Instant, OffsetDateTime, ZoneId}
+import java.time.{Duration, Instant, OffsetDateTime}
 import java.util.UUID
-import slick.jdbc.MySQLProfile.api.*
 
 /**
   * Spec for DeviceRepository REST actions
   */
-class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventually with BeforeAndAfterEach {
+class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventually {
 
   import Device.*
   import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
@@ -61,13 +57,6 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   implicit override val patienceConfig =
     PatienceConfig(timeout = Span(30, Seconds), interval = Span(100, Millis))
 
-  override def afterEach(): Unit = {
-    super.afterEach()
-
-    db.run(TableQuery[TaggedDeviceTable].delete).futureValue
-    db.run(TableQuery[DeviceTable].delete).futureValue
-  }
-
   implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
   def isRecent(time: Option[Instant]): Boolean = time match {
@@ -75,8 +64,8 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     case None    => false
   }
 
-  private def sendDeviceSeen(uuid: DeviceId, lastSeen: Instant = Instant.now()): Unit =
-    publisher(DeviceSeen(defaultNs, uuid, lastSeen)).futureValue
+  private def sendDeviceSeen(uuid: DeviceId, lastSeen: Instant = Instant.now(), namespace: Namespace = defaultNs): Unit =
+    publisher(DeviceSeen(namespace, uuid, lastSeen)).futureValue
 
   private def createGroupedAndUngroupedDevices(): Map[String, Seq[DeviceId]] = {
     val deviceTs = genConflictFreeDeviceTs(12).sample.get
@@ -650,24 +639,26 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     }
   }
 
-  property("can search for hibernating devices") {
-    val deviceT = genConflictFreeDeviceTs(1).generate.head //genDeviceT.sample.get
-    val uuid = createDeviceOk(deviceT)
+  property("can search for hibernated devices") {
+    val ns = Namespace("hibernated_tests")
 
-    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true)) ~> route ~> check {
+    val deviceT = genDeviceT.sample.get
+    val uuid = createDeviceInNamespaceOk(deviceT, ns)
+
+    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true)).withNs(ns) ~> route ~> check {
       status shouldBe StatusCodes.OK
     }
 
-    val device = fetchDeviceOk(uuid)
+    val device = fetchDeviceInNamespaceOk(uuid, ns)
     device.hibernated shouldBe true
 
-    filterDevices(hibernated = true.some) ~> route ~> check {
+    filterDevices(hibernated = true.some, namespace = ns) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values
       result.length shouldBe 1
     }
 
-    filterDevices(hibernated = false.some) ~> route ~> check {
+    filterDevices(hibernated = false.some, namespace = ns) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values
       result shouldBe empty
@@ -676,10 +667,12 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
 
   property("can search devices by status") {
-    val deviceT = genDeviceT.sample.get
-    val uuid = createDeviceOk(deviceT)
+    val ns = Namespace("status_tests")
 
-    filterDevices(status = DeviceStatus.NotSeen.some) ~> route ~> check {
+    val deviceT = genDeviceT.sample.get
+    val uuid = createDeviceInNamespaceOk(deviceT, ns)
+
+    filterDevices(status = DeviceStatus.NotSeen.some, namespace = ns) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.deviceStatus)
       result.foreach { deviceStatus =>
@@ -687,9 +680,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       }
     }
 
-    sendDeviceSeen(uuid)
+    sendDeviceSeen(uuid, namespace = ns)
 
-    filterDevices(status = DeviceStatus.UpToDate.some) ~> route ~> check {
+    filterDevices(status = DeviceStatus.UpToDate.some, namespace = ns) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.deviceStatus)
       result.foreach { deviceStatus =>
@@ -699,7 +692,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     val otherStatuses: Seq[DeviceStatus] = Seq(NotSeen, Error, UpdatePending, Outdated)
     otherStatuses.foreach { deviceStatus =>
-      filterDevices(status = deviceStatus.some) ~> route ~> check {
+      filterDevices(status = deviceStatus.some, namespace = ns) ~> route ~> check {
         status shouldBe OK
         val result = responseAs[PaginationResult[Device]].values.map(_.deviceStatus)
         result shouldBe empty
@@ -708,44 +701,56 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("can search devices by activation time") {
+    val ns = Namespace("activation_tests")
+
     val device1 = genDeviceT.sample.get
-    val uuid1 = createDeviceOk(device1)
+    val uuid1 = createDeviceInNamespaceOk(device1, ns)
 
     val device2 = genDeviceT.sample.get
-    val uuid2 = createDeviceOk(device2)
+    val uuid2 = createDeviceInNamespaceOk(device2, ns)
 
     val device3 = genDeviceT.sample.get
-    val uuid3 = createDeviceOk(device3)
+    val uuid3 = createDeviceInNamespaceOk(device3, ns)
+
+    val device4 = genDeviceT.sample.get
+    val uuid4 = createDeviceInNamespaceOk(device4, ns)
 
     val now = Instant.now
     val oneHourAgo = now.minus(Duration.ofHours(1))
     val twoHoursAgo = now.minus(Duration.ofHours(2))
 
-    sendDeviceSeen(uuid1, now)
-    sendDeviceSeen(uuid2, oneHourAgo)
-    sendDeviceSeen(uuid3, twoHoursAgo)
+    sendDeviceSeen(uuid1, now, ns)
+    sendDeviceSeen(uuid2, oneHourAgo, ns)
+    sendDeviceSeen(uuid3, twoHoursAgo, ns)
 
-    val afterDate = OffsetDateTime.ofInstant(oneHourAgo.minus(Duration.ofMinutes(1)), ZoneId.systemDefault())
-    filterDevices(activatedAfter = afterDate.some) ~> route ~> check {
+    val afterDate = oneHourAgo.minus(Duration.ofMinutes(1))
+    filterDevices(activatedAfter = afterDate.some, namespace = ns) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result.length shouldBe 2
       result should contain allElementsOf Seq(uuid1, uuid2)
     }
 
-    val beforeDate = OffsetDateTime.ofInstant(oneHourAgo.plus(Duration.ofMinutes(1)), ZoneId.systemDefault())
-    filterDevices(activatedBefore = beforeDate.some) ~> route ~> check {
+    val beforeDate = oneHourAgo.plus(Duration.ofMinutes(1))
+    filterDevices(activatedBefore = beforeDate.some, namespace = ns) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result.length shouldBe 2
       result should contain allElementsOf Seq(uuid2, uuid3)
     }
 
-    filterDevices(activatedAfter = afterDate.some, activatedBefore = beforeDate.some) ~> route ~> check {
+    filterDevices(activatedAfter = afterDate.some, activatedBefore = beforeDate.some, namespace = ns) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result.length shouldBe 1
       result.head shouldBe uuid2
+    }
+
+    filterDevices(namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 4
+      result should contain allElementsOf Seq(uuid1, uuid2, uuid3, uuid4)
     }
   }
 

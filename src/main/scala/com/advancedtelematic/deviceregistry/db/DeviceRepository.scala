@@ -33,6 +33,7 @@ import slick.jdbc.MySQLProfile.api.*
 import scala.concurrent.ExecutionContext
 import cats.syntax.option.*
 import slick.jdbc.{PositionedParameters, SetParameter}
+import slick.lifted.Rep
 
 import java.sql.Timestamp
 import scala.annotation.unused
@@ -139,17 +140,17 @@ object DeviceRepository {
   def countDevicesForExpression(ns: Namespace, expression: GroupExpression): DBIO[Int] =
     devicesForExpressionQuery(ns, expression).length.result
 
-  private def optionalFilter[T](o: Option[T])(fn: (DeviceTable, T) => Rep[Boolean]): DeviceTable => Rep[Boolean] =
-    dt => o match {
-      case None => true.bind
-      case Some(t) => fn(dt, t)
-    }
-
   private def searchQuery(ns: Namespace,
                           nameContains: Option[String],
                           groupId: Option[GroupId],
                           notSeenSinceHours: Option[Int],
                          ) = {
+
+    def optionalFilter[T](o: Option[T])(fn: (DeviceTable, T) => Rep[Boolean]): DeviceTable => Rep[Boolean] =
+      dt => o match {
+        case None => true.bind
+        case Some(t) => fn(dt, t)
+      }
 
     val groupFilter = optionalFilter(groupId) { (dt, gid) =>
       dt.uuid in groupMembers.filter(_.groupId === gid).map(_.deviceUuid)
@@ -209,27 +210,11 @@ object DeviceRepository {
     val sortBy = params.sortBy.getOrElse(DeviceSortBy.Name)
     val sortDirection = params.sortDirection.getOrElse(SortDirection.Asc)
 
-    val deviceStatusFilter = optionalFilter(params.status) { (dt, s) =>
-      dt.deviceStatus === s
-    }
-
-    val activatedAfterFilter = optionalFilter(params.activatedAfter) { (dt, from) =>
-      dt.activatedAt.map(i => i >= from.toInstant).getOrElse(false.bind)
-    }
-
-    val activatedBeforeFilter = optionalFilter(params.activatedBefore) { (dt, to) =>
-      dt.activatedAt.map(i => i < to.toInstant).getOrElse(false.bind)
-    }
-
-    val isHibernatingFilter = optionalFilter(params.isHibernating) { (dt, h) =>
-      dt.hibernated === h
-    }
-
     query
-      .filter(deviceStatusFilter)
-      .filter(activatedAfterFilter)
-      .filter(activatedBeforeFilter)
-      .filter(isHibernatingFilter)
+      .maybeFilter(_.deviceStatus === params.status)
+      .maybeFilter(_.hibernated === params.hibernated)
+      .filter(dt => params.activatedAfter.map(t => dt.activatedAt.map(i => i > t).getOrElse(false.bind)).getOrElse(true.bind))
+      .filter(dt => params.activatedBefore.map(t => dt.activatedAt.map(i => i < t).getOrElse(false.bind)).getOrElse(true.bind))
       .sortBy(devices => devices.ordered(sortBy, sortDirection))
       .paginateResult(params.offset.orDefaultOffset, params.limit.orDefaultLimit)
   }

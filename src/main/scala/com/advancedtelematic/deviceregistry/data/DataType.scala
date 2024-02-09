@@ -1,6 +1,6 @@
 package com.advancedtelematic.deviceregistry.data
 
-import java.time.{Instant, OffsetDateTime}
+import java.time.Instant
 import cats.Show
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
 import com.advancedtelematic.libats.data.EcuIdentifier
@@ -99,10 +99,10 @@ object DataType {
                                 groupId: Option[GroupId],
                                 nameContains: Option[String],
                                 notSeenSinceHours: Option[Int],
-                                isHibernating: Option[Boolean],
+                                hibernated: Option[Boolean],
                                 status: Option[DeviceStatus],
-                                activatedAfter: Option[OffsetDateTime],
-                                activatedBefore: Option[OffsetDateTime],
+                                activatedAfter: Option[Instant],
+                                activatedBefore: Option[Instant],
                                 sortBy: Option[DeviceSortBy],
                                 sortDirection: Option[SortDirection],
                                 offset: Option[Long],

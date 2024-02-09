@@ -142,10 +142,10 @@ class DevicesResource(
       Symbol("groupId").as[GroupId].?,
       Symbol("nameContains").as[String].?,
       Symbol("notSeenSinceHours").as[Int].?,
-      Symbol("isHibernating").as[Boolean].?,
+      Symbol("hibernated").as[Boolean].?,
       Symbol("status").as[DeviceStatus].?,
-      Symbol("activatedAfter").as[OffsetDateTime].?,
-      Symbol("activatedBefore").as[OffsetDateTime].?,
+      Symbol("activatedAfter").as[Instant].?,
+      Symbol("activatedBefore").as[Instant].?,
       Symbol("sortBy").as[DeviceSortBy].?,
       Symbol("sortDirection").as[SortDirection].?,
       Symbol("offset").as(nonNegativeLong).?,
@@ -227,6 +227,9 @@ class DevicesResource(
 
   implicit def offsetDateTimeUnmarshaller: FromStringUnmarshaller[OffsetDateTime] =
     Unmarshaller.strict(OffsetDateTime.parse)
+
+  implicit def instantUnmarshaller: FromStringUnmarshaller[Instant] =
+    Unmarshaller.strict(Instant.parse)
 
   def getActiveDeviceCount(ns: Namespace): Route =
     parameters(Symbol("start").as[OffsetDateTime], Symbol("end").as[OffsetDateTime]) { (start, end) =>

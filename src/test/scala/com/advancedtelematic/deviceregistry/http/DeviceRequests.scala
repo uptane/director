@@ -31,7 +31,8 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 
-import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, OffsetDateTime}
 
 /**
   * Generic test resource object
@@ -68,6 +69,12 @@ trait DeviceRequests { self: ResourceSpec =>
       responseAs[Device]
     }
 
+  def fetchDeviceInNamespaceOk(uuid: DeviceId, namespace: Namespace): Device =
+    Get(Resource.uri(api, uuid.show)).withNs(namespace) ~> route ~> check {
+      status shouldBe OK
+      responseAs[Device]
+    }
+
   def listDevices(sortBy: Option[DeviceSortBy] = None, sortDirection: Option[SortDirection] = None): HttpRequest = {
     val m = (sortBy, sortDirection) match {
       case (None, _) => Map.empty[String, String]
@@ -92,16 +99,17 @@ trait DeviceRequests { self: ResourceSpec =>
 
   def filterDevices(status: Option[DeviceStatus] = None,
                     hibernated: Option[Boolean] = None,
-                    activatedAfter: Option[OffsetDateTime] = None,
-                    activatedBefore: Option[OffsetDateTime] = None
+                    activatedAfter: Option[Instant] = None,
+                    activatedBefore: Option[Instant] = None,
+                    namespace: Namespace = defaultNs
                    ): HttpRequest = {
     val m = Seq(
       status.map("status" -> _.toString),
-      hibernated.map("isHibernating" -> _.toString),
+      hibernated.map("hibernated" -> _.toString),
       activatedBefore.map("activatedBefore" -> _.toString),
       activatedAfter.map("activatedAfter" -> _.toString),
     ).collect { case Some(a) => a }
-    Get(Resource.uri(api).withQuery(Query(m.toMap)))
+    Get(Resource.uri(api).withQuery(Query(m.toMap))).withNs(namespace)
   }
 
   def fetchByDeviceId(deviceId: DeviceOemId,
