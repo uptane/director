@@ -140,17 +140,18 @@ object DeviceRepository {
   def countDevicesForExpression(ns: Namespace, expression: GroupExpression): DBIO[Int] =
     devicesForExpressionQuery(ns, expression).length.result
 
+  private def optionalFilter[T](o: Option[T])(fn: (DeviceTable, T) => Rep[Boolean]): DeviceTable => Rep[Boolean] =
+    dt => o match {
+      case None => true.bind
+      case Some(t) => fn(dt, t)
+    }
+
   private def searchQuery(ns: Namespace,
                           nameContains: Option[String],
                           groupId: Option[GroupId],
                           notSeenSinceHours: Option[Int],
                          ) = {
 
-    def optionalFilter[T](o: Option[T])(fn: (DeviceTable, T) => Rep[Boolean]): DeviceTable => Rep[Boolean] =
-      dt => o match {
-        case None => true.bind
-        case Some(t) => fn(dt, t)
-      }
 
     val groupFilter = optionalFilter(groupId) { (dt, gid) =>
       dt.uuid in groupMembers.filter(_.groupId === gid).map(_.deviceUuid)
@@ -210,11 +211,20 @@ object DeviceRepository {
     val sortBy = params.sortBy.getOrElse(DeviceSortBy.Name)
     val sortDirection = params.sortDirection.getOrElse(SortDirection.Asc)
 
+
+    val activatedAfterFilter = optionalFilter(params.activatedAfter) { (dt, from) =>
+      dt.activatedAt.map(i => i >= from).getOrElse(false.bind)
+    }
+
+    val activatedBeforeFilter = optionalFilter(params.activatedBefore) { (dt, to) =>
+      dt.activatedAt.map(i => i < to).getOrElse(false.bind)
+    }
+
     query
       .maybeFilter(_.deviceStatus === params.status)
       .maybeFilter(_.hibernated === params.hibernated)
-      .filter(dt => params.activatedAfter.map(t => dt.activatedAt.map(i => i > t).getOrElse(false.bind)).getOrElse(true.bind))
-      .filter(dt => params.activatedBefore.map(t => dt.activatedAt.map(i => i < t).getOrElse(false.bind)).getOrElse(true.bind))
+      .filter(activatedAfterFilter)
+      .filter(activatedBeforeFilter)
       .sortBy(devices => devices.ordered(sortBy, sortDirection))
       .paginateResult(params.offset.orDefaultOffset, params.limit.orDefaultLimit)
   }
