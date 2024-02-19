@@ -24,8 +24,10 @@ import com.advancedtelematic.deviceregistry.data.*
 import com.advancedtelematic.deviceregistry.db.InstalledPackages.{DevicesCount, InstalledPackage}
 import com.advancedtelematic.deviceregistry.db.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
+import com.advancedtelematic.deviceregistry.data.DeviceStatus.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
+import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceSeen}
@@ -37,7 +39,7 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Millis, Seconds, Span}
 
 import java.time.temporal.ChronoUnit
-import java.time.{Instant, OffsetDateTime}
+import java.time.{Duration, Instant, OffsetDateTime}
 import java.util.UUID
 
 /**
@@ -62,8 +64,8 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     case None    => false
   }
 
-  private def sendDeviceSeen(uuid: DeviceId, lastSeen: Instant = Instant.now()): Unit =
-    publisher(DeviceSeen(defaultNs, uuid, lastSeen)).futureValue
+  private def sendDeviceSeen(uuid: DeviceId, lastSeen: Instant = Instant.now(), namespace: Namespace = defaultNs): Unit =
+    publisher(DeviceSeen(namespace, uuid, lastSeen)).futureValue
 
   private def createGroupedAndUngroupedDevices(): Map[String, Seq[DeviceId]] = {
     val deviceTs = genConflictFreeDeviceTs(12).sample.get
@@ -634,6 +636,121 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result should contain allElementsOf deviceUuids
+    }
+  }
+
+  property("can search for hibernated devices") {
+    val ns = Namespace("hibernated_tests")
+
+    val deviceT = genDeviceT.sample.get
+    val uuid = createDeviceInNamespaceOk(deviceT, ns)
+
+    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true)).withNs(ns) ~> route ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    val device = fetchDeviceInNamespaceOk(uuid, ns)
+    device.hibernated shouldBe true
+
+    filterDevices(hibernated = true.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values
+      result.length shouldBe 1
+    }
+
+    filterDevices(hibernated = false.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values
+      result shouldBe empty
+    }
+  }
+
+
+  property("can search devices by status") {
+    val ns = Namespace("status_tests")
+
+    val deviceT = genDeviceT.sample.get
+    val uuid = createDeviceInNamespaceOk(deviceT, ns)
+
+    filterDevices(status = DeviceStatus.NotSeen.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.deviceStatus)
+      result.foreach { deviceStatus =>
+        deviceStatus shouldBe DeviceStatus.NotSeen
+      }
+    }
+
+    sendDeviceSeen(uuid, namespace = ns)
+
+    filterDevices(status = DeviceStatus.UpToDate.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.deviceStatus)
+      result.foreach { deviceStatus =>
+        deviceStatus shouldBe DeviceStatus.UpToDate
+      }
+    }
+
+    val otherStatuses: Seq[DeviceStatus] = Seq(NotSeen, Error, UpdatePending, Outdated)
+    otherStatuses.foreach { deviceStatus =>
+      filterDevices(status = deviceStatus.some, namespace = ns) ~> route ~> check {
+        status shouldBe OK
+        val result = responseAs[PaginationResult[Device]].values.map(_.deviceStatus)
+        result shouldBe empty
+      }
+    }
+  }
+
+  property("can search devices by activation time") {
+    val ns = Namespace("activation_tests")
+
+    val device1 = genDeviceT.sample.get
+    val uuid1 = createDeviceInNamespaceOk(device1, ns)
+
+    val device2 = genDeviceT.sample.get
+    val uuid2 = createDeviceInNamespaceOk(device2, ns)
+
+    val device3 = genDeviceT.sample.get
+    val uuid3 = createDeviceInNamespaceOk(device3, ns)
+
+    val device4 = genDeviceT.sample.get
+    val uuid4 = createDeviceInNamespaceOk(device4, ns)
+
+    val now = Instant.now
+    val oneHourAgo = now.minus(Duration.ofHours(1))
+    val twoHoursAgo = now.minus(Duration.ofHours(2))
+
+    sendDeviceSeen(uuid1, now, ns)
+    sendDeviceSeen(uuid2, oneHourAgo, ns)
+    sendDeviceSeen(uuid3, twoHoursAgo, ns)
+
+    val afterDate = oneHourAgo.minus(Duration.ofMinutes(1))
+    filterDevices(activatedAfter = afterDate.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 2
+      result should contain allElementsOf Seq(uuid1, uuid2)
+    }
+
+    val beforeDate = oneHourAgo.plus(Duration.ofMinutes(1))
+    filterDevices(activatedBefore = beforeDate.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 2
+      result should contain allElementsOf Seq(uuid2, uuid3)
+    }
+
+    filterDevices(activatedAfter = afterDate.some, activatedBefore = beforeDate.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 1
+      result.head shouldBe uuid2
+    }
+
+    filterDevices(namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 4
+      result should contain allElementsOf Seq(uuid1, uuid2, uuid3, uuid4)
     }
   }
 

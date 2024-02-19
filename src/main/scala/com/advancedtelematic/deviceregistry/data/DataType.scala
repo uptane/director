@@ -10,6 +10,7 @@ import com.advancedtelematic.deviceregistry.data.CredentialsType.CredentialsType
 import com.advancedtelematic.deviceregistry.data.DataType.IndexedEventType.IndexedEventType
 import com.advancedtelematic.deviceregistry.data.Device.{DeviceOemId, DeviceType}
 import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
+import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.deviceregistry.data.SortDirection.SortDirection
@@ -81,6 +82,10 @@ object DataType {
       None,
       None,
       None,
+      None,
+      None,
+      None,
+      None,
       Some(DeviceSortBy.CreatedAt),
       Some(SortDirection.Asc),
       offset,
@@ -94,6 +99,10 @@ object DataType {
                                 groupId: Option[GroupId],
                                 nameContains: Option[String],
                                 notSeenSinceHours: Option[Int],
+                                hibernated: Option[Boolean],
+                                status: Option[DeviceStatus],
+                                activatedAfter: Option[Instant],
+                                activatedBefore: Option[Instant],
                                 sortBy: Option[DeviceSortBy],
                                 sortDirection: Option[SortDirection],
                                 offset: Option[Long],

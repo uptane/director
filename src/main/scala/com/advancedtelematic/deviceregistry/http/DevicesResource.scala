@@ -26,6 +26,7 @@ import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel
 import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
 import com.advancedtelematic.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
+import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
@@ -141,6 +142,10 @@ class DevicesResource(
       Symbol("groupId").as[GroupId].?,
       Symbol("nameContains").as[String].?,
       Symbol("notSeenSinceHours").as[Int].?,
+      Symbol("hibernated").as[Boolean].?,
+      Symbol("status").as[DeviceStatus].?,
+      Symbol("activatedAfter").as[Instant].?,
+      Symbol("activatedBefore").as[Instant].?,
       Symbol("sortBy").as[DeviceSortBy].?,
       Symbol("sortDirection").as[SortDirection].?,
       Symbol("offset").as(nonNegativeLong).?,
@@ -222,6 +227,9 @@ class DevicesResource(
 
   implicit def offsetDateTimeUnmarshaller: FromStringUnmarshaller[OffsetDateTime] =
     Unmarshaller.strict(OffsetDateTime.parse)
+
+  implicit def instantUnmarshaller: FromStringUnmarshaller[Instant] =
+    Unmarshaller.strict(Instant.parse)
 
   def getActiveDeviceCount(ns: Namespace): Route =
     parameters(Symbol("start").as[OffsetDateTime], Symbol("end").as[OffsetDateTime]) { (start, end) =>
