@@ -12,10 +12,10 @@ Global / bloopAggregateSourceDependencies := true
 libraryDependencies ++= {
   val akkaV = "2.8.5"
   val akkaHttpV = "10.5.2"
-  val tufV = "3.1.3"
+  val tufV = "3.1.4-43-gf3586c1-SNAPSHOT"
   val scalaTestV = "3.2.17"
   val bouncyCastleV = "1.76"
-  val libatsV = "2.6.3"
+  val libatsV = "2.6.4"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,

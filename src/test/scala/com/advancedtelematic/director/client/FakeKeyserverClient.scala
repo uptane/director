@@ -19,6 +19,7 @@ import java.time.temporal.ChronoUnit
 import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
 import scala.util.Try
+import scala.async.Async.*
 
 class FakeKeyserverClient extends KeyserverClient {
 
@@ -77,7 +78,7 @@ class FakeKeyserverClient extends KeyserverClient {
     FastFuture.successful(SignedPayload(List(signature), payload, payload.asJson))
   }
 
-  override def fetchRootRole(repoId: RepoId): Future[SignedPayload[RootRole]] =
+  override def fetchRootRole(repoId: RepoId, _expireNotBefore: Option[Instant]): Future[SignedPayload[RootRole]] =
     FastFuture {
       Try {
         rootRoles.asScala(repoId)
@@ -119,7 +120,9 @@ class FakeKeyserverClient extends KeyserverClient {
     }
   }
 
-  import scala.async.Async._
+  def fetchKeypairByKeyId(keyId: KeyId): Option[TufKeyPair] = {
+    keys.asScala.values.flatMap(_.values).find(_.pubkey.id == keyId)
+  }
 
   override def addOfflineUpdatesRole(repoId: RepoId): Future[Unit] =
     addRoles(repoId, RoleType.OFFLINE_UPDATES, RoleType.OFFLINE_SNAPSHOT)

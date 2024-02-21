@@ -1,40 +1,39 @@
 package com.advancedtelematic.director.http
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server._
-import cats.syntax.option._
+import akka.http.scaladsl.server.*
+import akka.http.scaladsl.server.Directives.*
+import cats.syntax.option.*
 import com.advancedtelematic.director.data.AdminDataType.{FindImageCount, RegisterDevice}
-import com.advancedtelematic.director.data.ClientDataType.{DevicePaginationOps, _}
-import com.advancedtelematic.director.data.Codecs._
+import com.advancedtelematic.director.data.ClientDataType.{DevicePaginationOps, *}
+import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.AdminRoleName.AdminRoleNamePathMatcher
-import com.advancedtelematic.director.db._
-import com.advancedtelematic.director.http.PaginationParametersDirectives._
+import com.advancedtelematic.director.db.*
+import com.advancedtelematic.director.http.PaginationParametersDirectives.*
 import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates, RemoteSessions}
-import com.advancedtelematic.libats.codecs.CirceCodecs._
+import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
-import com.advancedtelematic.libats.http.RefinedMarshallingSupport._
-import com.advancedtelematic.libats.http.UUIDKeyAkka._
+import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
+import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
+import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libtuf.data.ClientCodecs._
-import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, RootRole}
-import com.advancedtelematic.libtuf.data.TufCodecs._
-import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetFilename, TargetName, ValidKeyId}
+import com.advancedtelematic.libtuf.data.ClientCodecs.*
+import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, RemoteSessionsPayload, RootRole}
+import com.advancedtelematic.libtuf.data.TufCodecs.*
+import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, JsonSignedPayload, SignedPayload, TargetFilename, TargetName, ValidKeyId}
+import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import io.circe.Json
-import slick.jdbc.MySQLProfile.api._
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
 
 case class OfflineUpdateRequest(values: Map[TargetFilename, ClientTargetItem], expiresAt: Option[Instant])
 
-case class RemoteSessionRequest(remoteSessions: Json, previousVersion: Int)
+case class RemoteSessionRequest(remoteSessions: RemoteSessionsPayload, previousVersion: Int)
 
 class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient)
                    (implicit val db: Database, val ec: ExecutionContext, messageBusPublisher: MessageBusPublisher)
@@ -195,8 +194,15 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
           }
         },
         (path("remote-sessions.json") & UserRepoId(ns)) { repoId =>
-          val f = remoteSessions.find(repoId)
-          complete(f)
+          get {
+            val f = remoteSessions.find(repoId)
+            complete(f)
+          } ~
+          post {
+            entity(as[JsonSignedPayload]) { req =>
+              complete(remoteSessions.updateFullRole(repoId, req).map(_ => StatusCodes.OK))
+            }
+          }
         },
         pathPrefix("devices") {
           UserRepoId(ns) { repoId =>

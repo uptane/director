@@ -76,7 +76,7 @@ object DbDataType {
     }
   }
 
-  implicit class SignedPayloadToDbRole(value: SignedRole[_]) {
+  implicit class SignedPayloadToDbRole(value: SignedRole[?]) {
     def toDbDeviceRole(deviceId: DeviceId): DbDeviceRole =
       DbDeviceRole(value.tufRole.roleType, deviceId, value.checksum.some, value.length.some, value.version, value.expiresAt, value.content)
 

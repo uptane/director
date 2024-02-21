@@ -30,8 +30,6 @@ import com.advancedtelematic.libats.http.HttpOps.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
-
-import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime}
 
 /**
