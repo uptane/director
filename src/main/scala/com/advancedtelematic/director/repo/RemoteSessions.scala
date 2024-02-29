@@ -1,22 +1,27 @@
 package com.advancedtelematic.director.repo
 
+import akka.http.scaladsl.util.FastFuture
+import cats.data.Validated.{Invalid, Valid}
+import cats.data.ValidatedNel
 import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.SignedPayloadToDbRole
 import com.advancedtelematic.director.db.AdminRolesRepositorySupport
-import com.advancedtelematic.libtuf.data.ClientCodecs._
-import com.advancedtelematic.libtuf.data.ClientDataType.{RemoteSessionsRole, TufRole, TufRoleOps}
-import com.advancedtelematic.libtuf.data.TufDataType.{JsonSignedPayload, RepoId, RoleType}
+import com.advancedtelematic.director.http.Errors
+import com.advancedtelematic.libtuf.data.ClientCodecs.*
+import com.advancedtelematic.libtuf.data.ClientDataType.{RemoteSessionsPayload, RemoteSessionsRole, TufRole, TufRoleOps}
+import com.advancedtelematic.libtuf.data.RoleValidation
+import com.advancedtelematic.libtuf.data.TufDataType.{JsonSignedPayload, RepoId, RoleType, SignedPayload}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
-import io.circe.{Codec, Json}
-import slick.jdbc.MySQLProfile.api._
+import io.circe.Codec
+import slick.jdbc.MySQLProfile.api.*
 
 import java.time.{Duration, Instant}
 import scala.concurrent.{ExecutionContext, Future}
 
 
 class RemoteSessions(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext) extends AdminRolesRepositorySupport {
-  import scala.async.Async._
+  import scala.async.Async.*
 
   private val defaultExpire = Duration.ofDays(365)
   // Roles are marked as expired `EXPIRE_AHEAD` before the actual expire date
@@ -41,7 +46,7 @@ class RemoteSessions(keyserverClient: KeyserverClient)(implicit val db: Database
       existing.content
   }
 
-  def set(repoId: RepoId, remoteSessions: Json, previousVersion: Int): Future[SignedRole[RemoteSessionsRole]] = async {
+  def set(repoId: RepoId, remoteSessions: RemoteSessionsPayload, previousVersion: Int): Future[SignedRole[RemoteSessionsRole]] = async {
     val existing = await(adminRolesRepository.findLatestOpt(repoId, RoleType.REMOTE_SESSIONS, REMOTE_SESSIONS_ADMIN_NAME))
 
     val expireAt = nextExpires
@@ -64,4 +69,22 @@ class RemoteSessions(keyserverClient: KeyserverClient)(implicit val db: Database
     val signedPayload = await(keyserverClient.sign(repoId, role))
     await(SignedRole.withChecksum[T](signedPayload.asJsonSignedPayload, role.version, role.expires))
   }
+
+  private def validateSignedPayload(repoId: RepoId, payload: JsonSignedPayload): Future[ValidatedNel[String, SignedPayload[RemoteSessionsRole]]] = for {
+    rootRole <- keyserverClient.fetchRootRole(repoId).map(_.signed)
+    userSignedValid = RoleValidation.rawJsonIsValid[RemoteSessionsRole](payload).andThen { parsedRole =>
+      RoleValidation.roleIsValid(parsedRole, rootRole)
+    }
+  } yield userSignedValid
+
+  def updateFullRole(repoId: RepoId, payload: JsonSignedPayload): Future[Unit] =
+    validateSignedPayload(repoId, payload).flatMap {
+      case Valid(signedPayload) =>
+        SignedRole.withChecksum[RemoteSessionsRole](signedPayload.asJsonSignedPayload, signedPayload.signed.version, signedPayload.signed.expires).flatMap { signedRole =>
+          adminRolesRepository.persistAll(signedRole.toDbAdminRole(repoId, REMOTE_SESSIONS_ADMIN_NAME))
+        }
+      case Invalid(errors) =>
+        FastFuture.failed(Errors.InvalidSignedPayload(repoId, errors))
+    }
 }
+
