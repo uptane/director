@@ -15,5 +15,5 @@ CREATE TABLE `scheduled_updates` (
   PRIMARY KEY (`id`),
   INDEX scheduled_updates_ns_device_id(namespace, `device_id`),
   INDEX scheduled_updates_status_scheduled_at(`status`, `scheduled_at`)
-)
+) DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci
 ;
