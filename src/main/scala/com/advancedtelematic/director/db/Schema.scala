@@ -1,19 +1,24 @@
 package com.advancedtelematic.director.db
 
 import akka.http.scaladsl.model.Uri
-import com.advancedtelematic.director.data.DataType.AdminRoleName
+import com.advancedtelematic.director.data.DataType.{AdminRoleName, ScheduledUpdate, ScheduledUpdateId}
 import com.advancedtelematic.director.data.DbDataType.*
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.EcuIdentifier
+import com.advancedtelematic.libats.data.UUIDKey.UUIDKey
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, JsonSignedPayload, RepoId, TargetFilename, TargetName, TufKey}
 import io.circe.Json
 import slick.jdbc.MySQLProfile.api.*
+import slick.lifted.ProvenShape
+import SlickMapping.*
 
 import java.time.Instant
+import java.util.UUID
 
+//noinspection TypeAnnotation
 object Schema {
   import SlickMapping.adminRoleNameMapper
   import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
@@ -195,4 +200,23 @@ object Schema {
   }
 
   protected [db] val deviceManifests = TableQuery[DeviceManifestsTable]
+
+  class ScheduledUpdatesTable(tag: Tag) extends Table[ScheduledUpdate](tag, "scheduled_updates") {
+    def namespace = column[Namespace]("namespace")
+    def id = column[ScheduledUpdateId]("id")
+    def deviceId = column[DeviceId]("device_id")
+    def updateId = column[UpdateId]("hardware_update_id")
+    def scheduledAt = column[Instant]("scheduled_at")(javaInstantMapping)
+    def status = column[ScheduledUpdate.Status]("status")
+    def statusInfo = column[Option[Json]]("status_info")
+
+    def createdAt = column[Instant]("created_at")(javaInstantMapping)
+    def updatedAt = column[Instant]("updated_at")(javaInstantMapping)
+
+    def pk = primaryKey("scheduled-updates-pk", id)
+
+    override def * = (namespace, id, deviceId, updateId, scheduledAt, status) <> ((ScheduledUpdate.apply _).tupled, ScheduledUpdate.unapply)
+  }
+
+  protected [db] val scheduledUpdates = TableQuery[ScheduledUpdatesTable]
 }

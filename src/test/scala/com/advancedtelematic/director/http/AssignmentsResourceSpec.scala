@@ -5,6 +5,7 @@ import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
 import cats.syntax.show.*
+import com.advancedtelematic.director.daemon.UpdateScheduler
 import com.advancedtelematic.director.data.AdminDataType.*
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.TargetItemCustom
@@ -31,7 +32,7 @@ import java.time.Instant
 import scala.annotation.unused
 
 trait AssignmentResources {
-  self: DirectorSpec with RouteResourceSpec with NamespacedTests with AdminResources =>
+  self: DirectorSpec & RouteResourceSpec & NamespacedTests & AdminResources =>
 
   def createDeviceAssignment(deviceId: DeviceId, hwId: HardwareIdentifier, targetUpdateO: Option[TargetUpdateRequest] = None,
                              correlationIdO: Option[CorrelationId] = None)(checkV: => Any)(implicit ns: Namespace, pos: Position): AssignUpdateRequest = {
@@ -115,6 +116,8 @@ class AssignmentsResourceSpec extends DirectorSpec
   with Inspectors {
 
   override implicit val msgPub = new MockMessageBus
+
+  val updateScheduler = new UpdateScheduler()
 
   testWithRepo("Can create an assignment for existing devices") { implicit ns =>
     val regDev = registerAdminDeviceOk()
@@ -236,6 +239,41 @@ class AssignmentsResourceSpec extends DirectorSpec
     putManifestOk(regDev1.deviceId, buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, otherUpdate))
 
     createAssignmentOk(List(regDev0.deviceId, regDev1.deviceId), regDev0.primary.hardwareId, targetUpdate.some)
+
+    val queue0 = getDeviceAssignmentOk(regDev0.deviceId)
+    queue0 should be(empty)
+
+    val queue1 = getDeviceAssignmentOk(regDev1.deviceId)
+    queue1 shouldNot be(empty)
+  }
+
+  testWithRepo("ecus are not affected if the device has scheduled updates") { implicit ns =>
+    val regDev0 = registerAdminDeviceOk()
+    val regDev1 = registerAdminDeviceOk(regDev0.primary.hardwareId.some)
+
+    val mtu = MultiTargetUpdate(Map(regDev0.primary.hardwareId -> GenTargetUpdateRequest.generate))
+    val scheduledUpdate = createMtu(mtu) ~> check {
+      response.status shouldBe StatusCodes.Created
+      responseAs[UpdateId]
+    }
+    updateScheduler.create(ns, regDev0.deviceId, scheduledUpdate, Instant.now).futureValue
+
+    val existingUpdate = GenTargetUpdate.generate
+    putManifestOk(regDev1.deviceId, buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, existingUpdate))
+
+    val targetUpdate = GenTargetUpdateRequest.generate
+    createAssignment(List(regDev0.deviceId, regDev1.deviceId), regDev0.primary.hardwareId, targetUpdate.some) {
+      status shouldBe StatusCodes.Created
+
+      val response = responseAs[AssignmentCreateResult]
+
+      response.affected.loneElement shouldBe regDev1.deviceId
+
+      val (deviceId, errors) = response.notAffected.loneElement
+      val (ecuId, error) = errors.loneElement
+      deviceId shouldBe regDev0.deviceId
+      error.code shouldBe ErrorCodes.DeviceHasScheduledUpdate
+    }
 
     val queue0 = getDeviceAssignmentOk(regDev0.deviceId)
     queue0 should be(empty)

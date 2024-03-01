@@ -12,6 +12,7 @@ import com.advancedtelematic.libats.http.Errors.Error
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateCanceled, DeviceUpdateEvent}
+import io.circe.syntax.*
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*
 
@@ -36,7 +37,8 @@ object DeviceAssignments {
 }
 
 class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) extends EcuRepositorySupport
-  with HardwareUpdateRepositorySupport with AssignmentsRepositorySupport with EcuTargetsRepositorySupport with DeviceRepositorySupport {
+  with HardwareUpdateRepositorySupport with AssignmentsRepositorySupport with EcuTargetsRepositorySupport with DeviceRepositorySupport
+  with ScheduledUpdatesRepositorySupport {
 
   import DeviceAssignments.*
 
@@ -99,7 +101,21 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext) ext
       acc.addNotAffected(deviceId, primaryEcuId, error)
     }
 
-    val ecus = ecusWithCompatibleHardware.foldLeft(unaffectedDueToHardware) { case (acc, (ecu, installedTarget)) =>
+    val devicesWithScheduledUpdates = await(scheduledUpdatesRepository.filterActiveUpdateExists(ns, ecusWithCompatibleHardware.map(_._1.deviceId).toSet))
+
+    _log.atDebug()
+      .addKeyValue("devicesWithScheduledUpdates", devicesWithScheduledUpdates.asJson)
+      .log()
+
+    val ecusWithoutScheduledUpdates = ecusWithCompatibleHardware.filterNot { case (ecu, _) => devicesWithScheduledUpdates.contains(ecu.deviceId)  }
+
+    val unaffectedDueToScheduledUpdates = devicesWithScheduledUpdates.foldLeft(unaffectedDueToHardware) { case (acc, deviceId) =>
+      val error = Errors.DeviceHasScheduledUpdate(deviceId, mtuId)
+      _log.info(error.getMessage)
+      acc.addNotAffected(deviceId, EcuIdentifier("unknown"), error)
+    }
+
+    val ecus = ecusWithoutScheduledUpdates.foldLeft(unaffectedDueToScheduledUpdates) { case (acc, (ecu, installedTarget)) =>
 
         val hwUpdate = hardwareUpdates(ecu.hardwareId)
         val updateFrom = hwUpdate.fromTarget.flatMap(allTargets.get)

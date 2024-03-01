@@ -1,14 +1,15 @@
 package com.advancedtelematic.director.manifest
 
 import cats.syntax.option.*
-import com.advancedtelematic.director.data.Codecs.ecuManifestCustomCodec
+import com.advancedtelematic.director.data.Codecs.{ecuManifestCustomCodec, scheduledUpdateCodec}
+import com.advancedtelematic.director.data.DataType.ScheduledUpdate
 import com.advancedtelematic.director.data.DbDataType.{Assignment, DeviceKnownState, EcuTarget, EcuTargetId, ProcessedAssignment}
 import com.advancedtelematic.director.data.DeviceRequest.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
 import com.advancedtelematic.director.http.Errors
-import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, Namespace, ResultCode, ResultDescription}
+import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, MultiTargetUpdateId, Namespace, ResultCode, ResultDescription}
 import com.advancedtelematic.libats.data.EcuIdentifier
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuInstallationReport, InstallationResult}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuInstallationReport, InstallationResult, UpdateId}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateCompleted, DeviceUpdateEvent}
 import io.circe.syntax.*
@@ -40,9 +41,48 @@ object ManifestCompiler {
     }
   }
 
+  private def compileScheduleUpdatesChanges(knownState: DeviceKnownState, msgs: List[DeviceUpdateEvent]): (DeviceKnownState, List[DeviceUpdateEvent]) = {
+    val processedAssignmentMtuIds = knownState.processedAssignments.toList.map(_.correlationId)
+
+    val pendingAssignmentsMtuIds = knownState.currentAssignments.toList.map(_.correlationId)
+
+    _log.info(s"scheduledUpdatesMtuIds=${knownState.scheduledUpdates.map(_.updateId)}")
+
+    _log.atInfo()
+      .addKeyValue("scheduledUpdatesMtuIds", knownState.scheduledUpdates.map(_.updateId).asJson)
+      .addKeyValue("deviceId", knownState.deviceId)
+      .log("calculating scheduled updates changes")
+
+    val newScheduledUpdates = knownState.scheduledUpdates.map { su =>
+      val correlationId = MultiTargetUpdateId(su.updateId.uuid)
+
+      val totalAssignmentsForScheduledUpdate = (processedAssignmentMtuIds ++ pendingAssignmentsMtuIds).count(_ == correlationId)
+
+      val alreadyProcessed = processedAssignmentMtuIds.count(_ == correlationId)
+
+      _log.atInfo()
+        .addKeyValue("scheduled-update-id", su.id.asJson)
+        .addKeyValue("deviceId", knownState.deviceId.asJson)
+        .addKeyValue("correlationId", correlationId.value.toString)
+        .addKeyValue("totalAssignmentsForScheduledUpdate", totalAssignmentsForScheduledUpdate)
+        .addKeyValue("processedAssignmentMtuIds", processedAssignmentMtuIds.asJson)
+        .addKeyValue("alreadyProcessed", alreadyProcessed)
+        .log(s"updating scheduled updates for ${su.id}")
+
+      if ((alreadyProcessed > 0) && (alreadyProcessed == totalAssignmentsForScheduledUpdate))
+        su.copy(status = ScheduledUpdate.Status.Completed)
+      else if(alreadyProcessed > 0)
+        su.copy(status = ScheduledUpdate.Status.PartiallyCompleted)
+      else
+        su
+    }
+
+    (knownState.copy(scheduledUpdates = newScheduledUpdates), msgs)
+  }
+
   def apply(ns: Namespace, manifest: DeviceManifest): DeviceKnownState => Try[ManifestCompileResult] = (beforeState: DeviceKnownState) => {
     validateManifest(manifest, beforeState).map { _ =>
-      val (nextStatus, msgs) = compileManifest(ns, manifest).apply(beforeState)
+      val (nextStatus, msgs) = compileManifest(ns, manifest).andThen(compileScheduleUpdatesChanges.tupled).apply(beforeState)
       ManifestCompileResult(nextStatus, msgs)
     }
   }
@@ -87,6 +127,7 @@ object ManifestCompiler {
       knownStatus.ecuTargets ++ newEcuTargets,
       currentAssignments = Set.empty,
       processedAssignments = Set.empty,
+      scheduledUpdates = knownStatus.scheduledUpdates,
       generatedMetadataOutdated = knownStatus.generatedMetadataOutdated)
 
     val installationReport = manifest.installation_report.map(_.report)
@@ -139,9 +180,8 @@ object ManifestCompiler {
 
         var msgs = if(assignmentsProcessedInManifest.isEmpty)
           buildMessagesFromCancelledAssignments(ns, knownStatus.deviceId, desc, cancelledAssignments, ResultCodes.DirectorCancelledAssignment)
-        else {
+        else
           resultMsgFromInstallationReport(ns, knownStatus.deviceId, manifest, processedCorrelationIds, report)
-        }
 
         if(!processedCorrelationIds.contains(report.correlation_id))
           msgs = msgs ++ resultMsgFromInstallationReport(ns, knownStatus.deviceId, manifest, List(report.correlation_id), report)

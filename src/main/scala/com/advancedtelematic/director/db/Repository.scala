@@ -15,7 +15,7 @@ import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import slick.jdbc.MySQLProfile.api.*
 import akka.http.scaladsl.util.FastFuture
-import com.advancedtelematic.director.data.DataType.AdminRoleName
+import com.advancedtelematic.director.data.DataType.{AdminRoleName, ScheduledUpdate, ScheduledUpdateId, StatusInfo}
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement}
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
@@ -24,9 +24,10 @@ import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, RepoId, RoleType, TargetFilename, TargetName}
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.data.TufSlickMappings.*
-import io.circe.Json
+import io.circe.{Encoder, Json}
 import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
+import io.circe.syntax.EncoderOps
 import slick.jdbc.GetResult
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -648,4 +649,62 @@ protected class DeviceManifestRepository()(implicit db: Database, ec: ExecutionC
     val checksum = Sha256Digest.digest(jsonManifest.canonical.getBytes).hash
     Schema.deviceManifests.insertOrUpdate((device, jsonManifest, checksum, receivedAt)).map(_ => ())
   }
+}
+
+trait ScheduledUpdatesRepositorySupport {
+  def scheduledUpdatesRepository(implicit db: Database, ec: ExecutionContext) = new ScheduledUpdatesRepository()
+}
+
+protected class ScheduledUpdatesRepository()(implicit db: Database, ec: ExecutionContext) {
+  import SlickMapping.*
+
+  def persist(scheduledUpdate: ScheduledUpdate): Future[ScheduledUpdateId] = db.run {
+    persistAction(scheduledUpdate)
+  }
+
+  protected [db] def persistAction(scheduledUpdate: ScheduledUpdate): DBIO[ScheduledUpdateId] =
+    (Schema.scheduledUpdates += scheduledUpdate).map(_ => scheduledUpdate.id)
+
+  def findFor(ns: Namespace, device: DeviceId): Future[PaginationResult[ScheduledUpdate]] = db.run {
+    Schema.scheduledUpdates
+      .filter(_.namespace === ns)
+      .filter(_.deviceId === device)
+      .result
+      .map(seq => PaginationResult(seq, seq.length, 0, seq.length))
+  }
+
+  def setStatus[T <: StatusInfo : Encoder](ns: Namespace, id: ScheduledUpdateId,
+                                           newStatus: ScheduledUpdate.Status,
+                                           info: Option[T] = None): Future[Unit] = db.run {
+    setStatusAction(ns, id, newStatus, info)
+  }
+
+  def filterActiveUpdateExists(ns: Namespace, devices: Set[DeviceId]): Future[Set[DeviceId]] = db.run {
+    Schema.scheduledUpdates
+      .filter(_.namespace === ns)
+      .filter(_.deviceId.inSet(devices))
+      .filterNot(_.status.inSet(Set(ScheduledUpdate.Status.Completed, ScheduledUpdate.Status.Cancelled)))
+      .map(_.deviceId)
+      .result
+      .map(_.toSet)
+  }
+
+  protected [db] def scheduledUpdateExistsFor(ns: Namespace, deviceId: DeviceId): DBIO[Option[ScheduledUpdateId]] = {
+    Schema.scheduledUpdates
+      .filter(_.namespace === ns)
+      .filter(_.deviceId === deviceId)
+      .filterNot(_.status.inSet(Set(ScheduledUpdate.Status.Completed, ScheduledUpdate.Status.Cancelled)))
+      .map(_.id).take(1).result.headOption
+  }
+
+  protected [db] def setStatusAction[T <: StatusInfo : Encoder](ns: Namespace, id: ScheduledUpdateId,
+                                                                newStatus: ScheduledUpdate.Status,
+                                                                info: Option[T] = None): DBIO[Unit] =
+    Schema.scheduledUpdates
+      .filter(_.namespace === ns)
+      .filter(_.id === id)
+      .map(r => (r.status, r.statusInfo))
+      .update(newStatus -> info.map(_.asJson))
+      .handleSingleUpdateError(MissingEntity[ScheduledUpdate]())
+      .map(_ => ())
 }

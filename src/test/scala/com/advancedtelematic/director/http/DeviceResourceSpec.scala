@@ -4,7 +4,8 @@ import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.AdminDataType
-import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, QueueResponse, RegisterDevice, TargetUpdate}
+import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, MultiTargetUpdate, QueueResponse, RegisterDevice, TargetUpdate}
+import com.advancedtelematic.director.data.ClientDataType.CreateScheduledUpdateRequest
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.*
 import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom, InstallationReport, InstallationReportEntity, MissingInstallationReport, OperationResult}
@@ -12,13 +13,13 @@ import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.data.Messages.DeviceManifestReported
 import com.advancedtelematic.director.data.UptaneDataType.{FileInfo, Hashes, Image}
-import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepositorySupport}
+import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepositorySupport, UpdateSchedulerDBIO}
 import com.advancedtelematic.director.manifest.ResultCodes
 import com.advancedtelematic.director.util.*
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, HashMethod, Namespace, ResultCode, ResultDescription}
-import com.advancedtelematic.libats.data.ErrorRepresentation
+import com.advancedtelematic.libats.data.{ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult, UpdateId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateCompleted, *}
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
@@ -33,11 +34,16 @@ import org.scalatest.OptionValues.*
 import io.circe.syntax.*
 import org.scalatest.EitherValues.*
 
+import java.time.Instant
+
 class DeviceResourceSpec extends DirectorSpec
   with RouteResourceSpec with AdminResources with AssignmentResources with EcuRepositorySupport
-  with DeviceManifestSpec with RepositorySpec with Inspectors with DeviceResources with AssignmentsRepositorySupport {
+  with DeviceManifestSpec with RepositorySpec with Inspectors with DeviceResources with AssignmentsRepositorySupport
+  with ScheduledUpdatesResources {
 
   override implicit val msgPub = new MockMessageBus
+
+  val updateSchedulerIO = new UpdateSchedulerDBIO()
 
   def forceRoleExpire[T](deviceId: DeviceId)(implicit tufRole: TufRole[T]): Unit = {
     import slick.jdbc.MySQLProfile.api._
@@ -1197,4 +1203,77 @@ class DeviceResourceSpec extends DirectorSpec
     }
   }
 
+  testWithRepo("installing assignments created via a scheduled update updates scheduled update status") { implicit ns =>
+    val dev = registerAdminDeviceWithSecondariesOk()
+    val currentUpdate = GenTargetUpdateRequest.generate
+    val newUpdate = GenTargetUpdateRequest.generate
+    val secondarySerial = dev.secondaries.keys.head
+    val secondaryKey = dev.secondaryKeys(secondarySerial)
+
+    val deviceManifest = buildSecondaryManifest(dev.primary.ecuSerial, dev.primaryKey, secondarySerial, secondaryKey, Map(dev.primary.ecuSerial -> currentUpdate.to, secondarySerial -> currentUpdate.to))
+    putManifestOk(dev.deviceId, deviceManifest)
+
+    val mtu = MultiTargetUpdate(
+      Map(
+        dev.secondaries.values.head.hardwareId -> newUpdate,
+        dev.primary.hardwareId -> newUpdate,
+      )
+    )
+
+    createScheduledUpdateOk(dev.deviceId, mtu)
+
+    updateSchedulerIO.run().futureValue
+
+    val newManifest = buildSecondaryManifest(
+      dev.primary.ecuSerial, dev.primaryKey, secondarySerial, secondaryKey,
+      Map(dev.primary.ecuSerial -> newUpdate.to, secondarySerial -> newUpdate.to)
+    )
+
+    putManifestOk(dev.deviceId, newManifest)
+
+    val scheduledUpdate = listScheduledUpdatesOK(dev.deviceId).values.loneElement
+    scheduledUpdate .status shouldBe ScheduledUpdate.Status.Completed
+  }
+
+  testWithRepo("partially installing a scheduled update sets status to PartiallyCompleted") { implicit ns =>
+    val dev = registerAdminDeviceWithSecondariesOk()
+    val currentUpdate = GenTargetUpdateRequest.generate
+    val newUpdate = GenTargetUpdateRequest.generate
+    val secondarySerial = dev.secondaries.keys.head
+    val secondaryKey = dev.secondaryKeys(secondarySerial)
+
+    val deviceManifest = buildSecondaryManifest(dev.primary.ecuSerial, dev.primaryKey, secondarySerial, secondaryKey, Map(dev.primary.ecuSerial -> currentUpdate.to, secondarySerial -> currentUpdate.to))
+    putManifestOk(dev.deviceId, deviceManifest)
+
+    val mtu = MultiTargetUpdate(
+      Map(
+        dev.secondaries.values.head.hardwareId -> newUpdate,
+        dev.primary.hardwareId -> newUpdate,
+      )
+    )
+
+    createScheduledUpdateOk(dev.deviceId, mtu)
+
+    updateSchedulerIO.run().futureValue
+
+    val newManifest = buildSecondaryManifest(
+      dev.primary.ecuSerial, dev.primaryKey, secondarySerial, secondaryKey,
+      Map(dev.primary.ecuSerial -> currentUpdate.to, secondarySerial -> newUpdate.to)
+    )
+
+    putManifestOk(dev.deviceId, newManifest)
+
+    val scheduledUpdate = listScheduledUpdatesOK(dev.deviceId).values.loneElement
+    scheduledUpdate.status shouldBe ScheduledUpdate.Status.PartiallyCompleted
+
+    val newManifest2 = buildSecondaryManifest(
+      dev.primary.ecuSerial, dev.primaryKey, secondarySerial, secondaryKey,
+      Map(dev.primary.ecuSerial -> newUpdate.to, secondarySerial -> newUpdate.to)
+    )
+
+    putManifestOk(dev.deviceId, newManifest2)
+
+    val scheduledUpdate2 = listScheduledUpdatesOK(dev.deviceId).values.loneElement
+    scheduledUpdate2.status shouldBe ScheduledUpdate.Status.Completed
+  }
 }

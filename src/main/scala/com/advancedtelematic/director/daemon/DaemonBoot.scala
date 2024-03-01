@@ -5,6 +5,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.util.FastFuture
 import com.advancedtelematic.director.{Settings, VersionInfo}
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
 import com.advancedtelematic.libats.messaging.{BusListenerMetrics, MessageBus, MessageListenerSupport, MetricsBusMonitor}
@@ -60,7 +61,11 @@ class DirectorDaemonBoot(override val globalConfig: Config, override val dbConfi
         DbHealthResource(versionMap, healthMetrics = Seq(new BusListenerMetrics(metricRegistry))).route
     }
 
-    Http().newServerAt(host, daemonPort).bindFlow(routes)
+    val httpFut = Http().newServerAt(host, daemonPort).bindFlow(routes)
+
+    val updateScheduler = new UpdateSchedulerDaemon().start()
+
+    Future.sequence(List(httpFut, updateScheduler)).flatMap(_ => httpFut)
   }
 
 }
