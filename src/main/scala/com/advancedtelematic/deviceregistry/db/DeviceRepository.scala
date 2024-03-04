@@ -192,17 +192,17 @@ object DeviceRepository {
             (implicit ec: ExecutionContext): DBIO[PaginationResult[Device]] = {
     val query = params match {
 
-      case SearchParams(Some(oemId), _, _, None, None, None, _, _, _, _, _, _, _, _) =>
+      case SearchParams(Some(oemId), _, _, None, None, None, _, _, _, _, _, _, _, _, _, _, _, _) =>
         findByDeviceIdQuery(ns, oemId)
 
-      case SearchParams(None, Some(true), gt, None, nameContains, None, _, _, _, _, _, _, _, _) =>
+      case SearchParams(None, Some(true), gt, None, nameContains, None, _, _, _, _, _, _, _, _, _, _, _, _) =>
         runQueryFilteringByName(ns, groupedDevicesQuery(ns, gt), nameContains)
 
-      case SearchParams(None, Some(false), gt, None, nameContains, None, _, _, _, _, _, _, _, _) =>
+      case SearchParams(None, Some(false), gt, None, nameContains, None, _, _, _, _, _, _, _, _, _, _, _, _) =>
         val ungroupedDevicesQuery = devices.filterNot(_.uuid.in(groupedDevicesQuery(ns, gt).map(_.uuid)))
         runQueryFilteringByName(ns, ungroupedDevicesQuery, nameContains)
 
-      case SearchParams(None, _, _, gid, nameContains, notSeenSinceHours, _, _, _, _, _, _, _, _) =>
+      case SearchParams(None, _, _, gid, nameContains, notSeenSinceHours, _, _, _, _, _, _, _, _, _, _, _, _) =>
         searchQuery(ns, nameContains, gid, notSeenSinceHours)
 
       case _ => throw new IllegalArgumentException("Invalid parameter combination.")
@@ -220,11 +220,23 @@ object DeviceRepository {
       dt.activatedAt.map(i => i < to).getOrElse(false.bind)
     }
 
+    val lastSeenStartFilter = optionalFilter(params.lastSeenStart) { (dt, lastSeen) =>
+      dt.lastSeen.map(i => i > lastSeen).getOrElse(false.bind)
+    }
+
+    val lastSeenEndFilter = optionalFilter(params.lastSeenEnd) { (dt, lastSeen) =>
+      dt.lastSeen.map(i => i < lastSeen).getOrElse(false.bind)
+    }
+
     query
       .maybeFilter(_.deviceStatus === params.status)
       .maybeFilter(_.hibernated === params.hibernated)
+      .maybeFilter(_.createdAt > params.createdAtStart)
+      .maybeFilter(_.createdAt < params.createdAtEnd)
       .filter(activatedAfterFilter)
       .filter(activatedBeforeFilter)
+      .filter(lastSeenStartFilter)
+      .filter(lastSeenEndFilter)
       .sortBy(devices => devices.ordered(sortBy, sortDirection))
       .paginateResult(params.offset.orDefaultOffset, params.limit.orDefaultLimit)
   }

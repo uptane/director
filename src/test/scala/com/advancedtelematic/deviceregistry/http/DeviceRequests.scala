@@ -99,6 +99,10 @@ trait DeviceRequests { self: ResourceSpec =>
                     hibernated: Option[Boolean] = None,
                     activatedAfter: Option[Instant] = None,
                     activatedBefore: Option[Instant] = None,
+                    lastSeenStart: Option[Instant] = None,
+                    lastSeenEnd: Option[Instant] = None,
+                    createdAtStart: Option[Instant] = None,
+                    createdAtEnd: Option[Instant] = None,
                     namespace: Namespace = defaultNs
                    ): HttpRequest = {
     val m = Seq(
@@ -106,6 +110,10 @@ trait DeviceRequests { self: ResourceSpec =>
       hibernated.map("hibernated" -> _.toString),
       activatedBefore.map("activatedBefore" -> _.toString),
       activatedAfter.map("activatedAfter" -> _.toString),
+      lastSeenStart.map("lastSeenStart" -> _.toString),
+      lastSeenEnd.map("lastSeenEnd" -> _.toString),
+      createdAtStart.map("createdAtStart" -> _.toString),
+      createdAtEnd.map("createdAtEnd" -> _.toString)
     ).collect { case Some(a) => a }
     Get(Resource.uri(api).withQuery(Query(m.toMap))).withNs(namespace)
   }
