@@ -754,6 +754,98 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     }
   }
 
+  property("can search devices by lastSeen time") {
+    val ns = Namespace("lastseen_tests")
+
+    val device1 = genDeviceT.sample.get
+    val uuid1 = createDeviceInNamespaceOk(device1, ns)
+
+    val device2 = genDeviceT.sample.get
+    val uuid2 = createDeviceInNamespaceOk(device2, ns)
+
+    val device3 = genDeviceT.sample.get
+    val uuid3 = createDeviceInNamespaceOk(device3, ns)
+
+    val device4 = genDeviceT.sample.get
+    val uuid4 = createDeviceInNamespaceOk(device4, ns)
+
+    val now = Instant.now
+    val oneHourAgo = now.minus(Duration.ofHours(1))
+    val twoHoursAgo = now.minus(Duration.ofHours(2))
+
+    sendDeviceSeen(uuid1, now, ns)
+    sendDeviceSeen(uuid2, oneHourAgo, ns)
+    sendDeviceSeen(uuid3, twoHoursAgo, ns)
+
+    val startDate = oneHourAgo.minus(Duration.ofMinutes(1))
+    filterDevices(lastSeenStart = startDate.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 2
+      result should contain allElementsOf Seq(uuid1, uuid2)
+    }
+
+    val endDate = oneHourAgo.plus(Duration.ofMinutes(1))
+    filterDevices(lastSeenEnd = endDate.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 2
+      result should contain allElementsOf Seq(uuid2, uuid3)
+    }
+
+    filterDevices(lastSeenStart = startDate.some, activatedBefore = endDate.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 1
+      result.head shouldBe uuid2
+    }
+
+    filterDevices(namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 4
+      result should contain allElementsOf Seq(uuid1, uuid2, uuid3, uuid4)
+    }
+  }
+
+  property("can search devices by creation time") {
+    val ns = Namespace("createdat_tests")
+
+    val device1 = genDeviceT.sample.get
+    val uuid1 = createDeviceInNamespaceOk(device1, ns)
+
+    val now = Instant.now
+    val oneHourAgo = now.minus(Duration.ofHours(1))
+    val oneHourAfter = now.plus(Duration.ofHours(1))
+
+    filterDevices(createdAtStart = oneHourAgo.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 1
+      result should contain allElementsOf Seq(uuid1)
+    }
+
+    filterDevices(createdAtEnd = oneHourAgo.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 0
+    }
+
+    filterDevices(createdAtStart = oneHourAgo.some, createdAtEnd = oneHourAfter.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 1
+      result should contain allElementsOf Seq(uuid1)
+    }
+
+    filterDevices(namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 1
+      result should contain allElementsOf Seq(uuid1)
+    }
+  }
+
   property("can search static group devices") {
     val deviceT     = genDeviceT.generate
     val deviceUuid1 = createDeviceOk(deviceT)
