@@ -5,7 +5,6 @@ import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.AdminDataType
 import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, MultiTargetUpdate, QueueResponse, RegisterDevice, TargetUpdate}
-import com.advancedtelematic.director.data.ClientDataType.CreateScheduledUpdateRequest
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.*
 import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom, InstallationReport, InstallationReportEntity, MissingInstallationReport, OperationResult}
@@ -17,9 +16,9 @@ import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepos
 import com.advancedtelematic.director.manifest.ResultCodes
 import com.advancedtelematic.director.util.*
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, HashMethod, Namespace, ResultCode, ResultDescription}
-import com.advancedtelematic.libats.data.{ErrorRepresentation, PaginationResult}
+import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult, UpdateId}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateCompleted, *}
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
@@ -33,8 +32,6 @@ import org.scalatest.LoneElement.*
 import org.scalatest.OptionValues.*
 import io.circe.syntax.*
 import org.scalatest.EitherValues.*
-
-import java.time.Instant
 
 class DeviceResourceSpec extends DirectorSpec
   with RouteResourceSpec with AdminResources with AssignmentResources with EcuRepositorySupport

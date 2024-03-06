@@ -1,17 +1,15 @@
 package com.advancedtelematic.director.db
 
-import cats.implicits.*
 import com.advancedtelematic.director.daemon.UpdateScheduler
 import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, RegisterEcu, TargetUpdateRequest}
 import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId}
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
-import com.advancedtelematic.director.db.UpdateSchedulerDBIO.{InvalidEcuStatus, invalidEcuStatusCodec}
+import com.advancedtelematic.director.db.UpdateSchedulerDBIO.invalidEcuStatusCodec
 import com.advancedtelematic.director.http.DeviceAssignments
 import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.data.DataType.{MultiTargetUpdateId, Namespace}
 import com.advancedtelematic.libats.data.EcuIdentifier
-import com.advancedtelematic.libats.http.Errors.JsonError
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.test.MysqlDatabaseSpec
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier

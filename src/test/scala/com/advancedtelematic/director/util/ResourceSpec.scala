@@ -5,7 +5,6 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.advancedtelematic.director.client.FakeKeyserverClient
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.test.MysqlDatabaseSpec
 import com.advancedtelematic.libtuf.crypt.TufCrypto
 import com.advancedtelematic.libtuf.data.TufDataType.{SignedPayload, TufKeyPair}
 import io.circe.Encoder
