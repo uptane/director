@@ -133,7 +133,7 @@ class UpdateSchedulerDBIO()(implicit db: Database, ec: ExecutionContext) extends
           case Valid(_) =>
             scheduledUpdatesRepository.persistAction(scheduledUpdate)
           case Invalid(errors) =>
-            DBIO.failed(UpdateScheduleError(scheduledUpdate.deviceId, NonEmptyList.of(errors)))
+            DBIO.failed(UpdateScheduleError(scheduledUpdate.deviceId, errors))
         }
     }.withTransactionIsolation(TransactionIsolation.Serializable).transactionally
   }
