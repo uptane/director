@@ -46,8 +46,8 @@ object DbDataType {
                                     currentAssignments: Set[Assignment],
                                     processedAssignments: Set[ProcessedAssignment],
                                     scheduledUpdates: Set[ScheduledUpdate],
-                                    generatedMetadataOutdated: Boolean,
-                                   )
+                                    scheduledUpdatesEcuTargetIds: Map[UpdateId, Seq[EcuTargetId]],
+                                    generatedMetadataOutdated: Boolean)
 
   final case class Device(ns: Namespace, id: DeviceId, primaryEcuId: EcuIdentifier,
                           generatedMetadataOutdated: Boolean, deleted: Boolean)

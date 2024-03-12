@@ -1,14 +1,11 @@
 package com.advancedtelematic.director.db
 
-import com.advancedtelematic.director.data.DataType.ScheduledUpdate
-import com.advancedtelematic.director.data.DbDataType.{Assignment, DeviceKnownState, EcuTargetId, ProcessedAssignment}
+import com.advancedtelematic.director.data.DbDataType.{DeviceKnownState, EcuTargetId}
 import com.advancedtelematic.director.manifest.ManifestCompiler.ManifestCompileResult
-import com.advancedtelematic.libats.data.DataType.MultiTargetUpdateId
 import com.advancedtelematic.libats.data.EcuIdentifier
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
-import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.*
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*
 import slick.jdbc.TransactionIsolation
@@ -26,10 +23,11 @@ class CompiledManifestExecutor()(implicit val db: Database, val ec: ExecutionCon
       processed <- Schema.processedAssignments.filter(_.deviceId === deviceId).result
       ecuStatus <- Schema.activeEcus.filter(_.deviceId === deviceId).map(ecu => ecu.ecuSerial -> ecu.installedTarget).result
       device <- Schema.allDevices.filter(_.id === deviceId).result.head
-      ecuTargetIds = ecuStatus.flatMap(_._2) ++ assignments.map(_.ecuTargetId)
-      ecuTargets <- Schema.ecuTargets.filter(_.id.inSet(ecuTargetIds)).map { t => t.id -> t }.result
       scheduledUpdates <- Schema.scheduledUpdates.filter(_.deviceId === deviceId).result
-    } yield DeviceKnownState(deviceId, device.primaryEcuId, ecuStatus.toMap, ecuTargets.toMap, assignments.toSet, processed.toSet, scheduledUpdates.toSet, device.generatedMetadataOutdated)
+      hardwareUpdatesEcuTargetIds <- Schema.hardwareUpdates.filter(_.id.inSet(scheduledUpdates.map(_.updateId).toSet)).map(t => t.id -> t.toTarget).result
+      ecuTargetIds = ecuStatus.flatMap(_._2) ++ assignments.map(_.ecuTargetId) ++ hardwareUpdatesEcuTargetIds.map(_._2)
+      ecuTargets <- Schema.ecuTargets.filter(_.id.inSet(ecuTargetIds)).map { t => t.id -> t }.result
+    } yield DeviceKnownState(deviceId, device.primaryEcuId, ecuStatus.toMap, ecuTargets.toMap, assignments.toSet, processed.toSet, scheduledUpdates.toSet, hardwareUpdatesEcuTargetIds.groupBy(_._1).view.mapValues(_.map(_._2)).toMap, device.generatedMetadataOutdated)
   }
 
   private def updateEcuAction(deviceId: DeviceId, ecuIdentifier: EcuIdentifier, installedTarget: Option[EcuTargetId]): DBIO[Unit] = {

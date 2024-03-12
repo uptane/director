@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.manifest
 
 import cats.syntax.option.*
-import com.advancedtelematic.director.data.Codecs.{ecuManifestCustomCodec, scheduledUpdateCodec}
+import com.advancedtelematic.director.data.Codecs.{ecuManifestCustomCodec, scheduledUpdateCodec, scheduledUpdateStatusDecoder}
 import com.advancedtelematic.director.data.DataType.ScheduledUpdate
 import com.advancedtelematic.director.data.DbDataType.{Assignment, DeviceKnownState, EcuTarget, EcuTargetId, ProcessedAssignment}
 import com.advancedtelematic.director.data.DeviceRequest.*
@@ -42,39 +42,68 @@ object ManifestCompiler {
   }
 
   private def compileScheduleUpdatesChanges(knownState: DeviceKnownState, msgs: List[DeviceUpdateEvent]): (DeviceKnownState, List[DeviceUpdateEvent]) = {
-    val processedAssignmentMtuIds = knownState.processedAssignments.toList.map(_.correlationId)
+    /*
+    This is not ideal because in compileManifest we match existing assignments using `ecu_version_manifests`
+    and checking what is installed on the device. We then do the same again here, to match against the
+    scheduled updates ecu targets.
 
-    val pendingAssignmentsMtuIds = knownState.currentAssignments.toList.map(_.correlationId)
+    We cannot rely on processed assignments because scheduled updates might not have generated assignments yet.
 
-    _log.info(s"scheduledUpdatesMtuIds=${knownState.scheduledUpdates.map(_.updateId)}")
+    We cannot rely on correlation id, because we might not have an assignment, which contains the correlation id.
 
-    _log.atInfo()
-      .addKeyValue("scheduledUpdatesMtuIds", knownState.scheduledUpdates.map(_.updateId).asJson)
-      .addKeyValue("deviceId", knownState.deviceId)
-      .log("calculating scheduled updates changes")
+    We could first match using the processed assignments and then `ecu_version_manifests`, but that seems more
+    complex than this needs to be, since the end result would be the same.
+
+    Here we use knownStatus.ecuStatus rather than `ecu_version_manifests` as we don't have the manifest
+    at this point, but knownStatus.ecuStatus is populated based on matching `ecu_version_manifests` so
+    that is what would need to end up doing here anyway.
+    */
+
+    if(knownState.scheduledUpdates.nonEmpty)
+      _log.atInfo()
+        .addKeyValue("scheduledUpdatesMtuIds", knownState.scheduledUpdates.map(_.updateId).asJson)
+        .addKeyValue("deviceId", knownState.deviceId)
+        .addKeyValue("ecuStatus", knownState.ecuStatus.keys.asJson)
+        .log("calculating scheduled updates changes")
+    else
+      _log.atDebug()
+        .addKeyValue("deviceId", knownState.deviceId)
+        .log("no scheduled updates")
 
     val newScheduledUpdates = knownState.scheduledUpdates.map { su =>
-      val correlationId = MultiTargetUpdateId(su.updateId.uuid)
+      val scheduledUpdateEcuTargets = knownState.scheduledUpdatesEcuTargetIds.get(su.updateId).toList.flatten.flatMap(knownState.ecuTargets.get)
 
-      val totalAssignmentsForScheduledUpdate = (processedAssignmentMtuIds ++ pendingAssignmentsMtuIds).count(_ == correlationId)
+      if(scheduledUpdateEcuTargets.isEmpty) {
+        _log.atWarn()
+          .addKeyValue("deviceId", knownState.deviceId)
+          .addKeyValue("scheduledUpdateId", su.id.asJson)
+          .log("no ecu targets for scheduled update")
+      }
 
-      val alreadyProcessed = processedAssignmentMtuIds.count(_ == correlationId)
+      val totalTargetsForScheduledUpdate = knownState.scheduledUpdatesEcuTargetIds.get(su.updateId).toList.flatten.size
 
-      _log.atInfo()
-        .addKeyValue("scheduled-update-id", su.id.asJson)
-        .addKeyValue("deviceId", knownState.deviceId.asJson)
-        .addKeyValue("correlationId", correlationId.value.toString)
-        .addKeyValue("totalAssignmentsForScheduledUpdate", totalAssignmentsForScheduledUpdate)
-        .addKeyValue("processedAssignmentMtuIds", processedAssignmentMtuIds.asJson)
-        .addKeyValue("alreadyProcessed", alreadyProcessed)
-        .log(s"updating scheduled updates for ${su.id}")
+      val alreadyProcessed = knownState.ecuStatus.values.flatten.count { ecuTargetId =>
+        scheduledUpdateEcuTargets.exists { ecuTarget =>
+          knownState.ecuTargets.get(ecuTargetId).exists(_.matches(ecuTarget))
+        }
+      }
 
-      if ((alreadyProcessed > 0) && (alreadyProcessed == totalAssignmentsForScheduledUpdate))
+      val updated = if ((alreadyProcessed > 0) && (alreadyProcessed == totalTargetsForScheduledUpdate))
         su.copy(status = ScheduledUpdate.Status.Completed)
       else if(alreadyProcessed > 0)
         su.copy(status = ScheduledUpdate.Status.PartiallyCompleted)
       else
         su
+
+      _log.atInfo()
+        .addKeyValue("deviceId", knownState.deviceId.asJson)
+        .addKeyValue("totalTargetsForScheduledUpdate", totalTargetsForScheduledUpdate)
+        .addKeyValue("alreadyProcessed", alreadyProcessed)
+        .addKeyValue("scheduledUpdateEcuTargets", scheduledUpdateEcuTargets.map(_.id).asJson)
+        .addKeyValue("result", updated.asJson)
+        .log(s"updating scheduled updates for ${su.id}")
+
+      updated
     }
 
     (knownState.copy(scheduledUpdates = newScheduledUpdates), msgs)
@@ -120,15 +149,7 @@ object ManifestCompiler {
       newTargetO.map(_.id)
     }.filter(_._2.isDefined)
 
-    val status = DeviceKnownState(
-      knownStatus.deviceId,
-      knownStatus.primaryEcu,
-      knownStatus.ecuStatus ++ statusInManifest,
-      knownStatus.ecuTargets ++ newEcuTargets,
-      currentAssignments = Set.empty,
-      processedAssignments = Set.empty,
-      scheduledUpdates = knownStatus.scheduledUpdates,
-      generatedMetadataOutdated = knownStatus.generatedMetadataOutdated)
+    val status = DeviceKnownState(knownStatus.deviceId, knownStatus.primaryEcu, knownStatus.ecuStatus ++ statusInManifest, knownStatus.ecuTargets ++ newEcuTargets, currentAssignments = Set.empty, processedAssignments = Set.empty, scheduledUpdates = knownStatus.scheduledUpdates, knownStatus.scheduledUpdatesEcuTargetIds, generatedMetadataOutdated = knownStatus.generatedMetadataOutdated)
 
     val installationReport = manifest.installation_report.map(_.report)
 
@@ -137,10 +158,7 @@ object ManifestCompiler {
         val desc = s"Missing installation report, assignments processed = $assignmentsProcessedInManifest"
         _log.info(s"${knownStatus.deviceId} " + desc)
 
-        val newStatus = status.copy(
-          currentAssignments = knownStatus.currentAssignments -- assignmentsProcessedInManifest,
-          processedAssignments = knownStatus.processedAssignments ++ assignmentsProcessedInManifest.map(_.toProcessedAssignment(successful = true, canceled = false, desc.some)),
-        )
+        val newStatus = status.copy(currentAssignments = knownStatus.currentAssignments -- assignmentsProcessedInManifest, processedAssignments = knownStatus.processedAssignments ++ assignmentsProcessedInManifest.map(_.toProcessedAssignment(successful = true, canceled = false, desc.some)))
 
         val msgs = resultMsgFromEcuManifests(ns, knownStatus, manifest)
 
@@ -152,10 +170,7 @@ object ManifestCompiler {
         val cancelled = assignmentsProcessedInManifest.isEmpty
         val cancelledAssignments = knownStatus.currentAssignments.map(_.toProcessedAssignment(successful = false, canceled = cancelled, desc.some))
 
-        val newStatus = status.copy(
-          currentAssignments = Set.empty,
-          processedAssignments = knownStatus.processedAssignments ++ cancelledAssignments,
-        )
+        val newStatus = status.copy(currentAssignments = Set.empty, processedAssignments = knownStatus.processedAssignments ++ cancelledAssignments)
 
         val msgs = buildMessagesFromCancelledAssignments(ns, knownStatus.deviceId, desc, cancelledAssignments,
           ResultCodes.DeviceSentInvalidInstallationReport, payload.map(_.noSpaces))
@@ -170,11 +185,7 @@ object ManifestCompiler {
         val cancelled = assignmentsProcessedInManifest.isEmpty
         val cancelledAssignments = knownStatus.currentAssignments.map(_.toProcessedAssignment(successful = false, canceled = cancelled, desc.some))
 
-        val newStatus = status.copy(
-          currentAssignments = Set.empty,
-          processedAssignments = knownStatus.processedAssignments ++ cancelledAssignments,
-          generatedMetadataOutdated = true
-        )
+        val newStatus = status.copy(currentAssignments = Set.empty, processedAssignments = knownStatus.processedAssignments ++ cancelledAssignments, generatedMetadataOutdated = true)
 
         val processedCorrelationIds = assignmentsProcessedInManifest.map(_.correlationId).toList
 
@@ -194,11 +205,7 @@ object ManifestCompiler {
 
         val cancelledAssignments = knownStatus.currentAssignments.map(_.toProcessedAssignment(successful = false, canceled = true, desc.some))
 
-        val newStatus = status.copy(
-          currentAssignments = Set.empty,
-          processedAssignments = knownStatus.processedAssignments ++ cancelledAssignments,
-          generatedMetadataOutdated = true
-        )
+        val newStatus = status.copy(currentAssignments = Set.empty, processedAssignments = knownStatus.processedAssignments ++ cancelledAssignments, generatedMetadataOutdated = true)
 
         var msgs = buildMessagesFromCancelledAssignments(ns, knownStatus.deviceId, desc, cancelledAssignments, ResultCodes.DirectorCancelledAssignment)
 
@@ -211,10 +218,7 @@ object ManifestCompiler {
         val desc = "Device sent a successful installation report"
         _log.info(s"${knownStatus.deviceId} Device sent a successful installation report, processing assignments $assignmentsProcessedInManifest")
 
-        val newStatus = status.copy(
-          currentAssignments = knownStatus.currentAssignments -- assignmentsProcessedInManifest,
-          processedAssignments = knownStatus.processedAssignments ++ assignmentsProcessedInManifest.map(_.toProcessedAssignment(successful = true, canceled = false, desc.some))
-        )
+        val newStatus = status.copy(currentAssignments = knownStatus.currentAssignments -- assignmentsProcessedInManifest, processedAssignments = knownStatus.processedAssignments ++ assignmentsProcessedInManifest.map(_.toProcessedAssignment(successful = true, canceled = false, desc.some)))
 
         val correlationIds = assignmentsProcessedInManifest.map(_.correlationId).toSet + report.correlation_id
         val msg = resultMsgFromInstallationReport(ns, knownStatus.deviceId, manifest,  correlationIds.toList, report)
