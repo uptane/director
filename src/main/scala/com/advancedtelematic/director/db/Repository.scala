@@ -114,7 +114,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
     val io = existsIO(deviceId).flatMap {
       case false => // New Device and Ecus
         (Schema.allEcus ++= ecus)
-          .andThen(Schema.allDevices += device)
+          .andThen(Schema.allProvisionedDevices += device)
           .map(_ => DeviceRepository.Created)
       case true => // Update Device and Ecus, potentially replace Ecus
         replaceEcusAndIdentifyReplacements(ecuRepository)(ns, device, ecus)
@@ -124,7 +124,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
   }
 
   private def existsIO(deviceId: DeviceId): DBIO[Boolean] =
-    Schema.allDevices.filter(_.id === deviceId).exists.result
+    Schema.allProvisionedDevices.filter(_.id === deviceId).exists.result
 
   def exists(deviceId: DeviceId): Future[Boolean] =
     db.run(existsIO(deviceId))
@@ -132,7 +132,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
   def markDeleted(namespace: Namespace, deviceId: DeviceId): Future[Unit] = db.run {
     DBIO
       .seq(
-        Schema.allDevices
+        Schema.allProvisionedDevices
           .filter(d => d.namespace === namespace && d.id === deviceId)
           .map(_.deleted)
           .update(true)
@@ -148,7 +148,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
   def findAllDeviceIds(ns: Namespace,
                        offset: Long,
                        limit: Long): Future[PaginationResult[DeviceId]] = db.run {
-    Schema.activeDevices
+    Schema.activeProvisionedDevices
       .filter(_.namespace === ns)
       .map(d => (d.id, d.createdAt))
       .paginateAndSortResult(_._2, offset = offset, limit = limit)
@@ -159,7 +159,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
                   hardwareIdentifier: HardwareIdentifier,
                   offset: Long,
                   limit: Long): Future[PaginationResult[(Instant, Device)]] = db.run {
-    Schema.activeDevices
+    Schema.activeProvisionedDevices
       .filter(_.namespace === ns)
       .join(Schema.activeEcus.filter(_.hardwareId === hardwareIdentifier))
       .on { case (d, e) => d.primaryEcu === e.ecuSerial }
@@ -226,7 +226,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
 
     val insertEcus = DBIO.sequence(ecus.map(Schema.allEcus.insertOrUpdate))
 
-    val insertDevice = Schema.allDevices.insertOrUpdate(device)
+    val insertDevice = Schema.allProvisionedDevices.insertOrUpdate(device)
 
     val setActive = ecuRepository.setActiveEcus(ns, device.id, ecus.map(_.ecuSerial).toSet)
 
@@ -243,7 +243,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
 
   protected[db] def setMetadataOutdatedAction(deviceIds: Set[DeviceId],
                                               outdated: Boolean): DBIO[Unit] = DBIO.seq {
-    Schema.allDevices
+    Schema.allProvisionedDevices
       .filter(_.id.inSet(deviceIds))
       .map(_.generatedMetadataOutdated)
       .update(outdated)
@@ -254,7 +254,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
   }
 
   def metadataIsOutdated(ns: Namespace, deviceId: DeviceId): Future[Boolean] = db.run {
-    Schema.allDevices
+    Schema.allProvisionedDevices
       .filter(_.namespace === ns)
       .filter(_.id === deviceId)
       .map(_.generatedMetadataOutdated)
@@ -583,7 +583,7 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
     Schema.activeEcus
       .filter(_.namespace === ns)
       // in theory, if it's an active ecu, it will always have an active device :/
-      .join(Schema.activeDevices)
+      .join(Schema.activeProvisionedDevices)
       .on(_.deviceId === _.id)
       .map { case (ecu, device) => (ecu, device.primaryEcu === ecu.ecuSerial) }
       .result
@@ -601,7 +601,7 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
   }
 
   private[db] def findDevicePrimaryAction(ns: Namespace, deviceId: DeviceId): DBIO[Ecu] =
-    Schema.allDevices
+    Schema.allProvisionedDevices
       .filter(_.namespace === ns)
       .filter(_.id === deviceId)
       .join(Schema.activeEcus)
@@ -616,7 +616,7 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
 
   def findDevicePrimaryIds(ns: Namespace,
                            deviceId: Set[DeviceId]): Future[Map[DeviceId, EcuIdentifier]] = db.run {
-    Schema.allDevices
+    Schema.allProvisionedDevices
       .filter(_.namespace === ns)
       .filter(_.id.inSet(deviceId))
       .join(Schema.activeEcus)
@@ -652,7 +652,7 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
     val io = Schema.activeEcus
       .filter(_.namespace === ns)
       .filter(_.deviceId.inSet(devices))
-      .join(Schema.activeDevices)
+      .join(Schema.activeProvisionedDevices)
       .on((ecus, devices) => ecus.deviceId === devices.id)
       .joinLeft(Schema.ecuTargets)
       .on { case ((ecu, _), ecuTargets) => ecu.installedTarget === ecuTargets.id }
