@@ -7,7 +7,7 @@ import com.advancedtelematic.director.data.AdminDataType.{
   RegisterEcu
 }
 import com.advancedtelematic.director.data.UptaneDataType.Hashes
-import com.advancedtelematic.director.db.DeviceRepository.DeviceCreateResult
+import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.director.http.Errors.AssignmentExistsError
 import com.advancedtelematic.director.repo.DeviceRoleGeneration
@@ -30,7 +30,7 @@ import scala.util.{Failure, Success}
 class DeviceRegistration(keyserverClient: KeyserverClient)(
   implicit val db: Database,
   val ec: ExecutionContext)
-    extends DeviceRepositorySupport
+    extends ProvisionedDeviceRepositorySupport
     with EcuRepositorySupport {
   val roleGeneration = new DeviceRoleGeneration(keyserverClient)
 
@@ -54,7 +54,7 @@ class DeviceRegistration(keyserverClient: KeyserverClient)(
       val _ecus = ecus.map(_.toEcu(ns, deviceId))
 
       for {
-        result <- deviceRepository.create(ecuRepository)(ns, deviceId, primaryEcuId, _ecus)
+        result <- provisionedDeviceRepository.create(ecuRepository)(ns, deviceId, primaryEcuId, _ecus)
         _ <- roleGeneration.findFreshTargets(ns, repoId, deviceId)
       } yield result
     } else
@@ -67,7 +67,7 @@ class DeviceRegistration(keyserverClient: KeyserverClient)(
                          ecus: Seq[RegisterEcu])(
     implicit messageBusPublisher: MessageBusPublisher): Future[DeviceCreateResult] =
     register(ns, repoId, deviceId, primaryEcuId, ecus).andThen {
-      case Success(event: DeviceRepository.Updated) =>
+      case Success(event: ProvisionedDeviceRepository.Updated) =>
         event.asEcuReplacedSeq.foreach(messageBusPublisher.publishSafe(_))
       case Failure(AssignmentExistsError(deviceId)) =>
         val failedReplacement: EcuReplacement = EcuReplacementFailed(deviceId)

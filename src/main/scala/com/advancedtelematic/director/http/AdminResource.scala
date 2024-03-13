@@ -57,7 +57,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
     with RepoNamespaceRepositorySupport
     with RootFetching
     with EcuRepositorySupport
-    with DeviceRepositorySupport
+    with ProvisionedDeviceRepositorySupport
     with AutoUpdateDefinitionRepositorySupport
     with ScheduledUpdatesRepositorySupport {
 
@@ -281,8 +281,8 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                           regDev.ecus
                         )
                         .map {
-                          case DeviceRepository.Created    => StatusCodes.Created
-                          case _: DeviceRepository.Updated => StatusCodes.OK
+                          case ProvisionedDeviceRepository.Created    => StatusCodes.Created
+                          case _: ProvisionedDeviceRepository.Updated => StatusCodes.OK
                         }
                     }
                   }
@@ -302,7 +302,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                       */
                     parameter(Symbol("primaryHardwareId").as[HardwareIdentifier]) { hardwareId =>
                       PaginationParameters { (limit, offset) =>
-                        val f = deviceRepository
+                        val f = provisionedDeviceRepository
                           .findDevices(ns, hardwareId, offset, limit)
                           .map(_.toClient)
                         complete(f)

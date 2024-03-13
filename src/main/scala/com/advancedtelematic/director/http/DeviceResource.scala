@@ -42,7 +42,7 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
   implicit val db: Database,
   val ec: ExecutionContext,
   messageBusPublisher: MessageBusPublisher)
-    extends DeviceRepositorySupport
+    extends ProvisionedDeviceRepositorySupport
     with EcuRepositorySupport
     with RepoNamespaceRepositorySupport
     with DbDeviceRoleRepositorySupport
@@ -62,7 +62,7 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
       pass
     else {
       Directive.Empty.tflatMap { _ =>
-        onSuccess(deviceRepository.exists(deviceId)).flatMap {
+        onSuccess(provisionedDeviceRepository.exists(deviceId)).flatMap {
           case true  => failWith(Errors.EcuReplacementDisabled(deviceId))
           case false => pass
         }
@@ -90,8 +90,8 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
             deviceRegistration
               .registerAndPublish(ns, repoId, device, regDev.primary_ecu_serial, regDev.ecus)
               .map {
-                case DeviceRepository.Created    => StatusCodes.Created
-                case _: DeviceRepository.Updated => StatusCodes.OK
+                case ProvisionedDeviceRepository.Created    => StatusCodes.Created
+                case _: ProvisionedDeviceRepository.Updated => StatusCodes.OK
               }
           }
         }

@@ -16,7 +16,7 @@ import com.advancedtelematic.director.data.DbDataType.{
   HardwareUpdate,
   ProcessedAssignment
 }
-import com.advancedtelematic.director.db.DeviceRepository.DeviceCreateResult
+import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.http.Errors.{
@@ -68,11 +68,11 @@ protected trait DatabaseSupport {
   implicit val db: Database
 }
 
-trait DeviceRepositorySupport extends DatabaseSupport {
-  lazy val deviceRepository = new DeviceRepository()
+trait ProvisionedDeviceRepositorySupport extends DatabaseSupport {
+  lazy val provisionedDeviceRepository = new ProvisionedDeviceRepository()
 }
 
-object DeviceRepository {
+object ProvisionedDeviceRepository {
   sealed trait DeviceCreateResult
   case object Created extends DeviceCreateResult
 
@@ -102,7 +102,7 @@ object DeviceRepository {
 
 }
 
-protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionContext) {
+protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec: ExecutionContext) {
 
   def create(ecuRepository: EcuRepository)(ns: Namespace,
                                            deviceId: DeviceId,
@@ -115,7 +115,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
       case false => // New Device and Ecus
         (Schema.allEcus ++= ecus)
           .andThen(Schema.allProvisionedDevices += device)
-          .map(_ => DeviceRepository.Created)
+          .map(_ => ProvisionedDeviceRepository.Created)
       case true => // Update Device and Ecus, potentially replace Ecus
         replaceEcusAndIdentifyReplacements(ecuRepository)(ns, device, ecus)
     }
@@ -171,7 +171,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
   private def replaceEcusAndIdentifyReplacements(ecuRepository: EcuRepository)(
     ns: Namespace,
     device: Device,
-    ecus: Seq[Ecu]): DBIO[DeviceRepository.Updated] = {
+    ecus: Seq[Ecu]): DBIO[ProvisionedDeviceRepository.Updated] = {
     val beforeReplacement = for {
       ecus <- Schema.activeEcus.filter(_.namespace === ns).filter(_.deviceId === device.id).result
       primary <- ecuRepository.findDevicePrimaryAction(ns, device.id)
@@ -196,7 +196,7 @@ protected class DeviceRepository()(implicit val db: Database, val ec: ExecutionC
       added = afterSecondaries
         .filterNot(e => beforeSecondaries.map(_.ecuSerial).contains(e.ecuSerial))
         .map(_.asEcuAndHardwareId)
-    } yield DeviceRepository.Updated(device.id, replacedPrimary, removed, added, Instant.now)
+    } yield ProvisionedDeviceRepository.Updated(device.id, replacedPrimary, removed, added, Instant.now)
   }
 
   private def replaceDeviceEcus(
@@ -383,7 +383,7 @@ trait AssignmentsRepositorySupport extends DatabaseSupport {
 protected class AssignmentsRepository()(implicit val db: Database, val ec: ExecutionContext) {
 
   def persistManyForEcuTarget(ecuTargetsRepository: EcuTargetsRepository,
-                              deviceRepository: DeviceRepository)(
+                              deviceRepository: ProvisionedDeviceRepository)(
     ecuTarget: EcuTarget,
     assignments: Seq[Assignment]): Future[Unit] = db.run {
     ecuTargetsRepository
@@ -398,7 +398,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       .transactionally
   }
 
-  def persistMany(deviceRepository: DeviceRepository)(assignments: Seq[Assignment]): Future[Unit] =
+  def persistMany(deviceRepository: ProvisionedDeviceRepository)(assignments: Seq[Assignment]): Future[Unit] =
     db.run {
       (Schema.assignments ++= assignments).andThen {
         deviceRepository.setMetadataOutdatedAction(
@@ -449,7 +449,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       }
     }
 
-  def markRegenerated(deviceRepository: DeviceRepository)(
+  def markRegenerated(deviceRepository: ProvisionedDeviceRepository)(
     deviceId: DeviceId): Future[Seq[Assignment]] = db.run {
     val deviceAssignments = Schema.assignments.filter(_.deviceId === deviceId)
 
@@ -462,7 +462,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
     io.transactionally
   }
 
-  def processDeviceCancellation(deviceRepository: DeviceRepository)(
+  def processDeviceCancellation(deviceRepository: ProvisionedDeviceRepository)(
     ns: Namespace,
     deviceId: DeviceId,
     allowInFlightCancellation: Boolean): Future[List[CorrelationId]] = db.run {
@@ -489,7 +489,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
     action.transactionally
   }
 
-  def processCancellation(deviceRepository: DeviceRepository)(
+  def processCancellation(deviceRepository: ProvisionedDeviceRepository)(
     ns: Namespace,
     deviceIds: Seq[DeviceId]): Future[Seq[Assignment]] = db.run {
     val assignmentQuery = Schema.assignments

@@ -4,7 +4,7 @@ import com.advancedtelematic.director.data.DbDataType.Assignment
 import com.advancedtelematic.director.db.{
   AssignmentsRepositorySupport,
   DbDeviceRoleRepositorySupport,
-  DeviceRepositorySupport,
+  ProvisionedDeviceRepositorySupport,
   EcuTargetsRepositorySupport
 }
 import com.advancedtelematic.libats.data.DataType.Namespace
@@ -24,7 +24,7 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(
     extends AssignmentsRepositorySupport
     with DbDeviceRoleRepositorySupport
     with EcuTargetsRepositorySupport
-    with DeviceRepositorySupport {
+    with ProvisionedDeviceRepositorySupport {
 
   import scala.async.Async._
 
@@ -45,12 +45,12 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(
   def findFreshTargets(ns: Namespace,
                        repoId: RepoId,
                        deviceId: DeviceId): Future[(JsonSignedPayload, Seq[Assignment])] = async {
-    val isOutdated = await(deviceRepository.metadataIsOutdated(ns, deviceId))
+    val isOutdated = await(provisionedDeviceRepository.metadataIsOutdated(ns, deviceId))
 
     if (isOutdated) {
       _log.info(s"targets for $deviceId is outdated")
       val t = await(roleGeneration(ns, deviceId).regenerateAllSignedRoles(repoId))
-      val regenerated = await(assignmentsRepository.markRegenerated(deviceRepository)(deviceId))
+      val regenerated = await(assignmentsRepository.markRegenerated(provisionedDeviceRepository)(deviceId))
       t -> regenerated
     } else { // return existing/refreshed targets
       implicit val refresher = roleRefresher(ns, deviceId)
@@ -61,7 +61,7 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(
 
   def forceTargetsRefresh(deviceId: DeviceId): Future[Unit] = {
     _log.info(s"Forcing refresh of metadata for $deviceId")
-    deviceRepository.setMetadataOutdated(deviceId, outdated = true)
+    provisionedDeviceRepository.setMetadataOutdated(deviceId, outdated = true)
   }
 
   def findFreshDeviceRole[T: TufRole](ns: Namespace,
