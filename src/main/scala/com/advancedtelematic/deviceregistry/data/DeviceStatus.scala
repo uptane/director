@@ -21,4 +21,5 @@ object DeviceStatus extends Enumeration {
 
   implicit val deviceStatusUnmarshaller: Unmarshaller[String, DeviceStatus] =
     Unmarshaller.strict(DeviceStatus.withName)
+
 }

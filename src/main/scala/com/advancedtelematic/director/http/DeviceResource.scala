@@ -17,7 +17,11 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.UUIDKeyAkka._
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateEvent, DeviceUpdateInFlight}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeviceSeen,
+  DeviceUpdateEvent,
+  DeviceUpdateInFlight
+}
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf.data.ClientDataType.{SnapshotRole, TimestampRole}
 import com.advancedtelematic.libtuf.data.TufCodecs._
@@ -32,9 +36,13 @@ import scala.async.Async._
 import scala.concurrent.{ExecutionContext, Future}
 import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
 
-class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient, val ecuReplacementAllowed: Boolean)
-                    (implicit val db: Database, val ec: ExecutionContext, messageBusPublisher: MessageBusPublisher)
-  extends DeviceRepositorySupport
+class DeviceResource(extractNamespace: Directive1[Namespace],
+                     val keyserverClient: KeyserverClient,
+                     val ecuReplacementAllowed: Boolean)(
+  implicit val db: Database,
+  val ec: ExecutionContext,
+  messageBusPublisher: MessageBusPublisher)
+    extends DeviceRepositorySupport
     with EcuRepositorySupport
     with RepoNamespaceRepositorySupport
     with DbDeviceRoleRepositorySupport
@@ -49,18 +57,17 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
   val offlineUpdates = new OfflineUpdates(keyserverClient)
   val remoteSessions = new RemoteSessions(keyserverClient)
 
-  def deviceRegisterAllowed(deviceId: DeviceId): Directive0 = {
+  def deviceRegisterAllowed(deviceId: DeviceId): Directive0 =
     if (ecuReplacementAllowed)
       pass
     else {
       Directive.Empty.tflatMap { _ =>
         onSuccess(deviceRepository.exists(deviceId)).flatMap {
-          case true => failWith(Errors.EcuReplacementDisabled(deviceId))
+          case true  => failWith(Errors.EcuReplacementDisabled(deviceId))
           case false => pass
         }
       }
     }
-  }
 
   private def logDevice(namespace: Namespace, device: DeviceId): Directive0 = {
     val f = messageBusPublisher.publishSafe(DeviceSeen(namespace, device))
@@ -69,83 +76,90 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
 
   private def publishInFlight(assignments: Seq[Assignment]): Future[Unit] = {
     val now = Instant.now
-    val msgs = assignments.map { a => DeviceUpdateInFlight(a.ns, now, a.correlationId, a.deviceId).asInstanceOf[DeviceUpdateEvent] }
-    Future.traverse(msgs) { msg => messageBusPublisher.publishSafe(msg) }.map(_ => ())
+    val msgs = assignments.map { a =>
+      DeviceUpdateInFlight(a.ns, now, a.correlationId, a.deviceId).asInstanceOf[DeviceUpdateEvent]
+    }
+    Future.traverse(msgs)(msg => messageBusPublisher.publishSafe(msg)).map(_ => ())
   }
 
-  val route = extractNamespaceRepoId(extractNamespace){ (repoId, ns) =>
+  val route = extractNamespaceRepoId(extractNamespace) { (repoId, ns) =>
     pathPrefix("device" / DeviceId.Path) { device =>
       post {
         (path("ecus") & entity(as[RegisterDevice]) & deviceRegisterAllowed(device)) { regDev =>
           complete {
-            deviceRegistration.registerAndPublish(ns, repoId, device, regDev.primary_ecu_serial, regDev.ecus)
+            deviceRegistration
+              .registerAndPublish(ns, repoId, device, regDev.primary_ecu_serial, regDev.ecus)
               .map {
-                case DeviceRepository.Created => StatusCodes.Created
+                case DeviceRepository.Created    => StatusCodes.Created
                 case _: DeviceRepository.Updated => StatusCodes.OK
               }
           }
         }
       } ~
-      put {
-        path("manifest") {
-          entity(as[SignedPayload[Json]]) { jsonDevMan =>
-            val msgF = messageBusPublisher.publishSafe(DeviceManifestReported(ns, device, jsonDevMan, Instant.now()))
+        put {
+          path("manifest") {
+            entity(as[SignedPayload[Json]]) { jsonDevMan =>
+              val msgF = messageBusPublisher.publishSafe(
+                DeviceManifestReported(ns, device, jsonDevMan, Instant.now())
+              )
 
-            onComplete(msgF) { _ =>
-              handleDeviceManifest(ns, device, jsonDevMan)
+              onComplete(msgF) { _ =>
+                handleDeviceManifest(ns, device, jsonDevMan)
+              }
             }
           }
-        }
-       } ~
-      get {
-        path(IntNumber ~ ".root.json") { version =>
-          logDevice(ns, device) {
-            complete(fetchRoot(ns, version.some))
-          }
         } ~
-        path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") { offlineTargetName =>
-          get {
-            val f = offlineUpdates.findLatestUpdates(repoId, offlineTargetName)
-            complete(f)
-          }
-        } ~
-        path("offline-snapshot.json") {
-          get {
-            val f = offlineUpdates.findLatestSnapshot(repoId)
-            complete(f)
-          }
-        } ~
-        path("remote-sessions.json") {
-          get {
-            val f = remoteSessions.find(repoId)
-            complete(f)
-          }
-        } ~
-        path(JsonRoleTypeMetaPath) {
-          case RoleType.ROOT =>
+        get {
+          path(IntNumber ~ ".root.json") { version =>
             logDevice(ns, device) {
-              complete(fetchRoot(ns, version = None))
+              complete(fetchRoot(ns, version.some))
             }
-          case RoleType.TARGETS =>
-            val f = for {
-              (json, assignments) <- deviceRoleGeneration.findFreshTargets(ns, repoId, device)
-              _ <- publishInFlight(assignments)
-            } yield json
+          } ~
+            path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") { offlineTargetName =>
+              get {
+                val f = offlineUpdates.findLatestUpdates(repoId, offlineTargetName)
+                complete(f)
+              }
+            } ~
+            path("offline-snapshot.json") {
+              get {
+                val f = offlineUpdates.findLatestSnapshot(repoId)
+                complete(f)
+              }
+            } ~
+            path("remote-sessions.json") {
+              get {
+                val f = remoteSessions.find(repoId)
+                complete(f)
+              }
+            } ~
+            path(JsonRoleTypeMetaPath) {
+              case RoleType.ROOT =>
+                logDevice(ns, device) {
+                  complete(fetchRoot(ns, version = None))
+                }
+              case RoleType.TARGETS =>
+                val f = for {
+                  (json, assignments) <- deviceRoleGeneration.findFreshTargets(ns, repoId, device)
+                  _ <- publishInFlight(assignments)
+                } yield json
 
-            complete(f)
+                complete(f)
 
-          case RoleType.SNAPSHOT =>
-            val f = deviceRoleGeneration.findFreshDeviceRole[SnapshotRole](ns, repoId, device)
-            complete(f)
-          case RoleType.TIMESTAMP =>
-            val f = deviceRoleGeneration.findFreshDeviceRole[TimestampRole](ns, repoId, device)
-            complete(f)
+              case RoleType.SNAPSHOT =>
+                val f = deviceRoleGeneration.findFreshDeviceRole[SnapshotRole](ns, repoId, device)
+                complete(f)
+              case RoleType.TIMESTAMP =>
+                val f = deviceRoleGeneration.findFreshDeviceRole[TimestampRole](ns, repoId, device)
+                complete(f)
+            }
         }
-      }
     }
   }
 
-  private def handleDeviceManifest(ns: Namespace, device: DeviceId, jsonDevMan: SignedPayload[Json]): Route = {
+  private def handleDeviceManifest(ns: Namespace,
+                                   device: DeviceId,
+                                   jsonDevMan: SignedPayload[Json]): Route =
     onSuccess(deviceManifestProcess.validateManifestSignatures(ns, device, jsonDevMan)) {
       case Valid(deviceManifest) =>
         val validatedManifest = ManifestCompiler(ns, deviceManifest)
@@ -155,7 +169,9 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
         val f = async {
           val execResult = await(executor.process(device, validatedManifest))
 
-          await(Future.traverse(execResult.messages)(messageBusPublisher.publishSafe[DeviceUpdateEvent]))
+          await(
+            Future.traverse(execResult.messages)(messageBusPublisher.publishSafe[DeviceUpdateEvent])
+          )
 
           StatusCodes.OK
         }
@@ -164,5 +180,5 @@ class DeviceResource(extractNamespace: Directive1[Namespace], val keyserverClien
       case Invalid(e) =>
         failWith(Errors.Manifest.SignatureNotValid(e.toList.mkString(", ")))
     }
-  }
+
 }

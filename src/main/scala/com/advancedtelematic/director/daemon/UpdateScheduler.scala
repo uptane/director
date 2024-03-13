@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{blocking, ExecutionContext, Future}
 import scala.concurrent.duration.*
 
 class UpdateSchedulerDaemon()(implicit db: Database, ec: ExecutionContext) {
@@ -26,49 +26,75 @@ class UpdateSchedulerDaemon()(implicit db: Database, ec: ExecutionContext) {
   private val BACKOFF_INTERVAL = 3.seconds
 
   def start(): Future[Unit] = {
-    log.info(s"starting update scheduler daemon. CHECK_INTERVAL=$CHECK_INTERVAL BACKOFF_INTERVAL=$BACKOFF_INTERVAL")
+    log.info(
+      s"starting update scheduler daemon. CHECK_INTERVAL=$CHECK_INTERVAL BACKOFF_INTERVAL=$BACKOFF_INTERVAL"
+    )
     run()
   }
 
   private def run(): Future[Unit] = {
     log.debug("checking for pending scheduled updates")
-    dbio.run().flatMap { scheduledCount =>
-      if(scheduledCount == 0) {
-        log.debug("no scheduled updates pending, trying later")
-        Future {
-          blocking(Thread.sleep(CHECK_INTERVAL.toMillis))
-          0
+    dbio
+      .run()
+      .flatMap { scheduledCount =>
+        if (scheduledCount == 0) {
+          log.debug("no scheduled updates pending, trying later")
+          Future {
+            blocking(Thread.sleep(CHECK_INTERVAL.toMillis))
+            0
+          }
+        } else {
+          log.info(s"$scheduledCount scheduled updates processed")
+          FastFuture.successful(scheduledCount)
         }
-      } else {
-        log.info(s"$scheduledCount scheduled updates processed")
-        FastFuture.successful(scheduledCount)
       }
-    }.flatMap { _ =>
-      run()
-    }.recoverWith { case ex =>
-      log.error("could not process pending updates", ex)
-      Future {
-        blocking(Thread.sleep(BACKOFF_INTERVAL.toMillis))
-      }.flatMap { _ =>
+      .flatMap { _ =>
         run()
       }
-    }
+      .recoverWith { case ex =>
+        log.error("could not process pending updates", ex)
+        Future {
+          blocking(Thread.sleep(BACKOFF_INTERVAL.toMillis))
+        }.flatMap { _ =>
+          run()
+        }
+      }
   }
+
 }
 
-class UpdateScheduler()(implicit db: Database, ec: ExecutionContext) extends ScheduledUpdatesRepositorySupport {
+class UpdateScheduler()(implicit db: Database, ec: ExecutionContext)
+    extends ScheduledUpdatesRepositorySupport {
 
   private val dbio = new UpdateSchedulerDBIO()
 
-  def create(ns: Namespace, deviceId: DeviceId, updateId: UpdateId, scheduleAt: Instant): Future[ScheduledUpdateId] =
-    dbio.validateAndPersist(ScheduledUpdate(ns, ScheduledUpdateId.generate(), deviceId, updateId, scheduleAt, ScheduledUpdate.Status.Scheduled))
+  def create(ns: Namespace,
+             deviceId: DeviceId,
+             updateId: UpdateId,
+             scheduleAt: Instant): Future[ScheduledUpdateId] =
+    dbio.validateAndPersist(
+      ScheduledUpdate(
+        ns,
+        ScheduledUpdateId.generate(),
+        deviceId,
+        updateId,
+        scheduleAt,
+        ScheduledUpdate.Status.Scheduled
+      )
+    )
 
   def cancel(ns: Namespace, scheduledUpdateId: ScheduledUpdateId): Future[Unit] =
-    scheduledUpdatesRepository.setStatus(ns, scheduledUpdateId, ScheduledUpdate.Status.Cancelled, CancelledByUser.some)
+    scheduledUpdatesRepository.setStatus(
+      ns,
+      scheduledUpdateId,
+      ScheduledUpdate.Status.Cancelled,
+      CancelledByUser.some
+    )
 
   case object CancelledByUser extends StatusInfo
 
   implicit val cancelledByUserEncoder: Encoder[CancelledByUser.type] = Encoder.instance { _ =>
     Json.obj("cancelled_by_user" -> "cancelled by user".asJson)
   }
+
 }

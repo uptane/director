@@ -8,7 +8,12 @@ import cats.syntax.option._
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.ecuReplacementCodec
-import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement, EcuReplacementFailed}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  EcuAndHardwareId,
+  EcuReplaced,
+  EcuReplacement,
+  EcuReplacementFailed
+}
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.refinedMappedType
 import com.advancedtelematic.libats.slick.db.SlickExtensions.javaInstantMapping
 import com.advancedtelematic.libats.slick.db.SlickResultExtensions._
@@ -25,7 +30,15 @@ import scala.concurrent.ExecutionContext
 
 object EcuReplacementRepository {
 
-  private type Record = (DeviceId, Option[EcuIdentifier], Option[HardwareIdentifier], Option[EcuIdentifier], Option[HardwareIdentifier], Instant, Boolean)
+  private type Record = (
+    DeviceId,
+    Option[EcuIdentifier],
+    Option[HardwareIdentifier],
+    Option[EcuIdentifier],
+    Option[HardwareIdentifier],
+    Instant,
+    Boolean
+  )
 
   class EcuReplacementTable(tag: Tag) extends Table[EcuReplacement](tag, "EcuReplacement") {
     def deviceId = column[DeviceId]("device_uuid")
@@ -54,11 +67,22 @@ object EcuReplacementRepository {
           (
             refineV[ValidHardwareIdentifier](f.hardwareId).toOption,
             refineV[ValidHardwareIdentifier](c.hardwareId).toOption
-          ).mapN { case (fhid, chid) => (did, f.ecuId.some, fhid.some, c.ecuId.some, chid.some, at, true) }
+          ).mapN { case (fhid, chid) =>
+            (did, f.ecuId.some, fhid.some, c.ecuId.some, chid.some, at, true)
+          }
       }
 
     override def * =
-      (deviceId, formerEcuId, formerHardwareId, currentEcuId, currentHardwareId, replacedAt, success).shaped <> (tupleToClass, classToTuple)
+      (
+        deviceId,
+        formerEcuId,
+        formerHardwareId,
+        currentEcuId,
+        currentHardwareId,
+        replacedAt,
+        success
+      ).shaped <> (tupleToClass, classToTuple)
+
   }
 
   private val ecuReplacements = TableQuery[EcuReplacementTable]
@@ -73,11 +97,15 @@ object EcuReplacementRepository {
       .filter(_.deviceId === deviceId)
       .result
 
-  def deviceHistory(deviceId: DeviceId, offset: Long, limit: Long)(implicit ec: ExecutionContext): DBIO[PaginationResult[Json]] =
+  def deviceHistory(deviceId: DeviceId, offset: Long, limit: Long)(
+    implicit ec: ExecutionContext): DBIO[PaginationResult[Json]] =
     for {
       installations <- InstallationReportRepository.queryInstallationHistory(deviceId).result
       replacements <- fetchForDevice(deviceId).map(_.map(_.asJson))
-      history = (installations ++ replacements).sortBy(_.hcursor.get[Instant]("eventTime").toOption)(Ordering[Option[Instant]].reverse)
+      history = (installations ++ replacements).sortBy(
+        _.hcursor.get[Instant]("eventTime").toOption
+      )(Ordering[Option[Instant]].reverse)
       values = history.drop(offset.toInt).take(limit.toInt)
     } yield PaginationResult(values, history.length, offset, limit)
+
 }

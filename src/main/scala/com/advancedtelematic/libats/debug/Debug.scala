@@ -18,9 +18,11 @@ object DebugDatatype {
 
   type Row = List[Json]
 
-  case class Table(name : String, columns: Vector[String], data: Vector[Row])
+  case class Table(name: String, columns: Vector[String], data: Vector[Row])
 
-  case class ResourceGroup[T](pathPrefix: String, pathKey: String, resources: List[TableResource[T]])
+  case class ResourceGroup[T](pathPrefix: String,
+                              pathKey: String,
+                              resources: List[TableResource[T]])
 
   case class TableResource[T](pathPrefix: String, fetch: T => Future[Table])
 
@@ -30,19 +32,26 @@ object DebugDatatype {
 
   implicit val tableCodec: Codec[Table] = io.circe.generic.semiauto.deriveCodec[Table]
 
-  val NamespacePath: PathMatcher1[Namespace] = JavaUUID.flatMap(uuid => Option(Namespace(uuid.toString)))
+  val NamespacePath: PathMatcher1[Namespace] =
+    JavaUUID.flatMap(uuid => Option(Namespace(uuid.toString)))
 
-  implicit val showNamespace: Show[Namespace] = Show { ns => ns.get }
+  implicit val showNamespace: Show[Namespace] = Show(ns => ns.get)
 }
 
 object DebugRoutes {
+
   import DebugDatatype.*
   import akka.http.scaladsl.server.Directives.*
 
   def buildNavigation(resourceGroup: ResourceGroup[?]*): Route =
     path("navigation.json") {
       val items = resourceGroup.map { d =>
-        IndexItem(toHumanReadable(d.pathPrefix), d.pathPrefix, s"/debug/${d.pathPrefix}/", Some(d.pathKey))
+        IndexItem(
+          toHumanReadable(d.pathPrefix),
+          d.pathPrefix,
+          s"/debug/${d.pathPrefix}/",
+          Some(d.pathKey)
+        )
       }
 
       complete(Index("debug", items.toList))
@@ -60,11 +69,12 @@ object DebugRoutes {
     )
   }
 
-  def buildGroupRoutes[T : Show](extractor: PathMatcher1[T], resources: ResourceGroup[T]): Route = {
-    def resourcesRoutes(v: T) = resources.resources.foldLeft[Route](reject) { case (acc, resource) =>
-      acc ~ path(resource.pathPrefix) {
-        complete(resource.fetch(v))
-      }
+  def buildGroupRoutes[T: Show](extractor: PathMatcher1[T], resources: ResourceGroup[T]): Route = {
+    def resourcesRoutes(v: T) = resources.resources.foldLeft[Route](reject) {
+      case (acc, resource) =>
+        acc ~ path(resource.pathPrefix) {
+          complete(resource.fetch(v))
+        }
     }
 
     pathPrefix(resources.pathPrefix / extractor) { v =>
@@ -74,7 +84,12 @@ object DebugRoutes {
         },
         path("index.json") {
           val items = resources.resources.map { d =>
-            IndexItem(toHumanReadable(d.pathPrefix), d.pathPrefix, s"${v.show}/${d.pathPrefix}", paramName = None)
+            IndexItem(
+              toHumanReadable(d.pathPrefix),
+              d.pathPrefix,
+              s"${v.show}/${d.pathPrefix}",
+              paramName = None
+            )
           }
 
           complete(Index(toHumanReadable(resources.pathPrefix), items))
@@ -84,7 +99,7 @@ object DebugRoutes {
     }
   }
 
-  private def toHumanReadable(str: String): String = {
+  private def toHumanReadable(str: String): String =
     str.split("[\\s_+]").map(_.capitalize).mkString(" ")
-  }
+
 }

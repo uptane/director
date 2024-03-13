@@ -8,9 +8,10 @@ import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext
 
-
-class DirectorRoutes(keyserverClient: KeyserverClient, allowEcuReplacement: Boolean)
-                    (implicit val db: Database, ec: ExecutionContext, messageBusPublisher: MessageBusPublisher) {
+class DirectorRoutes(keyserverClient: KeyserverClient, allowEcuReplacement: Boolean)(
+  implicit val db: Database,
+  ec: ExecutionContext,
+  messageBusPublisher: MessageBusPublisher) {
   import Directives._
 
   val extractNamespace = NamespaceDirectives.defaultNamespaceExtractor
@@ -18,15 +19,16 @@ class DirectorRoutes(keyserverClient: KeyserverClient, allowEcuReplacement: Bool
   val routes: Route =
 // Temporarily disabled to allow routing to go to dev registry before rejections are handled
 //    handleRejections(rejectionHandler) {
-      ErrorHandler.handleErrors {
-        pathPrefix("api" / "v1") {
-          new AdminResource(extractNamespace, keyserverClient).route ~
+    ErrorHandler.handleErrors {
+      pathPrefix("api" / "v1") {
+        new AdminResource(extractNamespace, keyserverClient).route ~
           new AssignmentsResource(extractNamespace).route ~
           new DeviceResource(extractNamespace, keyserverClient, allowEcuReplacement).route ~
           new MultiTargetUpdatesResource(extractNamespace).route ~
           new LegacyRoutes(extractNamespace).route
-        } ~
-          new DirectorDebugResource().route
-      }
+      } ~
+        new DirectorDebugResource().route
+    }
 //    }
+
 }

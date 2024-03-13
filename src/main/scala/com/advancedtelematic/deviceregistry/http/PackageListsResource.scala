@@ -14,23 +14,21 @@ import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * This "package lists" feature has been migrated from the deprecated
-  * ota-core service, where it used to be a "blacklisting" feature. It's
-  * been migrated here to terminate ota-core.
+/** This "package lists" feature has been migrated from the deprecated ota-core service, where it
+  * used to be a "blacklisting" feature. It's been migrated here to terminate ota-core.
   *
-  * The feature was not actually blacklisting anything. Instead, it was
-  * used to count the number of devices that have a particular package
-  * installed. This are the installed packages reported by aktualizr,
-  * e.g. 'nano' for a linux distribution, not to be confused with the
-  * software images we can install through our system. The count of
-  * the packages is displayed in the "Impact" tab of the web app.
+  * The feature was not actually blacklisting anything. Instead, it was used to count the number of
+  * devices that have a particular package installed. This are the installed packages reported by
+  * aktualizr, e.g. 'nano' for a linux distribution, not to be confused with the software images we
+  * can install through our system. The count of the packages is displayed in the "Impact" tab of
+  * the web app.
   *
-  * While moving it here, we've chosen to rename this to "package lists"
-  * instead of "blacklisted packages", for lack of a better description
-  * of what the feature was being used for.
+  * While moving it here, we've chosen to rename this to "package lists" instead of "blacklisted
+  * packages", for lack of a better description of what the feature was being used for.
   */
-class PackageListsResource(namespaceExtractor: Directive1[Namespace])(implicit db: Database, ec: ExecutionContext) {
+class PackageListsResource(namespaceExtractor: Directive1[Namespace])(
+  implicit db: Database,
+  ec: ExecutionContext) {
 
   private val extractPackageId: Directive1[PackageId] =
     pathPrefix(Segment / Segment).as(PackageId.apply)
@@ -56,22 +54,23 @@ class PackageListsResource(namespaceExtractor: Directive1[Namespace])(implicit d
         get {
           complete(getPackageListItemCounts(namespace))
         } ~
-        (post & entity(as[Namespace => PackageListItem])) { fn =>
-          complete(Created -> createPackageListItem(fn(namespace)))
-        } ~
-        // This would better be as a PATCH /package_lists/package-name/package-version, but the UI is already sending this request.
-        (put & entity(as[Namespace => PackageListItem])) { fn =>
-          complete(NoContent -> updatePackageListItem(fn(namespace)))
-        }
+          (post & entity(as[Namespace => PackageListItem])) { fn =>
+            complete(Created -> createPackageListItem(fn(namespace)))
+          } ~
+          // This would better be as a PATCH /package_lists/package-name/package-version, but the UI is already sending this request.
+          (put & entity(as[Namespace => PackageListItem])) { fn =>
+            complete(NoContent -> updatePackageListItem(fn(namespace)))
+          }
       } ~
-      extractPackageId { packageId =>
-        get {
-          complete(getPackageListItem(namespace, packageId))
-        } ~
-        delete {
-          complete(NoContent -> deletePackageListItem(namespace, packageId))
+        extractPackageId { packageId =>
+          get {
+            complete(getPackageListItem(namespace, packageId))
+          } ~
+            delete {
+              complete(NoContent -> deletePackageListItem(namespace, packageId))
+            }
         }
-      }
     }
   }
+
 }

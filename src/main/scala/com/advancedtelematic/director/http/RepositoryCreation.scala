@@ -8,8 +8,11 @@ import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class RepositoryCreation(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext)
-  extends DeviceRepositorySupport with RepoNamespaceRepositorySupport {
+class RepositoryCreation(keyserverClient: KeyserverClient)(
+  implicit val db: Database,
+  val ec: ExecutionContext)
+    extends DeviceRepositorySupport
+    with RepoNamespaceRepositorySupport {
 
   def create(ns: Namespace): Future[Unit] = {
     val repoId = RepoId.generate()
@@ -19,4 +22,5 @@ class RepositoryCreation(keyserverClient: KeyserverClient)(implicit val db: Data
       _ <- repoNamespaceRepo.persist(repoId, ns)
     } yield ()
   }
+
 }

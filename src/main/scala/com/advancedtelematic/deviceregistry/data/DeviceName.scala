@@ -7,11 +7,14 @@ import io.circe.{Decoder, Encoder}
 import scala.annotation.nowarn
 
 @nowarn
-final case class DeviceName private(value: String) extends AnyVal
+final case class DeviceName private (value: String) extends AnyVal
 
 object DeviceName {
 
-  implicit val validatedDeviceType: com.advancedtelematic.libats.data.ValidatedGeneric[com.advancedtelematic.deviceregistry.data.DeviceName,String] = new ValidatedGeneric[DeviceName, String] {
+  implicit val validatedDeviceType: com.advancedtelematic.libats.data.ValidatedGeneric[
+    com.advancedtelematic.deviceregistry.data.DeviceName,
+    String
+  ] = new ValidatedGeneric[DeviceName, String] {
     override def to(deviceType: DeviceName): String = deviceType.value
     override def from(s: String): Either[ValidationError, DeviceName] = DeviceName.from(s)
   }
@@ -22,6 +25,10 @@ object DeviceName {
     else
       Right(new DeviceName(s))
 
-  implicit val deviceNameEncoder: Encoder[DeviceName] = CirceValidatedGeneric.validatedGenericEncoder
-  implicit val deviceNameDecoder: Decoder[DeviceName] = CirceValidatedGeneric.validatedGenericDecoder
+  implicit val deviceNameEncoder: Encoder[DeviceName] =
+    CirceValidatedGeneric.validatedGenericEncoder
+
+  implicit val deviceNameDecoder: Decoder[DeviceName] =
+    CirceValidatedGeneric.validatedGenericDecoder
+
 }

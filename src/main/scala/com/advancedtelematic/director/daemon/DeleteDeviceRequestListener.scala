@@ -12,21 +12,29 @@ import slick.jdbc.MySQLProfile.api.*
 import scala.concurrent.{ExecutionContext, Future}
 
 class DeleteDeviceRequestListener()(implicit val db: Database, val ec: ExecutionContext)
-                                            extends MsgOperation[DeleteDeviceRequest]  with DeviceRepositorySupport {
+    extends MsgOperation[DeleteDeviceRequest]
+    with DeviceRepositorySupport {
 
   val log = LoggerFactory.getLogger(this.getClass)
 
   override def apply(message: DeleteDeviceRequest): Future[Done] = {
-    val f0 = db.run(com.advancedtelematic.deviceregistry.db.DeviceRepository.delete(message.namespace, message.uuid))
+    val f0 = db
+      .run(
+        com.advancedtelematic.deviceregistry.db.DeviceRepository
+          .delete(message.namespace, message.uuid)
+      )
       .recover { case ex @ Errors.MissingDevice =>
         log.warn("wat", ex)
       }
 
     val f1 = deviceRepository.markDeleted(message.namespace, message.uuid).recover {
       case e: MissingEntity[_] =>
-        log.warn(s"error deleting device ${message.uuid} from namespace ${message.namespace}: ${e.msg}")
+        log.warn(
+          s"error deleting device ${message.uuid} from namespace ${message.namespace}: ${e.msg}"
+        )
     }
 
     Future.sequence(List(f0, f1)).map(_ => Done)
   }
+
 }

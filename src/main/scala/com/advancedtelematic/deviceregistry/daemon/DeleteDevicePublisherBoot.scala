@@ -8,7 +8,10 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 // needs to run once to inform the director which devices are deleted
-object DeleteDevicePublisherBoot extends DatabaseSupport with BootAppDefaultConfig with BootAppDatabaseConfig {
+object DeleteDevicePublisherBoot
+    extends DatabaseSupport
+    with BootAppDefaultConfig
+    with BootAppDatabaseConfig {
   lazy val projectName: String = buildinfo.BuildInfo.name
 
   lazy val messageBus = MessageBus.publisher(system, globalConfig)

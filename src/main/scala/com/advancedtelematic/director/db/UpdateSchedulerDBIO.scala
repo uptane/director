@@ -17,12 +17,12 @@ import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*
 import slick.jdbc.{GetResult, SetParameter, TransactionIsolation}
 
-
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class UpdateSchedulerDBIO()(implicit db: Database, ec: ExecutionContext) extends ScheduledUpdatesRepositorySupport {
+class UpdateSchedulerDBIO()(implicit db: Database, ec: ExecutionContext)
+    extends ScheduledUpdatesRepositorySupport {
   import UpdateSchedulerDBIO.*
 
   private lazy val log = LoggerFactory.getLogger(this.getClass)
@@ -43,27 +43,33 @@ class UpdateSchedulerDBIO()(implicit db: Database, ec: ExecutionContext) extends
       .filter(_.status === (ScheduledUpdate.Status.Scheduled: ScheduledUpdate.Status))
       .filter(_.scheduledAt < Instant.now())
       .sortBy(_.scheduledAt.desc)
-      .take(10).forUpdate
+      .take(10)
+      .forUpdate
       .result
   }
 
-  case class EcuInfoRow(ecuTargetId: EcuTargetId, ecuIdentifier: Option[EcuIdentifier],
-                        updateHardwareId: HardwareIdentifier, ecuHardwareId: Option[HardwareIdentifier],
-                        fromTargetId: Option[EcuTargetId], currentTargetId: Option[EcuTargetId],
-                        assignmentExists: Boolean,
-                        )
+  case class EcuInfoRow(ecuTargetId: EcuTargetId,
+                        ecuIdentifier: Option[EcuIdentifier],
+                        updateHardwareId: HardwareIdentifier,
+                        ecuHardwareId: Option[HardwareIdentifier],
+                        fromTargetId: Option[EcuTargetId],
+                        currentTargetId: Option[EcuTargetId],
+                        assignmentExists: Boolean)
 
-  private def findEcuSerialsForUpdate(deviceId: DeviceId, updateId: UpdateId): DBIO[ValidatedNel[InvalidReason, NonEmptyList[(EcuTargetId, EcuIdentifier)]]] = {
+  private def findEcuSerialsForUpdate(deviceId: DeviceId, updateId: UpdateId)
+    : DBIO[ValidatedNel[InvalidReason, NonEmptyList[(EcuTargetId, EcuIdentifier)]]] = {
 
     implicit val getResult: GetResult[EcuInfoRow] = GetResult { pr =>
       EcuInfoRow(
         EcuTargetId(UUID.fromString(pr.nextString())),
         pr.nextStringOption().map(str => EcuIdentifier.from(str).valueOr(throw _)),
-        RefType.applyRef[HardwareIdentifier](pr.nextString()).valueOr(err => throw new IllegalArgumentException(err)),
+        RefType
+          .applyRef[HardwareIdentifier](pr.nextString())
+          .valueOr(err => throw new IllegalArgumentException(err)),
         pr.nextStringOption().flatMap(str => RefType.applyRef[HardwareIdentifier](str).toOption),
         pr.nextStringOption().map(str => EcuTargetId(UUID.fromString(str))),
         pr.nextStringOption().map(str => EcuTargetId(UUID.fromString(str))),
-        pr.nextStringOption().isDefined,
+        pr.nextStringOption().isDefined
       )
     }
 
@@ -79,63 +85,117 @@ class UpdateSchedulerDBIO()(implicit db: Database, ec: ExecutionContext) extends
         """.as[EcuInfoRow]
 
     ecusio.map { ecus =>
-      if(ecus.isEmpty)
+      if (ecus.isEmpty)
         HardwareUpdateMissing(updateId).invalidNel
       else
-        NonEmptyList.fromListUnsafe(ecus.toList).map {
-          case EcuInfoRow(ecuTargetId, Some(ecuSerial), _, _, fromTargetId, currentTargetId, false) if fromTargetId == currentTargetId || fromTargetId.isEmpty =>
-            (ecuTargetId, ecuSerial).validNel[InvalidReason]
-          case EcuInfoRow(_, Some(_), _, _, fromTargetId, currentTargetId, false) => // incompatible fromTarget in compatible ecu
-            IncompatibleFromTarget(updateId, currentTargetId, fromTargetId).invalidNel
-          case EcuInfoRow(_, None, updateHardwareId, ecuHardwareId, _, _, _) => // no compatible ecu found
-            IncompatibleEcuHardware(updateId, updateHardwareId, ecuHardwareId).invalidNel
-          case EcuInfoRow(_, _, _, _, _, _, true) => // an assignment already exists for ecu
-            EcuAssignmentExists(updateId).invalidNel
-        }.sequence
+        NonEmptyList
+          .fromListUnsafe(ecus.toList)
+          .map {
+            case EcuInfoRow(
+                  ecuTargetId,
+                  Some(ecuSerial),
+                  _,
+                  _,
+                  fromTargetId,
+                  currentTargetId,
+                  false
+                ) if fromTargetId == currentTargetId || fromTargetId.isEmpty =>
+              (ecuTargetId, ecuSerial).validNel[InvalidReason]
+            case EcuInfoRow(
+                  _,
+                  Some(_),
+                  _,
+                  _,
+                  fromTargetId,
+                  currentTargetId,
+                  false
+                ) => // incompatible fromTarget in compatible ecu
+              IncompatibleFromTarget(updateId, currentTargetId, fromTargetId).invalidNel
+            case EcuInfoRow(
+                  _,
+                  None,
+                  updateHardwareId,
+                  ecuHardwareId,
+                  _,
+                  _,
+                  _
+                ) => // no compatible ecu found
+              IncompatibleEcuHardware(updateId, updateHardwareId, ecuHardwareId).invalidNel
+            case EcuInfoRow(_, _, _, _, _, _, true) => // an assignment already exists for ecu
+              EcuAssignmentExists(updateId).invalidNel
+          }
+          .sequence
     }
   }
 
-  private def startUpdate(update: ScheduledUpdate): DBIO[Unit] = {
+  private def startUpdate(update: ScheduledUpdate): DBIO[Unit] =
     findEcuSerialsForUpdate(update.deviceId, update.updateId).flatMap {
       case Validated.Valid(ecuTargetIds) =>
         val correlationId = MultiTargetUpdateId(update.updateId.uuid)
 
         val assignments = ecuTargetIds.map { case (ecuTargetId, ecuSerial) =>
-          Assignment(update.ns, update.deviceId, ecuSerial, ecuTargetId, correlationId, inFlight = false, createdAt = Instant.now())
+          Assignment(
+            update.ns,
+            update.deviceId,
+            ecuSerial,
+            ecuTargetId,
+            correlationId,
+            inFlight = false,
+            createdAt = Instant.now()
+          )
         }
 
-        log.atDebug()
+        log
+          .atDebug()
           .addKeyValue("scheduled-update-id", update.id.uuid.toString)
           .addKeyValue("device-id", update.deviceId.uuid.toString)
           .log(s"creating ${assignments.length} for ecu ${update.deviceId}")
 
         DBIO.seq(
           Schema.assignments ++= assignments.toList,
-          scheduledUpdatesRepository.setStatusAction(update.ns, update.id, ScheduledUpdate.Status.Assigned)
+          scheduledUpdatesRepository.setStatusAction(
+            update.ns,
+            update.id,
+            ScheduledUpdate.Status.Assigned
+          )
         )
       case Validated.Invalid(errors) =>
-        log.atInfo()
+        log
+          .atInfo()
           .addKeyValue("scheduled-update-id", update.id.uuid.toString)
           .addKeyValue("device-id", update.deviceId.uuid.toString)
           .addKeyValue("errors", errors.asJson)
           .log(s"cancelling scheduled update for ${update.deviceId}")
 
-        scheduledUpdatesRepository.setStatusAction(update.ns, update.id, ScheduledUpdate.Status.Cancelled, InvalidEcuStatus(errors).some)
+        scheduledUpdatesRepository.setStatusAction(
+          update.ns,
+          update.id,
+          ScheduledUpdate.Status.Cancelled,
+          InvalidEcuStatus(errors).some
+        )
     }
-  }
 
   def validateAndPersist(scheduledUpdate: ScheduledUpdate): Future[ScheduledUpdateId] = db.run {
-    scheduledUpdatesRepository.scheduledUpdateExistsFor(scheduledUpdate.ns, scheduledUpdate.deviceId).flatMap {
-      case Some(id) =>
-        DBIO.failed(UpdateScheduleError(scheduledUpdate.deviceId, NonEmptyList.of(ScheduledUpdateExists(id) : InvalidReason)))
-      case None =>
-        findEcuSerialsForUpdate(scheduledUpdate.deviceId, scheduledUpdate.updateId).flatMap {
-          case Valid(_) =>
-            scheduledUpdatesRepository.persistAction(scheduledUpdate)
-          case Invalid(errors) =>
-            DBIO.failed(UpdateScheduleError(scheduledUpdate.deviceId, errors))
-        }
-    }.withTransactionIsolation(TransactionIsolation.Serializable).transactionally
+    scheduledUpdatesRepository
+      .scheduledUpdateExistsFor(scheduledUpdate.ns, scheduledUpdate.deviceId)
+      .flatMap {
+        case Some(id) =>
+          DBIO.failed(
+            UpdateScheduleError(
+              scheduledUpdate.deviceId,
+              NonEmptyList.of(ScheduledUpdateExists(id): InvalidReason)
+            )
+          )
+        case None =>
+          findEcuSerialsForUpdate(scheduledUpdate.deviceId, scheduledUpdate.updateId).flatMap {
+            case Valid(_) =>
+              scheduledUpdatesRepository.persistAction(scheduledUpdate)
+            case Invalid(errors) =>
+              DBIO.failed(UpdateScheduleError(scheduledUpdate.deviceId, errors))
+          }
+      }
+      .withTransactionIsolation(TransactionIsolation.Serializable)
+      .transactionally
   }
 
   def run(): Future[Int] = {
@@ -147,37 +207,44 @@ class UpdateSchedulerDBIO()(implicit db: Database, ec: ExecutionContext) extends
 
     db.run(io.transactionally.withTransactionIsolation(TransactionIsolation.Serializable))
   }
+
 }
 
-
-
 object UpdateSchedulerDBIO {
+
   import com.advancedtelematic.libats.codecs.CirceRefined.*
   import io.circe.generic.auto.*
   import io.circe.syntax.*
 
   sealed trait InvalidReason
 
-  case class IncompatibleFromTarget(updateId: UpdateId, ecuFromTarget: Option[EcuTargetId], updateFromTarget: Option[EcuTargetId]) extends InvalidReason
+  case class IncompatibleFromTarget(updateId: UpdateId,
+                                    ecuFromTarget: Option[EcuTargetId],
+                                    updateFromTarget: Option[EcuTargetId])
+      extends InvalidReason
 
   case class ScheduledUpdateExists(scheduledUpdateId: ScheduledUpdateId) extends InvalidReason
 
-  case class IncompatibleEcuHardware(updateId: UpdateId, updateHardware: HardwareIdentifier, ecuHardware: Option[HardwareIdentifier]) extends InvalidReason
+  case class IncompatibleEcuHardware(updateId: UpdateId,
+                                     updateHardware: HardwareIdentifier,
+                                     ecuHardware: Option[HardwareIdentifier])
+      extends InvalidReason
 
   case class EcuAssignmentExists(updateId: UpdateId) extends InvalidReason
 
   case class HardwareUpdateMissing(updateId: UpdateId) extends InvalidReason
 
   implicit val ecuStatusForUpdateInvalidReasonEncoder: Encoder[InvalidReason] = Encoder.instance {
-    case e: IncompatibleFromTarget => Json.obj("incompatible_from_target" -> e.asJson)
+    case e: IncompatibleFromTarget  => Json.obj("incompatible_from_target" -> e.asJson)
     case e: IncompatibleEcuHardware => Json.obj("incompatible_ecu_hardware" -> e.asJson)
-    case e: EcuAssignmentExists => Json.obj("ecu_assignment_exists" -> e.asJson)
-    case e: HardwareUpdateMissing => Json.obj("hardware_update_missing" -> e.asJson)
-    case e: ScheduledUpdateExists => Json.obj("scheduled_update_exists" -> e.asJson)
+    case e: EcuAssignmentExists     => Json.obj("ecu_assignment_exists" -> e.asJson)
+    case e: HardwareUpdateMissing   => Json.obj("hardware_update_missing" -> e.asJson)
+    case e: ScheduledUpdateExists   => Json.obj("scheduled_update_exists" -> e.asJson)
   }
 
   case class InvalidEcuStatus(reasons: NonEmptyList[InvalidReason]) extends StatusInfo
 
-  implicit val invalidEcuStatusCodec: Codec[InvalidEcuStatus] = io.circe.generic.semiauto.deriveCodec[InvalidEcuStatus]
-}
+  implicit val invalidEcuStatusCodec: Codec[InvalidEcuStatus] =
+    io.circe.generic.semiauto.deriveCodec[InvalidEcuStatus]
 
+}

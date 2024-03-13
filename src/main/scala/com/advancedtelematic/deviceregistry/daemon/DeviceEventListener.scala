@@ -18,11 +18,11 @@ import slick.jdbc.MySQLProfile.api._
 import java.sql.SQLIntegrityConstraintViolationException
 import scala.concurrent.{ExecutionContext, Future}
 
-class DeviceEventListener()(implicit val db: Database, ec: ExecutionContext) extends MsgOperation[DeviceEventMessage] {
+class DeviceEventListener()(implicit val db: Database, ec: ExecutionContext)
+    extends MsgOperation[DeviceEventMessage] {
 
   private[this] val journal = new EventJournal()(db, ec)
   private lazy val log = LoggerFactory.getLogger(this.getClass)
-
 
   override def apply(message: DeviceEventMessage): Future[Done] =
     journal.recordEvent(message.event).map(_ => Done).recover {
@@ -30,4 +30,5 @@ class DeviceEventListener()(implicit val db: Database, ec: ExecutionContext) ext
         log.error(s"Can't record event $message", e)
         Done
     }
+
 }

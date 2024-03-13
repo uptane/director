@@ -32,18 +32,22 @@ object GroupType extends Enumeration {
 
   val static, dynamic = Value
 
-  implicit val groupTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.deviceregistry.data.GroupType.GroupType] = MappedColumnType.base[GroupType, String](_.toString, GroupType.withName)
+  implicit val groupTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[
+    com.advancedtelematic.deviceregistry.data.GroupType.GroupType
+  ] = MappedColumnType.base[GroupType, String](_.toString, GroupType.withName)
 
   implicit val groupTypeEncoder: Encoder[GroupType] = Encoder.encodeEnumeration(GroupType)
   implicit val groupTypeDecoder: Decoder[GroupType] = Decoder.decodeEnumeration(GroupType)
 
-  implicit val groupTypeUnmarshaller: Unmarshaller[String, GroupType] = Unmarshaller.strict(GroupType.withName)
+  implicit val groupTypeUnmarshaller: Unmarshaller[String, GroupType] =
+    Unmarshaller.strict(GroupType.withName)
+
 }
 
 object Group {
 
   final case class GroupId(uuid: UUID) extends UUIDKey
-  object GroupId                       extends UUIDKeyObj[GroupId]
+  object GroupId extends UUIDKeyObj[GroupId]
 
   implicit val groupEncoder: Encoder[Group] = deriveEncoder[Group]
   implicit val groupDecoder: Decoder[Group] = deriveDecoder[Group]
@@ -51,6 +55,6 @@ object Group {
 
 object GroupSortBy {
   sealed trait GroupSortBy
-  case object Name      extends GroupSortBy
+  case object Name extends GroupSortBy
   case object CreatedAt extends GroupSortBy
 }

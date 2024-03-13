@@ -22,9 +22,20 @@ import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{ClientTargetItem, RemoteSessionsPayload, RootRole}
+import com.advancedtelematic.libtuf.data.ClientDataType.{
+  ClientTargetItem,
+  RemoteSessionsPayload,
+  RootRole
+}
 import com.advancedtelematic.libtuf.data.TufCodecs.*
-import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, JsonSignedPayload, SignedPayload, TargetFilename, TargetName, ValidKeyId}
+import com.advancedtelematic.libtuf.data.TufDataType.{
+  HardwareIdentifier,
+  JsonSignedPayload,
+  SignedPayload,
+  TargetFilename,
+  TargetName,
+  ValidKeyId
+}
 import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -33,13 +44,16 @@ import slick.jdbc.MySQLProfile.api.*
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 
-case class OfflineUpdateRequest(values: Map[TargetFilename, ClientTargetItem], expiresAt: Option[Instant])
+case class OfflineUpdateRequest(values: Map[TargetFilename, ClientTargetItem],
+                                expiresAt: Option[Instant])
 
 case class RemoteSessionRequest(remoteSessions: RemoteSessionsPayload, previousVersion: Int)
 
-class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient)
-                   (implicit val db: Database, val ec: ExecutionContext, messageBusPublisher: MessageBusPublisher)
-  extends NamespaceRepoId
+class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient)(
+  implicit val db: Database,
+  val ec: ExecutionContext,
+  messageBusPublisher: MessageBusPublisher)
+    extends NamespaceRepoId
     with RepoNamespaceRepositorySupport
     with RootFetching
     with EcuRepositorySupport
@@ -58,20 +72,23 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
   val remoteSessions = new RemoteSessions(keyserverClient)
   val updateScheduler = new UpdateScheduler()
 
-  private def findDevicesCurrentTarget(ns: Namespace, devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
-    val values = {
+  private def findDevicesCurrentTarget(ns: Namespace,
+                                       devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
+    val values =
       for {
         d <- ecuRepository.deviceEcuInstallInfo(ns, devices.toSet)
-      } yield d.map { case (deviceId, ecu, isPrimary, installedTarget) =>
-
-        installedTarget match {
-          case Some(t) => deviceId -> Seq[EcuTarget](EcuTarget(ecu.ecuSerial, t.checksum, t.filename, ecu.hardwareId, isPrimary))
-          case None => deviceId -> Seq.empty[EcuTarget]
+      } yield d
+        .map { case (deviceId, ecu, isPrimary, installedTarget) =>
+          installedTarget match {
+            case Some(t) =>
+              deviceId -> Seq[EcuTarget](
+                EcuTarget(ecu.ecuSerial, t.checksum, t.filename, ecu.hardwareId, isPrimary)
+              )
+            case None => deviceId -> Seq.empty[EcuTarget]
+          }
         }
-      }
-      .groupMap(_._1)(_._2)
+        .groupMap(_._1)(_._2)
         .map { case (deviceId, ecuTargets) => deviceId -> ecuTargets.flatten }
-    }
     values.map { v =>
       DevicesCurrentTarget {
         // Only necessary if lengths differ. This can happen when db has no activeEcus for a specified deviceId
@@ -88,63 +105,68 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
         val f = repositoryCreation.create(ns).map(_ => StatusCodes.Created)
         complete(f)
       } ~
-      (pathPrefix("root") & pathEnd & entity(as[SignedPayload[RootRole]]) & UserRepoId(ns)) { (signedPayload, repoId) =>
-        complete {
-          keyserverClient.updateRoot(repoId, signedPayload)
-        }
-      } ~
-      get {
-        path("root.json") {
-          complete(fetchRoot(ns, version = None))
+        (pathPrefix("root") & pathEnd & entity(as[SignedPayload[RootRole]]) & UserRepoId(ns)) {
+          (signedPayload, repoId) =>
+            complete {
+              keyserverClient.updateRoot(repoId, signedPayload)
+            }
         } ~
-        path(IntNumber ~ ".root.json") { version =>
-          complete(fetchRoot(ns, version.some))
-        }
-      } ~
-      path("private_keys" / KeyIdPath) { keyId =>
-        UserRepoId(ns) { repoId =>
-          delete {
-            complete {
-              keyserverClient.deletePrivateKey(repoId, keyId)
-            }
+        get {
+          path("root.json") {
+            complete(fetchRoot(ns, version = None))
           } ~
-          get {
-            complete {
-              keyserverClient.fetchKeyPair(repoId, keyId)
+            path(IntNumber ~ ".root.json") { version =>
+              complete(fetchRoot(ns, version.some))
             }
+        } ~
+        path("private_keys" / KeyIdPath) { keyId =>
+          UserRepoId(ns) { repoId =>
+            delete {
+              complete {
+                keyserverClient.deletePrivateKey(repoId, keyId)
+              }
+            } ~
+              get {
+                complete {
+                  keyserverClient.fetchKeyPair(repoId, keyId)
+                }
+              }
+          }
+        } ~
+        (path("offline-updates" / AdminRoleNamePathMatcher) & UserRepoId(ns)) {
+          (offlineTargetName, repoId) =>
+            (post & entity(as[OfflineUpdateRequest])) { req =>
+              val f = offlineUpdates.set(repoId, offlineTargetName, req.values, req.expiresAt)
+              complete(f.map(_.content))
+            }
+        } ~
+        (path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") & UserRepoId(ns)) {
+          (offlineTargetName, repoId) =>
+            get {
+              val f = offlineUpdates.findLatestUpdates(repoId, offlineTargetName)
+              complete(f)
+            }
+        } ~
+        (path(
+          "offline-updates" / IntNumber ~ "." ~ AdminRoleNamePathMatcher ~ ".json"
+        ) & UserRepoId(ns)) { (version, offlineTargetName, repoId) =>
+          get {
+            val f = offlineUpdates.findUpdates(repoId, offlineTargetName, version)
+            complete(f)
+          }
+        } ~
+        (path("offline-snapshot.json") & UserRepoId(ns)) { repoId =>
+          get {
+            val f = offlineUpdates.findLatestSnapshot(repoId)
+            complete(f)
+          }
+        } ~
+        (path(IntNumber ~ ".offline-snapshot.json") & UserRepoId(ns)) { (version, repoId) =>
+          get {
+            val f = offlineUpdates.findSnapshot(repoId, version)
+            complete(f)
           }
         }
-      } ~
-      (path("offline-updates" / AdminRoleNamePathMatcher) & UserRepoId(ns)){ (offlineTargetName, repoId) =>
-        (post & entity(as[OfflineUpdateRequest])) { req =>
-          val f = offlineUpdates.set(repoId, offlineTargetName, req.values, req.expiresAt)
-          complete(f.map(_.content))
-        }
-      } ~
-      (path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") & UserRepoId(ns)) { (offlineTargetName, repoId) =>
-        get {
-          val f = offlineUpdates.findLatestUpdates(repoId, offlineTargetName)
-          complete(f)
-        }
-      } ~
-      (path("offline-updates" / IntNumber ~ "." ~ AdminRoleNamePathMatcher ~ ".json") & UserRepoId(ns)) { (version, offlineTargetName, repoId) =>
-        get {
-          val f = offlineUpdates.findUpdates(repoId, offlineTargetName, version)
-          complete(f)
-        }
-      } ~
-      (path("offline-snapshot.json") & UserRepoId(ns)) { repoId =>
-        get {
-          val f = offlineUpdates.findLatestSnapshot(repoId)
-          complete(f)
-        }
-      } ~
-      (path(IntNumber ~ ".offline-snapshot.json") & UserRepoId(ns)) { (version, repoId) =>
-        get {
-          val f = offlineUpdates.findSnapshot(repoId, version)
-          complete(f)
-        }
-      }
     }
 
   def devicePath(ns: Namespace): Route =
@@ -152,51 +174,64 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
       pathPrefix("scheduled-updates") {
         pathEnd {
           (post & entity(as[CreateScheduledUpdateRequest])) { req =>
-            val f = updateScheduler.create(ns, req.device, req.updateId, req.scheduledAt)
+            val f = updateScheduler
+              .create(ns, req.device, req.updateId, req.scheduledAt)
               .map(id => StatusCodes.Created -> id)
             complete(f)
           } ~
-          get {
-            val f = scheduledUpdatesRepository.findFor(ns, device)
-            complete(f)
+            get {
+              val f = scheduledUpdatesRepository.findFor(ns, device)
+              complete(f)
+            }
+        } ~
+          path(ScheduledUpdateId.Path) { scheduledId =>
+            delete {
+              val f = updateScheduler.cancel(ns, scheduledId)
+              complete(f)
+            }
           }
-      } ~
-      path(ScheduledUpdateId.Path) { scheduledId =>
-        delete {
-          val f = updateScheduler.cancel(ns, scheduledId)
-          complete(f)
-        }
-      }
 
       } ~
-      pathPrefix("ecus") {
-        pathPrefix(EcuIdPath) { ecuId =>
-          pathPrefix("auto_update") {
-            (pathEnd & get) {
-              complete(autoUpdateDefinitionRepository.findOnDevice(ns, device, ecuId).map(_.map(_.targetName)))
-            } ~
-              path(TargetNamePath) { targetName =>
-                put {
-                  complete(autoUpdateDefinitionRepository.persist(ns, device, ecuId, targetName).map(_ => StatusCodes.NoContent))
-                } ~
-                delete {
-                  complete(autoUpdateDefinitionRepository.remove(ns, device, ecuId, targetName).map(_ => StatusCodes.NoContent))
+        pathPrefix("ecus") {
+          pathPrefix(EcuIdPath) { ecuId =>
+            pathPrefix("auto_update") {
+              (pathEnd & get) {
+                complete(
+                  autoUpdateDefinitionRepository
+                    .findOnDevice(ns, device, ecuId)
+                    .map(_.map(_.targetName))
+                )
+              } ~
+                path(TargetNamePath) { targetName =>
+                  put {
+                    complete(
+                      autoUpdateDefinitionRepository
+                        .persist(ns, device, ecuId, targetName)
+                        .map(_ => StatusCodes.NoContent)
+                    )
+                  } ~
+                    delete {
+                      complete(
+                        autoUpdateDefinitionRepository
+                          .remove(ns, device, ecuId, targetName)
+                          .map(_ => StatusCodes.NoContent)
+                      )
+                    }
                 }
+            } ~
+              (path("public_key") & get) {
+                val key = ecuRepository.findBySerial(ns, device, ecuId).map(_.publicKey)
+                complete(key)
               }
-          } ~
-            (path("public_key") & get) {
-              val key = ecuRepository.findBySerial(ns, device, ecuId).map(_.publicKey)
-              complete(key)
-            }
+          }
+        } ~
+        get {
+          val f = deviceRegistration.findDeviceEcuInfo(ns, device)
+          complete(f)
+        } ~
+        (path("targets.json") & put) {
+          complete(deviceRoleGeneration.forceTargetsRefresh(device).map(_ => StatusCodes.Accepted))
         }
-      } ~
-      get {
-        val f = deviceRegistration.findDeviceEcuInfo(ns, device)
-        complete(f)
-      } ~
-      (path("targets.json") & put) {
-        complete(deviceRoleGeneration.forceTargetsRefresh(device).map(_ => StatusCodes.Accepted))
-      }
     }
 
   val route: Route = extractNamespace { ns =>
@@ -222,11 +257,11 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
             val f = remoteSessions.find(repoId)
             complete(f)
           } ~
-          post {
-            entity(as[JsonSignedPayload]) { req =>
-              complete(remoteSessions.updateFullRole(repoId, req).map(_ => StatusCodes.OK))
+            post {
+              entity(as[JsonSignedPayload]) { req =>
+                complete(remoteSessions.updateFullRole(repoId, req).map(_ => StatusCodes.OK))
+              }
             }
-          }
         },
         pathPrefix("devices") {
           UserRepoId(ns) { repoId =>
@@ -237,9 +272,16 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                     reject(ValidationRejection("deviceId is required to register a device"))
                   else {
                     complete {
-                      deviceRegistration.registerAndPublish(ns, repoId, regDev.deviceId.get, regDev.primary_ecu_serial, regDev.ecus)
+                      deviceRegistration
+                        .registerAndPublish(
+                          ns,
+                          repoId,
+                          regDev.deviceId.get,
+                          regDev.primary_ecu_serial,
+                          regDev.ecus
+                        )
                         .map {
-                          case DeviceRepository.Created => StatusCodes.Created
+                          case DeviceRepository.Created    => StatusCodes.Created
                           case _: DeviceRepository.Updated => StatusCodes.OK
                         }
                     }
@@ -254,10 +296,15 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
               get {
                 concat(
                   pathEnd {
-                    /** if you leave this parameter (or misspell it) out you'll land in [[LegacyRoutes.route]] */
+
+                    /** if you leave this parameter (or misspell it) out you'll land in
+                      * [[LegacyRoutes.route]]
+                      */
                     parameter(Symbol("primaryHardwareId").as[HardwareIdentifier]) { hardwareId =>
                       PaginationParameters { (limit, offset) =>
-                        val f = deviceRepository.findDevices(ns, hardwareId, offset, limit).map(_.toClient)
+                        val f = deviceRepository
+                          .findDevices(ns, hardwareId, offset, limit)
+                          .map(_.toClient)
                         complete(f)
                       }
                     }
@@ -274,8 +321,9 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                         val uniqueDeviceIds = ecuTuples.map(_._1.deviceId).toSet
                         val s = uniqueDeviceIds.map { deviceId =>
                           // group ecus which belong to the same device
-                          val deviceEcus = ecuTuples.filter(_._1.deviceId == deviceId)
-                            .map{ case (ecu, primary) => ecu.toClient(primary)}
+                          val deviceEcus = ecuTuples
+                            .filter(_._1.deviceId == deviceId)
+                            .map { case (ecu, primary) => ecu.toClient(primary) }
                           Map(deviceId -> deviceEcus)
                         }
                         val pageLimit = if (s.size < (offset * limit + limit).toInt) {
@@ -283,7 +331,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                         } else {
                           (offset * limit + limit).toInt
                         }
-                        val page = s.slice((offset*limit).toInt, (offset*limit + limit).toInt)
+                        val page = s.slice((offset * limit).toInt, (offset * limit + limit).toInt)
                         PaginationResult(page.toSeq, pageLimit, offset, limit)
                       }
                       complete(pagedEcus)
@@ -294,7 +342,9 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
               devicePath(ns)
             )
           }
-        })
+        }
+      )
     }
   }
+
 }

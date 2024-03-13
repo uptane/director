@@ -33,13 +33,21 @@ object InstalledPackages {
 
   object InstalledPackage {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
-    implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.db.InstalledPackages.InstalledPackage] = io.circe.generic.semiauto.deriveEncoder[InstalledPackage]
+
+    implicit val EncoderInstance: io.circe.Encoder.AsObject[
+      com.advancedtelematic.deviceregistry.db.InstalledPackages.InstalledPackage
+    ] = io.circe.generic.semiauto.deriveEncoder[InstalledPackage]
+
   }
 
   case class DevicesCount(deviceCount: Int, groupIds: Set[GroupId])
 
   object DevicesCount {
-    implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.db.InstalledPackages.DevicesCount] = io.circe.generic.semiauto.deriveEncoder[DevicesCount]
+
+    implicit val EncoderInstance: io.circe.Encoder.AsObject[
+      com.advancedtelematic.deviceregistry.db.InstalledPackages.DevicesCount
+    ] = io.circe.generic.semiauto.deriveEncoder[DevicesCount]
+
   }
 
   private def toTuple(fp: InstalledPackage): Option[InstalledPkgRow] =
@@ -52,9 +60,9 @@ object InstalledPackages {
     }
 
   class InstalledPackageTable(tag: Tag) extends Table[InstalledPackage](tag, "InstalledPackage") {
-    def device       = column[DeviceId]("device_uuid")
-    def name         = column[PackageId.Name]("name")
-    def version      = column[PackageId.Version]("version")
+    def device = column[DeviceId]("device_uuid")
+    def name = column[PackageId.Name]("name")
+    def version = column[PackageId.Version]("version")
     def lastModified = column[Instant]("last_modified")(javaInstantMapping)
 
     def pk = primaryKey("pk_foreignInstalledPackage", (name, version, device))
@@ -72,18 +80,21 @@ object InstalledPackages {
       )
       .transactionally
 
-  def installedOn(
-      device: DeviceId,
-      nameContains: Option[String],
-      offset: Option[Long],
-      limit: Option[Long]
-  )(implicit ec: ExecutionContext): DBIO[PaginationResult[InstalledPackage]] =
+  def installedOn(device: DeviceId,
+                  nameContains: Option[String],
+                  offset: Option[Long],
+                  limit: Option[Long])(
+    implicit ec: ExecutionContext): DBIO[PaginationResult[InstalledPackage]] =
     installedPackages
       .filter(_.device === device)
-      .maybeContains(ip => ip.name.mappedTo[String] ++ "-" ++ ip.version.mappedTo[String], nameContains)
+      .maybeContains(
+        ip => ip.name.mappedTo[String] ++ "-" ++ ip.version.mappedTo[String],
+        nameContains
+      )
       .paginateResult(offset.orDefaultOffset, limit.orDefaultLimit)
 
-  def getDevicesCount(pkg: PackageId, ns: Namespace)(implicit ec: ExecutionContext): DBIO[DevicesCount] =
+  def getDevicesCount(pkg: PackageId, ns: Namespace)(
+    implicit ec: ExecutionContext): DBIO[DevicesCount] =
     for {
       devices <- installedPackages
         .filter(p => p.name === pkg.name && p.version === pkg.version)
@@ -106,9 +117,11 @@ object InstalledPackages {
         .result
     } yield DevicesCount(devices, groups.toSet)
 
-  private def installedForAllDevicesQuery(
-      ns: Namespace
-  ): Query[(Rep[PackageId.Name], Rep[PackageId.Version]), (PackageId.Name, PackageId.Version), Seq] =
+  private def installedForAllDevicesQuery(ns: Namespace): Query[
+    (Rep[PackageId.Name], Rep[PackageId.Version]),
+    (PackageId.Name, PackageId.Version),
+    Seq
+  ] =
     DeviceRepository.devices
       .filter(_.namespace === ns)
       .join(installedPackages)
@@ -116,16 +129,14 @@ object InstalledPackages {
       .map(r => (r._2.name, r._2.version))
       .distinct
 
-  def getInstalledForAllDevices(
-      ns: Namespace
-  )(implicit ec: ExecutionContext): DBIO[Seq[PackageId]] =
-    installedForAllDevicesQuery(ns).result.map(_.map {
-      case (name, version) => PackageId(name, version)
+  def getInstalledForAllDevices(ns: Namespace)(
+    implicit ec: ExecutionContext): DBIO[Seq[PackageId]] =
+    installedForAllDevicesQuery(ns).result.map(_.map { case (name, version) =>
+      PackageId(name, version)
     })
 
   def getInstalledForAllDevices(ns: Namespace, offset: Option[Long], limit: Option[Long])(
-      implicit ec: ExecutionContext
-  ): DBIO[PaginationResult[PackageId]] = {
+    implicit ec: ExecutionContext): DBIO[PaginationResult[PackageId]] = {
     val query = installedForAllDevicesQuery(ns)
       .paginateAndSortResult(identity, offset.orDefaultOffset, limit.orDefaultLimit)
     query.map { nameVersionResult =>
@@ -144,8 +155,9 @@ object InstalledPackages {
         .inSet(ids.map(id => id.name.value + id.version.value))
     }
 
-  //this isn't paginated as it's only intended to be called by core, hence it also not being in swagger
-  def allInstalledPackagesById(namespace: Namespace, ids: Set[PackageId]): DBIO[Seq[(DeviceId, PackageId)]] =
+  // this isn't paginated as it's only intended to be called by core, hence it also not being in swagger
+  def allInstalledPackagesById(namespace: Namespace,
+                               ids: Set[PackageId]): DBIO[Seq[(DeviceId, PackageId)]] =
     inSetQuery(ids)
       .join(DeviceRepository.devices)
       .on(_.device === _.uuid)
@@ -153,8 +165,11 @@ object InstalledPackages {
       .map(r => (r._1.device, LiftedPackageId(r._1.name, r._1.version)))
       .result
 
-  def listAllWithPackageByName(ns: Namespace, name: Name, offset: Option[Long], limit: Option[Long])
-                              (implicit ec: ExecutionContext): DBIO[PaginationResult[PackageStat]] = {
+  def listAllWithPackageByName(ns: Namespace,
+                               name: Name,
+                               offset: Option[Long],
+                               limit: Option[Long])(
+    implicit ec: ExecutionContext): DBIO[PaginationResult[PackageStat]] = {
     val query = installedPackages
       .filter(_.name === name)
       .join(DeviceRepository.devices)
@@ -166,11 +181,10 @@ object InstalledPackages {
     val pkgResult = query
       .paginate(offset.orDefaultOffset, limit.orDefaultLimit)
       .result
-      .map(_.map { case (version, count) => PackageStat(version, count)})
+      .map(_.map { case (version, count) => PackageStat(version, count) })
 
-    query.length.result.zip(pkgResult).map {
-      case (total, values) =>
-        PaginationResult(values, total, offset.orDefaultOffset, limit.orDefaultLimit)
+    query.length.result.zip(pkgResult).map { case (total, values) =>
+      PaginationResult(values, total, offset.orDefaultOffset, limit.orDefaultLimit)
     }
   }
 

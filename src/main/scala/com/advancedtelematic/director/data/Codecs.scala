@@ -18,6 +18,7 @@ import com.advancedtelematic.director.data.ClientDataType.{CreateScheduledUpdate
 import io.circe.syntax.*
 
 object Codecs {
+
   import DeviceRequest.*
   import io.circe.generic.semiauto.*
   import JsonDropNullValues.*
@@ -43,35 +44,42 @@ object Codecs {
   implicit val decoderEcuManifest: Decoder[EcuManifest] = deriveDecoder
   implicit val encoderEcuManifest: Encoder[EcuManifest] = deriveEncoder[EcuManifest].dropNullValues
 
-  implicit val deviceManifestEcuSignedEncoder: Encoder[DeviceManifest] = Encoder.encodeJson.contramap { deviceManifest =>
-    val report = deviceManifest.installation_report match {
-      case Left(InvalidInstallationReport(_, payload)) => payload.asJson
-      case Left(MissingInstallationReport) => Json.Null
-      case Right(r) => r.asJson
-    }
-
-   Map(
-     "primary_ecu_serial" -> deviceManifest.primary_ecu_serial.asJson,
-     "installation_report" -> report,
-     "ecu_version_manifests" -> deviceManifest.ecu_version_manifests.asJson
-   ).asJson
-  }
-
-  implicit val deviceManifestEcuSignedDecoder: Decoder[DeviceManifest] = Decoder.decodeHCursor.emapTry { cursor =>
-    val installationReportCursor = cursor.downField("installation_report")
-
-    val installation_report: Either[InvalidInstallationReportError, InstallationReportEntity] = installationReportCursor.as[Option[InstallationReportEntity]]
-      .leftMap { err => InvalidInstallationReport(err.message, installationReportCursor.focus)}
-      .flatMap {
-        case Some(r) => Right(r)
-        case None => Left(MissingInstallationReport)
+  implicit val deviceManifestEcuSignedEncoder: Encoder[DeviceManifest] =
+    Encoder.encodeJson.contramap { deviceManifest =>
+      val report = deviceManifest.installation_report match {
+        case Left(InvalidInstallationReport(_, payload)) => payload.asJson
+        case Left(MissingInstallationReport)             => Json.Null
+        case Right(r)                                    => r.asJson
       }
 
-    for {
-      primaryEcuSerial <- cursor.downField("primary_ecu_serial").as[EcuIdentifier].toTry
-      ecuVersionManifests <- cursor.downField("ecu_version_manifests").as[Map[EcuIdentifier, SignedPayload[EcuManifest]]].toTry
-    } yield DeviceManifest(primaryEcuSerial, ecuVersionManifests, installation_report)
-  }
+      Map(
+        "primary_ecu_serial" -> deviceManifest.primary_ecu_serial.asJson,
+        "installation_report" -> report,
+        "ecu_version_manifests" -> deviceManifest.ecu_version_manifests.asJson
+      ).asJson
+    }
+
+  implicit val deviceManifestEcuSignedDecoder: Decoder[DeviceManifest] =
+    Decoder.decodeHCursor.emapTry { cursor =>
+      val installationReportCursor = cursor.downField("installation_report")
+
+      val installation_report: Either[InvalidInstallationReportError, InstallationReportEntity] =
+        installationReportCursor
+          .as[Option[InstallationReportEntity]]
+          .leftMap(err => InvalidInstallationReport(err.message, installationReportCursor.focus))
+          .flatMap {
+            case Some(r) => Right(r)
+            case None    => Left(MissingInstallationReport)
+          }
+
+      for {
+        primaryEcuSerial <- cursor.downField("primary_ecu_serial").as[EcuIdentifier].toTry
+        ecuVersionManifests <- cursor
+          .downField("ecu_version_manifests")
+          .as[Map[EcuIdentifier, SignedPayload[EcuManifest]]]
+          .toTry
+      } yield DeviceManifest(primaryEcuSerial, ecuVersionManifests, installation_report)
+    }
 
   implicit val decoderInstallationItem: Decoder[InstallationItem] = deriveDecoder
   implicit val encoderInstallationItem: Encoder[InstallationItem] = deriveEncoder
@@ -131,8 +139,11 @@ object Codecs {
 
   implicit val assignmentCreateResultCodec: Codec[AssignmentCreateResult] = deriveCodec
 
-  implicit val scheduledUpdateStatusDecoder: Decoder[ScheduledUpdate.Status] = enumeratum.Circe.decoder(ScheduledUpdate.Status)
-  implicit val scheduledUpdateStatusEncoder: Encoder[ScheduledUpdate.Status] = enumeratum.Circe.encoder(ScheduledUpdate.Status)
+  implicit val scheduledUpdateStatusDecoder: Decoder[ScheduledUpdate.Status] =
+    enumeratum.Circe.decoder(ScheduledUpdate.Status)
+
+  implicit val scheduledUpdateStatusEncoder: Encoder[ScheduledUpdate.Status] =
+    enumeratum.Circe.encoder(ScheduledUpdate.Status)
 
   implicit val scheduledUpdateCodec: Codec[ScheduledUpdate] = deriveCodec
 

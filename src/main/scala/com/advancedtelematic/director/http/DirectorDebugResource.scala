@@ -1,4 +1,5 @@
 package com.advancedtelematic.director.http
+
 import akka.http.scaladsl.server.{Directives, Route}
 import com.advancedtelematic.director.db.DirectorDbDebug
 import com.advancedtelematic.libats.debug.DebugRoutes
@@ -21,4 +22,5 @@ class DirectorDebugResource()(implicit val db: Database, val ec: ExecutionContex
       DebugRoutes.buildGroupRoutes(DeviceId.Path, debug.device_resources)
     )
   }
+
 }

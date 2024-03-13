@@ -1,7 +1,12 @@
 package com.advancedtelematic.director.repo
 
 import com.advancedtelematic.director.data.DbDataType.Assignment
-import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, DbDeviceRoleRepositorySupport, DeviceRepositorySupport, EcuTargetsRepositorySupport}
+import com.advancedtelematic.director.db.{
+  AssignmentsRepositorySupport,
+  DbDeviceRoleRepositorySupport,
+  DeviceRepositorySupport,
+  EcuTargetsRepositorySupport
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientDataType.{TargetsRole, TufRole}
@@ -13,8 +18,13 @@ import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class DeviceRoleGeneration(keyserverClient: KeyserverClient)(implicit val db: Database, val ec: ExecutionContext)
-  extends AssignmentsRepositorySupport with DbDeviceRoleRepositorySupport with EcuTargetsRepositorySupport with DeviceRepositorySupport {
+class DeviceRoleGeneration(keyserverClient: KeyserverClient)(
+  implicit val db: Database,
+  val ec: ExecutionContext)
+    extends AssignmentsRepositorySupport
+    with DbDeviceRoleRepositorySupport
+    with EcuTargetsRepositorySupport
+    with DeviceRepositorySupport {
 
   import scala.async.Async._
 
@@ -32,10 +42,12 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(implicit val db: Da
     new RepoRoleRefresh(keyserverClient, signedRoleProvider, itemsProvider)
   }
 
-  def findFreshTargets(ns: Namespace, repoId: RepoId, deviceId: DeviceId): Future[(JsonSignedPayload, Seq[Assignment])] = async {
+  def findFreshTargets(ns: Namespace,
+                       repoId: RepoId,
+                       deviceId: DeviceId): Future[(JsonSignedPayload, Seq[Assignment])] = async {
     val isOutdated = await(deviceRepository.metadataIsOutdated(ns, deviceId))
 
-    if(isOutdated) {
+    if (isOutdated) {
       _log.info(s"targets for $deviceId is outdated")
       val t = await(roleGeneration(ns, deviceId).regenerateAllSignedRoles(repoId))
       val regenerated = await(assignmentsRepository.markRegenerated(deviceRepository)(deviceId))
@@ -52,8 +64,11 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(implicit val db: Da
     deviceRepository.setMetadataOutdated(deviceId, outdated = true)
   }
 
-  def findFreshDeviceRole[T : TufRole](ns: Namespace, repoId: RepoId, deviceId: DeviceId): Future[JsonSignedPayload] = {
+  def findFreshDeviceRole[T: TufRole](ns: Namespace,
+                                      repoId: RepoId,
+                                      deviceId: DeviceId): Future[JsonSignedPayload] = {
     implicit val refresher = roleRefresher(ns, deviceId)
     roleGeneration(ns, deviceId).findRole[T](repoId).map(_.content)
   }
+
 }

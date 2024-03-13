@@ -19,16 +19,20 @@ import slick.jdbc.MySQLProfile.api._
 import scala.concurrent.ExecutionContext
 
 object PublicCredentialsRepository {
-  case class DevicePublicCredentials(device: DeviceId, typeCredentials: CredentialsType, credentials: Array[Byte])
 
-  class PublicCredentialsTable(tag: Tag) extends Table[DevicePublicCredentials](tag, "DevicePublicCredentials") {
-    def device            = column[DeviceId]("device_uuid")
-    def typeCredentials   = column[CredentialsType]("type_credentials")
+  case class DevicePublicCredentials(device: DeviceId,
+                                     typeCredentials: CredentialsType,
+                                     credentials: Array[Byte])
+
+  class PublicCredentialsTable(tag: Tag)
+      extends Table[DevicePublicCredentials](tag, "DevicePublicCredentials") {
+    def device = column[DeviceId]("device_uuid")
+    def typeCredentials = column[CredentialsType]("type_credentials")
     def publicCredentials = column[Array[Byte]]("public_credentials")
 
     def * =
       (device, typeCredentials, publicCredentials).shaped <>
-      ((DevicePublicCredentials.apply _).tupled, DevicePublicCredentials.unapply)
+        ((DevicePublicCredentials.apply _).tupled, DevicePublicCredentials.unapply)
 
     def pk = primaryKey("device_uuid", device)
   }
@@ -42,12 +46,12 @@ object PublicCredentialsRepository {
       .failIfNotSingle(Errors.MissingDevicePublicCredentials)
 
   def update(uuid: DeviceId, cType: CredentialsType, creds: Array[Byte])(
-      implicit ec: ExecutionContext
-  ): DBIO[Unit] =
+    implicit ec: ExecutionContext): DBIO[Unit] =
     allPublicCredentials
       .insertOrUpdate(DevicePublicCredentials(uuid, cType, creds))
       .map(_ => ())
 
   def delete(uuid: DeviceId): DBIO[Int] =
     allPublicCredentials.filter(_.device === uuid).delete
+
 }

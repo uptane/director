@@ -3,7 +3,10 @@ package com.advancedtelematic.deviceregistry.db
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.deviceregistry.common.Errors.{ConflictingPackageListItem, MissingPackageListItem}
+import com.advancedtelematic.deviceregistry.common.Errors.{
+  ConflictingPackageListItem,
+  MissingPackageListItem
+}
 import com.advancedtelematic.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount}
 import com.advancedtelematic.deviceregistry.data.PackageId
 import com.advancedtelematic.deviceregistry.db.DeviceRepository.devices
@@ -15,10 +18,8 @@ import scala.concurrent.ExecutionContext
 
 object PackageListItemRepository {
 
-  /**
-    * Each record in the table represents one element of a list of packages.
-    * The list of packages are per namespace, i.e. if we group by namespace
-    * each group is a list of packages.
+  /** Each record in the table represents one element of a list of packages. The list of packages
+    * are per namespace, i.e. if we group by namespace each group is a list of packages.
     */
   class PackageListItemTable(tag: Tag) extends Table[PackageListItem](tag, "PackageListItem") {
     def namespace = column[Namespace]("namespace")
@@ -27,10 +28,11 @@ object PackageListItemRepository {
     def comment = column[String]("comment")
 
     def * = (namespace, packageName, packageVersion, comment) <>
-      (
-        { case (ns, pkgName, pkgVersion, comment) => PackageListItem(ns, PackageId(pkgName, pkgVersion), comment) },
-        { (bp : PackageListItem) => Some(bp.namespace, bp.packageId.name, bp.packageId.version, bp.comment) }
-      )
+      ({ case (ns, pkgName, pkgVersion, comment) =>
+        PackageListItem(ns, PackageId(pkgName, pkgVersion), comment)
+      }, { (bp: PackageListItem) =>
+        Some(bp.namespace, bp.packageId.name, bp.packageId.version, bp.comment)
+      })
 
     def pk = primaryKey("pk_PackageListItem", (namespace, packageName, packageVersion))
   }
@@ -43,8 +45,8 @@ object PackageListItemRepository {
       .filter(_.packageName === packageId.name)
       .filter(_.packageVersion === packageId.version)
 
-  def fetchPackageListItem(namespace: Namespace, packageId: PackageId)
-                          (implicit ec: ExecutionContext): DBIO[PackageListItem] =
+  def fetchPackageListItem(namespace: Namespace, packageId: PackageId)(
+    implicit ec: ExecutionContext): DBIO[PackageListItem] =
     findQuery(namespace, packageId).resultHead(MissingPackageListItem)
 
   def fetchPackageListItemCounts(namespace: Namespace): DBIO[Seq[PackageListItemCount]] =
@@ -56,8 +58,12 @@ object PackageListItemRepository {
       .groupBy(ip => (ip.name, ip.version))
       .map { case ((name, version), ips) => (name, version, ips.length) }
       .join(packageListItems.filter(_.namespace === namespace))
-      .on { case ((name, version, _), bp) => bp.packageName === name && bp.packageVersion === version }
-      .map { case ((name, version, count), _) => LiftedPackageListItemCount(LiftedPackageId(name, version), count) }
+      .on { case ((name, version, _), bp) =>
+        bp.packageName === name && bp.packageVersion === version
+      }
+      .map { case ((name, version, count), _) =>
+        LiftedPackageListItemCount(LiftedPackageId(name, version), count)
+      }
       .result
 
   def create(packageListItem: PackageListItem)(implicit ec: ExecutionContext): DBIO[Int] =

@@ -38,6 +38,7 @@ object Device {
   type DeviceType = DeviceType.DeviceType
 
   final object DeviceType extends Enumeration {
+
     // TODO: We should encode Enums as strings, not Ints
     // Moved this from SlickEnum, because this should **NOT** be used
     // It's difficult to read this when reading from the database and the Id is not stable when we add/remove
@@ -45,7 +46,8 @@ object Device {
     import slick.jdbc.MySQLProfile.MappedJdbcType
     import slick.jdbc.MySQLProfile.api._
 
-    implicit val enumMapper: slick.jdbc.MySQLProfile.BaseColumnType[Value] = MappedJdbcType.base[Value, Int](_.id, this.apply)
+    implicit val enumMapper: slick.jdbc.MySQLProfile.BaseColumnType[Value] =
+      MappedJdbcType.base[Value, Int](_.id, this.apply)
 
     type DeviceType = Value
     val Other, Vehicle = Value
@@ -62,18 +64,22 @@ object Device {
     case d => s"Device: uuid=${d.uuid.show}, lastSeen=${d.lastSeen}"
   }
 
-  implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.data.Device] = {
+  implicit val EncoderInstance
+    : io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.data.Device] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
     import Codecs.deviceOemIdEncoder
     io.circe.generic.semiauto.deriveEncoder[Device]
   }
-  implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.deviceregistry.data.Device] = {
+
+  implicit val DecoderInstance
+    : io.circe.Decoder[com.advancedtelematic.deviceregistry.data.Device] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
     import Codecs.deviceOemIdDecoder
     io.circe.generic.semiauto.deriveDecoder[Device]
   }
 
-  implicit val DeviceIdOrdering: Ordering[DeviceOemId] = (id1, id2) => id1.underlying compare id2.underlying
+  implicit val DeviceIdOrdering: Ordering[DeviceOemId] = (id1, id2) =>
+    id1.underlying.compare(id2.underlying)
 
   implicit def DeviceOrdering(implicit ord: Ordering[UUID]): Ordering[Device] =
     (d1, d2) => ord.compare(d1.uuid.uuid, d2.uuid.uuid)
@@ -83,9 +89,17 @@ object Device {
   case class ActiveDeviceCount(deviceCount: Int) extends AnyVal
 
   object ActiveDeviceCount {
-    implicit val EncoderInstance: io.circe.Encoder[com.advancedtelematic.deviceregistry.data.Device.ActiveDeviceCount] = Encoder.encodeInt.contramap[ActiveDeviceCount](_.deviceCount)
-    implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.deviceregistry.data.Device.ActiveDeviceCount] = Decoder.decodeInt.map(ActiveDeviceCount.apply)
+
+    implicit val EncoderInstance
+      : io.circe.Encoder[com.advancedtelematic.deviceregistry.data.Device.ActiveDeviceCount] =
+      Encoder.encodeInt.contramap[ActiveDeviceCount](_.deviceCount)
+
+    implicit val DecoderInstance
+      : io.circe.Decoder[com.advancedtelematic.deviceregistry.data.Device.ActiveDeviceCount] =
+      Decoder.decodeInt.map(ActiveDeviceCount.apply)
+
   }
+
 }
 
 object SortDirection {
@@ -93,9 +107,10 @@ object SortDirection {
   case object Asc extends SortDirection
   case object Desc extends SortDirection
 }
+
 object DeviceSortBy {
   sealed trait DeviceSortBy
-  case object Name      extends DeviceSortBy
+  case object Name extends DeviceSortBy
   case object CreatedAt extends DeviceSortBy
   case object DeviceId extends DeviceSortBy
   case object Uuid extends DeviceSortBy

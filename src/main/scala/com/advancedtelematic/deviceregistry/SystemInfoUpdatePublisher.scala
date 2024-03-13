@@ -10,6 +10,7 @@ import io.circe.Json
 import scala.concurrent.{ExecutionContext, Future}
 
 class SystemInfoUpdatePublisher(messageBus: MessageBusPublisher)(implicit ec: ExecutionContext) {
+
   // Best effort parsing of a json uploading by a client, if not successful parsing anything, just return empty
   def parse(json: Json): SystemInfo = {
     val product =
@@ -17,12 +18,10 @@ class SystemInfoUpdatePublisher(messageBus: MessageBusPublisher)(implicit ec: Ex
     SystemInfo(product)
   }
 
-  def publishSafe(ns: Namespace,
-                  deviceId: DeviceId,
-                  systemInfo: Option[Json],
-                 ): Future[Unit] = {
+  def publishSafe(ns: Namespace, deviceId: DeviceId, systemInfo: Option[Json]): Future[Unit] = {
     val info = systemInfo.map(parse)
     val msg = Messages.DeviceSystemInfoChanged(ns, deviceId, info)
     messageBus.publishSafe(msg).map(_ => ())
   }
+
 }

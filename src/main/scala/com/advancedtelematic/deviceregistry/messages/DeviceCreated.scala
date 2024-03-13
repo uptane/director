@@ -24,11 +24,21 @@ final case class DeviceCreated(namespace: Namespace,
                                timestamp: Instant = Instant.now())
 
 object DeviceCreated {
+
   import cats.syntax.show._
   import com.advancedtelematic.libats.codecs.CirceCodecs._
   import com.advancedtelematic.deviceregistry.data.Codecs._
 
-  implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.messages.DeviceCreated]     = io.circe.generic.semiauto.deriveEncoder[DeviceCreated]
-  implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.deviceregistry.messages.DeviceCreated]     = io.circe.generic.semiauto.deriveDecoder[DeviceCreated]
-  implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[com.advancedtelematic.deviceregistry.messages.DeviceCreated] = MessageLike[DeviceCreated](_.uuid.show)
+  implicit val EncoderInstance
+    : io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.messages.DeviceCreated] =
+    io.circe.generic.semiauto.deriveEncoder[DeviceCreated]
+
+  implicit val DecoderInstance
+    : io.circe.Decoder[com.advancedtelematic.deviceregistry.messages.DeviceCreated] =
+    io.circe.generic.semiauto.deriveDecoder[DeviceCreated]
+
+  implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[
+    com.advancedtelematic.deviceregistry.messages.DeviceCreated
+  ] = MessageLike[DeviceCreated](_.uuid.show)
+
 }

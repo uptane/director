@@ -13,19 +13,24 @@ import cats.{Eq, Show}
 final case class PackageId(name: PackageId.Name, version: PackageId.Version)
 
 object PackageId {
-  type Name    = String
+  type Name = String
   type Version = String
 
-  implicit val EncoderInstance: io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.data.PackageId] = io.circe.generic.semiauto.deriveEncoder[PackageId]
-  implicit val DecoderInstance: io.circe.Decoder[com.advancedtelematic.deviceregistry.data.PackageId] = io.circe.generic.semiauto.deriveDecoder[PackageId]
+  implicit val EncoderInstance
+    : io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.data.PackageId] =
+    io.circe.generic.semiauto.deriveEncoder[PackageId]
 
-  /**
-    * Use the underlying (string) ordering, show and equality for
-    * package ids.
+  implicit val DecoderInstance
+    : io.circe.Decoder[com.advancedtelematic.deviceregistry.data.PackageId] =
+    io.circe.generic.semiauto.deriveDecoder[PackageId]
+
+  /** Use the underlying (string) ordering, show and equality for package ids.
     */
   implicit val PackageIdOrdering: Ordering[PackageId] = new Ordering[PackageId] {
+
     override def compare(id1: PackageId, id2: PackageId): Int =
-      id1.name + id1.version compare id2.name + id2.version
+      (id1.name + id1.version).compare(id2.name + id2.version)
+
   }
 
   implicit val showInstance: Show[PackageId] =
@@ -33,4 +38,5 @@ object PackageId {
 
   implicit val eqInstance: Eq[PackageId] =
     Eq.fromUniversalEquals[PackageId]
+
 }

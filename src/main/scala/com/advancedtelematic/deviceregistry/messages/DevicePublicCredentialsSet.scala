@@ -22,7 +22,12 @@ final case class DevicePublicCredentialsSet(namespace: Namespace,
                                             timestamp: Instant = Instant.now())
 
 object DevicePublicCredentialsSet {
+
   import cats.syntax.show._
   import com.advancedtelematic.libats.codecs.CirceCodecs._
-  implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[com.advancedtelematic.deviceregistry.messages.DevicePublicCredentialsSet] = MessageLike.derive[DevicePublicCredentialsSet](_.uuid.show)
+
+  implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[
+    com.advancedtelematic.deviceregistry.messages.DevicePublicCredentialsSet
+  ] = MessageLike.derive[DevicePublicCredentialsSet](_.uuid.show)
+
 }
