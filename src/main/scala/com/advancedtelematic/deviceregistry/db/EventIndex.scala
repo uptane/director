@@ -11,23 +11,30 @@ import java.util.UUID
 object EventIndex {
   type EventIndexResult = Either[String, IndexedEvent]
 
-  private def parseEventOfTypeWithCorrelationId(event: Event, indexedEventType: IndexedEventType.Value): EventIndexResult = {
-    event.payload.hcursor.downField("correlationId").as[CorrelationId]
+  private def parseEventOfTypeWithCorrelationId(
+    event: Event,
+    indexedEventType: IndexedEventType.Value): EventIndexResult =
+    event.payload.hcursor
+      .downField("correlationId")
+      .as[CorrelationId]
       .leftMap(err => s"Could not parse payload for event ${event.show}: $err")
       .map { correlationId =>
         IndexedEvent(event.deviceUuid, event.eventId, indexedEventType, correlationId.some)
       }
-  }
 
-  private def parseEventOfTypeWithCampaignId(event: Event, indexedEventType: IndexedEventType.Value): EventIndexResult = {
-    event.payload.hcursor.downField("campaignId").as[UUID]
+  private def parseEventOfTypeWithCampaignId(
+    event: Event,
+    indexedEventType: IndexedEventType.Value): EventIndexResult =
+    event.payload.hcursor
+      .downField("campaignId")
+      .as[UUID]
       .leftMap(err => s"Could not parse payload for event ${event.show}: $err")
       .map { campaignId =>
         IndexedEvent(event.deviceUuid, event.eventId, indexedEventType, CampaignId(campaignId).some)
       }
-  }
 
-  private def parseEventOfType(event: Event, indexedEventType: IndexedEventType.Value): EventIndexResult =
+  private def parseEventOfType(event: Event,
+                               indexedEventType: IndexedEventType.Value): EventIndexResult =
     IndexedEvent(event.deviceUuid, event.eventId, indexedEventType, None).asRight
 
   def index(event: Event): EventIndexResult = event.eventType match {
@@ -58,4 +65,5 @@ object EventIndex {
     case eventType =>
       s"Unknown event type $eventType".asLeft
   }
+
 }

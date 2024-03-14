@@ -27,34 +27,46 @@ import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import scala.concurrent.{ExecutionContext, Future}
 
 object EventJournal {
+
   class EventJournalTable(tag: Tag) extends Table[Event](tag, "EventJournal") {
-    def deviceUuid       = column[DeviceId]("device_uuid")
-    def eventId          = column[String]("event_id")
-    def deviceTime       = column[Instant]("device_time")(javaInstantMapping)
-    def eventTypeId      = column[String]("event_type_id")
+    def deviceUuid = column[DeviceId]("device_uuid")
+    def eventId = column[String]("event_id")
+    def deviceTime = column[Instant]("device_time")(javaInstantMapping)
+    def eventTypeId = column[String]("event_type_id")
     def eventTypeVersion = column[Int]("event_type_version")
-    def event            = column[Json]("event")
-    def receivedAt       = column[Instant]("received_at")(javaInstantMapping)
+    def event = column[Json]("event")
+    def receivedAt = column[Instant]("received_at")(javaInstantMapping)
 
     def pk = primaryKey("events_pk", (deviceUuid, eventId))
 
     private def fromEvent(e: Event) =
-      Some(e.deviceUuid,
-           e.eventId,
-           e.eventType.id,
-           e.eventType.version,
-           e.deviceTime,
-           e.receivedAt,
-           e.payload)
+      Some(
+        e.deviceUuid,
+        e.eventId,
+        e.eventType.id,
+        e.eventType.version,
+        e.deviceTime,
+        e.receivedAt,
+        e.payload
+      )
 
     private def toEvent(x: (DeviceId, String, String, Int, Instant, Instant, Json)): Event =
       Event(x._1, x._2, EventType(x._3, x._4), x._5, x._6, x._7)
 
     override def * =
-      (deviceUuid, eventId, eventTypeId, eventTypeVersion, deviceTime, receivedAt, event).shaped <> (toEvent, fromEvent)
+      (
+        deviceUuid,
+        eventId,
+        eventTypeId,
+        eventTypeVersion,
+        deviceTime,
+        receivedAt,
+        event
+      ).shaped <> (toEvent, fromEvent)
+
   }
 
-  protected [db] val events = TableQuery[EventJournalTable]
+  protected[db] val events = TableQuery[EventJournalTable]
 
   class IndexedEventTable(tag: Tag) extends Table[IndexedEvent](tag, "IndexedEvents") {
     def deviceUuid = column[DeviceId]("device_uuid")
@@ -65,20 +77,33 @@ object EventJournal {
 
     def pk = primaryKey("indexed_event_pk", (deviceUuid, eventId))
 
-    def * = (deviceUuid, eventId, eventType, correlationId).shaped <> (IndexedEvent.tupled, IndexedEvent.unapply)
+    def * = (
+      deviceUuid,
+      eventId,
+      eventType,
+      correlationId
+    ).shaped <> (IndexedEvent.tupled, IndexedEvent.unapply)
+
   }
 
-  protected [db] val indexedEvents = TableQuery[IndexedEventTable]
+  protected[db] val indexedEvents = TableQuery[IndexedEventTable]
 
-  class IndexedEventArchiveTable(tag: Tag) extends Table[IndexedEvent](tag, "IndexedEventsArchive") {
-    def deviceUuid    = column[DeviceId]("device_uuid")
-    def eventId       = column[String]("event_id")
-    def eventType     = column[IndexedEventType]("event_type")
+  class IndexedEventArchiveTable(tag: Tag)
+      extends Table[IndexedEvent](tag, "IndexedEventsArchive") {
+    def deviceUuid = column[DeviceId]("device_uuid")
+    def eventId = column[String]("event_id")
+    def eventType = column[IndexedEventType]("event_type")
     def correlationId = column[Option[CorrelationId]]("correlation_id")
 
     def pk = primaryKey("indexed_event_pk", (deviceUuid, eventId))
 
-    def * = (deviceUuid, eventId, eventType, correlationId).shaped <> (IndexedEvent.tupled, IndexedEvent.unapply)
+    def * = (
+      deviceUuid,
+      eventId,
+      eventType,
+      correlationId
+    ).shaped <> (IndexedEvent.tupled, IndexedEvent.unapply)
+
   }
 
   protected[db] val indexedEventsArchive = TableQuery[IndexedEventArchiveTable]
@@ -90,8 +115,8 @@ object EventJournal {
     val q = indexedEvents.filter(_.deviceUuid === deviceUuid)
     val io = for {
       ies <- q.result
-      _   <- indexedEventsArchive ++= ies
-      n   <- q.delete
+      _ <- indexedEventsArchive ++= ies
+      n <- q.delete
     } yield n
     io.transactionally
   }
@@ -118,20 +143,23 @@ class EventJournal()(implicit db: Database, ec: ExecutionContext) {
   }
 
   def getEvents(deviceUuid: DeviceId, correlationId: Option[CorrelationId]): Future[Seq[Event]] =
-    if(correlationId.isDefined)
+    if (correlationId.isDefined)
       getIndexedEvents(deviceUuid, correlationId).map(_.map(_._1))
     else
       db.run(events.filter(_.deviceUuid === deviceUuid).result)
 
-  def getIndexedEvents(deviceUuid: DeviceId, correlationId: Option[CorrelationId]): Future[Seq[(Event, IndexedEvent)]] = db.run {
-    EventJournal.events.filter(_.deviceUuid === deviceUuid)
-      .join(EventJournal.indexedEvents.maybeFilter(_.correlationId === correlationId))
-      .on { case (ej, ie) => ej.deviceUuid === ie.deviceUuid && ej.eventId === ie.eventId }
-      .sortBy { case (ej, ie) => ej.deviceTime.desc -> ie.createdAt.desc }
-      .result
-  }
+  def getIndexedEvents(deviceUuid: DeviceId,
+                       correlationId: Option[CorrelationId]): Future[Seq[(Event, IndexedEvent)]] =
+    db.run {
+      EventJournal.events
+        .filter(_.deviceUuid === deviceUuid)
+        .join(EventJournal.indexedEvents.maybeFilter(_.correlationId === correlationId))
+        .on { case (ej, ie) => ej.deviceUuid === ie.deviceUuid && ej.eventId === ie.eventId }
+        .sortBy { case (ej, ie) => ej.deviceTime.desc -> ie.createdAt.desc }
+        .result
+    }
 
-  protected [db] def getArchivedIndexedEvents(deviceUuid: DeviceId): Future[Seq[IndexedEvent]] =
+  protected[db] def getArchivedIndexedEvents(deviceUuid: DeviceId): Future[Seq[IndexedEvent]] =
     db.run(indexedEventsArchive.filter(_.deviceUuid === deviceUuid).result)
-}
 
+}

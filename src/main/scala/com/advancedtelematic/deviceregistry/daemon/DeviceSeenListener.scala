@@ -21,24 +21,25 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.{ExecutionContext, Future}
 import slick.jdbc.MySQLProfile.api.*
 
-class DeviceSeenListener(messageBus: MessageBusPublisher)
-                        (implicit db: Database, ec: ExecutionContext) extends MsgOperation[DeviceSeen] {
+class DeviceSeenListener(messageBus: MessageBusPublisher)(
+  implicit db: Database,
+  ec: ExecutionContext)
+    extends MsgOperation[DeviceSeen] {
 
   val _logger = LoggerFactory.getLogger(this.getClass)
 
   override def apply(msg: DeviceSeen): Future[Done] =
     db.run(DeviceRepository.updateLastSeen(msg.uuid, msg.lastSeen))
-      .flatMap {
-        case (activated, ns) =>
-          if (activated) {
-            messageBus
-              .publishSafe(DeviceActivated(ns, msg.uuid, msg.lastSeen))
-              .flatMap { _ =>
-                db.run(DeviceRepository.setDeviceStatus(msg.uuid, DeviceStatus.UpToDate))
-              }
-          } else {
-            Future.successful(Done)
-          }
+      .flatMap { case (activated, ns) =>
+        if (activated) {
+          messageBus
+            .publishSafe(DeviceActivated(ns, msg.uuid, msg.lastSeen))
+            .flatMap { _ =>
+              db.run(DeviceRepository.setDeviceStatus(msg.uuid, DeviceStatus.UpToDate))
+            }
+        } else {
+          Future.successful(Done)
+        }
       }
       .recover {
         case Errors.MissingDevice =>
@@ -49,4 +50,5 @@ class DeviceSeenListener(messageBus: MessageBusPublisher)
       .map { _ =>
         Done
       }
+
 }

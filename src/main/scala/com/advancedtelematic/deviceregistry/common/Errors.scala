@@ -22,64 +22,95 @@ object Errors {
   import akka.http.scaladsl.model.StatusCodes
 
   object Codes {
-    val MissingDevice                      = ErrorCode("missing_device")
-    val ConflictingDevice                  = ErrorCode("conflicting_device")
-    val ConflictingGroupName               = ErrorCode("conflicting_device_group_name")
-    val MemberAlreadyExists                = ErrorCode("device_already_a_group_member")
-    val RequestNeedsCredentials            = ErrorCode("request_needs_credentials")
-    val CannotAddDeviceToDynamicGroup      = ErrorCode("cannot_add_device_to_dynamic_group")
+    val MissingDevice = ErrorCode("missing_device")
+    val ConflictingDevice = ErrorCode("conflicting_device")
+    val ConflictingGroupName = ErrorCode("conflicting_device_group_name")
+    val MemberAlreadyExists = ErrorCode("device_already_a_group_member")
+    val RequestNeedsCredentials = ErrorCode("request_needs_credentials")
+    val CannotAddDeviceToDynamicGroup = ErrorCode("cannot_add_device_to_dynamic_group")
     val CannotRemoveDeviceFromDynamicGroup = ErrorCode("cannot_remove_device_from_dynamic_group")
     val InvalidGroupExpressionForGroupType = ErrorCode("invalid_group_expression_for_group_type")
-    val InvalidGroupExpression             = ErrorCode("invalid_group_expression")
-    val MalformedInput                     = ErrorCode("malformed_input")
-    val CannotRemoveDeviceTag              = ErrorCode("cannot_remove_device_tag")
-    val CannotSerializeEcuReplacement      = ErrorCode("cannot_serialize_ecu_replacement")
+    val InvalidGroupExpression = ErrorCode("invalid_group_expression")
+    val MalformedInput = ErrorCode("malformed_input")
+    val CannotRemoveDeviceTag = ErrorCode("cannot_remove_device_tag")
+    val CannotSerializeEcuReplacement = ErrorCode("cannot_serialize_ecu_replacement")
   }
 
-  def InvalidGroupExpression(err: String) = RawError(Codes.InvalidGroupExpression, StatusCodes.BadRequest, s"Invalid group expression: '$err'")
+  def InvalidGroupExpression(err: String) = RawError(
+    Codes.InvalidGroupExpression,
+    StatusCodes.BadRequest,
+    s"Invalid group expression: '$err'"
+  )
 
-  def InvalidGroupExpressionForGroupType(groupType: GroupType, expression: Option[GroupExpression]) =
-    RawError(Codes.InvalidGroupExpressionForGroupType,
-             StatusCodes.BadRequest,
-             s"Invalid group expression $expression for group type $groupType")
+  def InvalidGroupExpressionForGroupType(groupType: GroupType,
+                                         expression: Option[GroupExpression]) =
+    RawError(
+      Codes.InvalidGroupExpressionForGroupType,
+      StatusCodes.BadRequest,
+      s"Invalid group expression $expression for group type $groupType"
+    )
 
   val MissingDevice = RawError(Codes.MissingDevice, StatusCodes.NotFound, "device doesn't exist")
+
   def ConflictingDevice(deviceName: Option[DeviceName], deviceOemId: Option[DeviceOemId] = None) =
-    RawError(Codes.ConflictingDevice, StatusCodes.Conflict, s"$deviceOemId or $deviceName is already in use")
+    RawError(
+      Codes.ConflictingDevice,
+      StatusCodes.Conflict,
+      s"$deviceOemId or $deviceName is already in use"
+    )
 
   def ConflictingGroupName(groupName: GroupName) =
     RawError(Codes.ConflictingGroupName, StatusCodes.Conflict, s"$groupName already in use")
 
-  val MissingSystemInfo     = MissingEntity[SystemInfo]()
+  val MissingSystemInfo = MissingEntity[SystemInfo]()
   val ConflictingSystemInfo = EntityAlreadyExists[SystemInfo]()
 
-  val MissingGroup        = MissingEntity[Group]()
-  val ConflictingGroup    = EntityAlreadyExists[Group]()
+  val MissingGroup = MissingEntity[Group]()
+  val ConflictingGroup = EntityAlreadyExists[Group]()
   val MemberAlreadyExists = EntityAlreadyExists[GroupMember]()
 
   val MissingDevicePublicCredentials = MissingEntity[DevicePublicCredentials]()
+
   val RequestNeedsCredentials =
-    RawError(Codes.RequestNeedsCredentials, StatusCodes.BadRequest, "request should contain credentials")
+    RawError(
+      Codes.RequestNeedsCredentials,
+      StatusCodes.BadRequest,
+      "request should contain credentials"
+    )
 
   val CannotAddDeviceToDynamicGroup =
-    RawError(Codes.CannotAddDeviceToDynamicGroup, StatusCodes.BadRequest, "cannot add device to dynamic group")
+    RawError(
+      Codes.CannotAddDeviceToDynamicGroup,
+      StatusCodes.BadRequest,
+      "cannot add device to dynamic group"
+    )
 
   val CannotRemoveDeviceFromDynamicGroup =
-    RawError(Codes.CannotRemoveDeviceFromDynamicGroup,
-             StatusCodes.BadRequest,
-             "cannot remove device from dynamic group")
+    RawError(
+      Codes.CannotRemoveDeviceFromDynamicGroup,
+      StatusCodes.BadRequest,
+      "cannot remove device from dynamic group"
+    )
 
   val CannotRemoveDeviceTag =
-    RawError(Codes.CannotRemoveDeviceTag,
+    RawError(
+      Codes.CannotRemoveDeviceTag,
       StatusCodes.BadRequest,
-      "Cannot remove device tag because it's there is at least one smart group that uses only this tag in its expression.")
+      "Cannot remove device tag because it's there is at least one smart group that uses only this tag in its expression."
+    )
 
   val CannotSerializeEcuReplacement =
-    RawError(Codes.CannotSerializeEcuReplacement,
+    RawError(
+      Codes.CannotSerializeEcuReplacement,
       StatusCodes.InternalServerError,
-      "Cannot serialize EcuReplacement because of wrong record.")
+      "Cannot serialize EcuReplacement because of wrong record."
+    )
 
-  val MalformedInputFile = RawError(Codes.MalformedInput, StatusCodes.BadRequest, "The file cannot be read because it is malformed.")
+  val MalformedInputFile = RawError(
+    Codes.MalformedInput,
+    StatusCodes.BadRequest,
+    "The file cannot be read because it is malformed."
+  )
 
   val MissingPackageListItem = MissingEntity[PackageListItem]()
   val ConflictingPackageListItem = EntityAlreadyExists[PackageListItem]()

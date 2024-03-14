@@ -10,25 +10,40 @@ package com.advancedtelematic.deviceregistry.db
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.codecs.SlickEnumMapper
-import com.advancedtelematic.deviceregistry.data.DataType.{PackageListItemCount, IndexedEventType}
+import com.advancedtelematic.deviceregistry.data.DataType.{IndexedEventType, PackageListItemCount}
 import com.advancedtelematic.deviceregistry.data.{CredentialsType, GroupType, PackageId}
 import slick.jdbc.MySQLProfile.api._
 
 object SlickMappings {
-  implicit val groupTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.deviceregistry.data.GroupType.Value] = SlickEnumMapper.enumMapper(GroupType)
 
-  implicit val credentialsTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.deviceregistry.data.CredentialsType.Value] = SlickEnumMapper.enumMapper(CredentialsType)
+  implicit val groupTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[
+    com.advancedtelematic.deviceregistry.data.GroupType.Value
+  ] = SlickEnumMapper.enumMapper(GroupType)
 
-  implicit val indexedEventTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.deviceregistry.data.DataType.IndexedEventType.Value] = SlickEnumMapper.enumMapper(IndexedEventType)
+  implicit val credentialsTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[
+    com.advancedtelematic.deviceregistry.data.CredentialsType.Value
+  ] = SlickEnumMapper.enumMapper(CredentialsType)
 
-  private[db] implicit val namespaceColumnType: slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.libats.data.DataType.Namespace] =
+  implicit val indexedEventTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[
+    com.advancedtelematic.deviceregistry.data.DataType.IndexedEventType.Value
+  ] = SlickEnumMapper.enumMapper(IndexedEventType)
+
+  private[db] implicit val namespaceColumnType
+    : slick.jdbc.MySQLProfile.BaseColumnType[com.advancedtelematic.libats.data.DataType.Namespace] =
     MappedColumnType.base[Namespace, String](_.get, Namespace.apply)
 
   private[db] case class LiftedPackageId(name: Rep[PackageId.Name], version: Rep[PackageId.Version])
 
   private[db] implicit object LiftedPackageShape
-    extends CaseClassShape(LiftedPackageId.tupled, (p: (PackageId.Name, PackageId.Version)) => PackageId(p._1, p._2))
+      extends CaseClassShape(
+        LiftedPackageId.tupled,
+        (p: (PackageId.Name, PackageId.Version)) => PackageId(p._1, p._2)
+      )
 
-  private[db] case class LiftedPackageListItemCount(packageId: LiftedPackageId, deviceCount: Rep[Int])
-  private[db] implicit object ListedPackageListItemCountShape extends CaseClassShape(LiftedPackageListItemCount.tupled, PackageListItemCount.tupled)
+  private[db] case class LiftedPackageListItemCount(packageId: LiftedPackageId,
+                                                    deviceCount: Rep[Int])
+
+  private[db] implicit object ListedPackageListItemCountShape
+      extends CaseClassShape(LiftedPackageListItemCount.tupled, PackageListItemCount.tupled)
+
 }

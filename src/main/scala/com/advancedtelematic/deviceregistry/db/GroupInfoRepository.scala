@@ -8,7 +8,13 @@
 
 package com.advancedtelematic.deviceregistry.db
 
-import com.advancedtelematic.deviceregistry.data.{Group, GroupExpression, GroupName, GroupType, TagId}
+import com.advancedtelematic.deviceregistry.data.{
+  Group,
+  GroupExpression,
+  GroupName,
+  GroupType,
+  TagId
+}
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
 
@@ -21,30 +27,47 @@ import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStri
 import com.advancedtelematic.deviceregistry.common.Errors
 import com.advancedtelematic.deviceregistry.data
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.db.DbOps.{PaginationResultOps, SortBySlickOrderedGroupConversion}
+import com.advancedtelematic.deviceregistry.db.DbOps.{
+  PaginationResultOps,
+  SortBySlickOrderedGroupConversion
+}
 import com.advancedtelematic.deviceregistry.db.SlickMappings.*
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object GroupInfoRepository {
+
   // scalastyle:off
   class GroupInfoTable(tag: Tag) extends Table[Group](tag, "DeviceGroup") {
-    def id         = column[GroupId]("id", O.PrimaryKey)
-    def groupName  = column[GroupName]("group_name")
-    def namespace  = column[Namespace]("namespace")
-    def groupType     = column[GroupType]("type")
+    def id = column[GroupId]("id", O.PrimaryKey)
+    def groupName = column[GroupName]("group_name")
+    def namespace = column[Namespace]("namespace")
+    def groupType = column[GroupType]("type")
     def expression = column[Option[GroupExpression]]("expression")
     def createdAt = column[Instant]("created_at")(javaInstantMapping)
     def updatedAt = column[Instant]("updated_at")(javaInstantMapping)
 
-    def * = (id, groupName, namespace, createdAt, groupType, expression) <> ((Group.apply _).tupled, Group.unapply)
+    def * = (
+      id,
+      groupName,
+      namespace,
+      createdAt,
+      groupType,
+      expression
+    ) <> ((Group.apply _).tupled, Group.unapply)
+
   }
   // scalastyle:on
 
   val groupInfos = TableQuery[GroupInfoTable]
 
-  def list(namespace: Namespace, offset: Option[Long], limit: Option[Long], sortBy: GroupSortBy, nameContains: Option[String])(implicit ec: ExecutionContext): DBIO[PaginationResult[Group]] =
+  def list(namespace: Namespace,
+           offset: Option[Long],
+           limit: Option[Long],
+           sortBy: GroupSortBy,
+           nameContains: Option[String])(
+    implicit ec: ExecutionContext): DBIO[PaginationResult[Group]] =
     groupInfos
       .filter(_.namespace === namespace)
       .maybeContains(_.groupName, nameContains)
@@ -59,8 +82,11 @@ object GroupInfoRepository {
       .result
       .failIfNotSingle(Errors.MissingGroup)
 
-  def create(id: GroupId, groupName: GroupName, namespace: Namespace, groupType: GroupType, expression: Option[GroupExpression])
-            (implicit ec: ExecutionContext): DBIO[GroupId] =
+  def create(id: GroupId,
+             groupName: GroupName,
+             namespace: Namespace,
+             groupType: GroupType,
+             expression: Option[GroupExpression])(implicit ec: ExecutionContext): DBIO[GroupId] =
     (groupInfos += data.Group(id, groupName, namespace, Instant.now, groupType, expression))
       .handleIntegrityErrors(Errors.ConflictingGroup)
       .map(_ => id)
@@ -93,7 +119,8 @@ object GroupInfoRepository {
           WHERE namespace = ${namespace.get} AND expression LIKE '%tag(#${tagId.value})%';
          """
 
-  private[db] def findSmartGroupsUsingTag(namespace: Namespace, tagId: TagId): DBIO[Seq[(GroupId, GroupExpression)]] =
+  private[db] def findSmartGroupsUsingTag(namespace: Namespace,
+                                          tagId: TagId): DBIO[Seq[(GroupId, GroupExpression)]] =
     groupInfos
       .filter(_.namespace === namespace)
       .filter(_.groupType === GroupType.dynamic)
@@ -101,11 +128,13 @@ object GroupInfoRepository {
       .map(gi => gi.id -> gi.expression.get)
       .result
 
-  private[db] def updateSmartGroupExpression(groupId: GroupId, expression: GroupExpression)(implicit ec: ExecutionContext): DBIO[Unit] =
+  private[db] def updateSmartGroupExpression(groupId: GroupId, expression: GroupExpression)(
+    implicit ec: ExecutionContext): DBIO[Unit] =
     groupInfos
       .filter(_.groupType === GroupType.dynamic)
       .filter(_.id === groupId)
       .map(_.expression)
       .update(Some(expression))
       .map(_ => ())
+
 }

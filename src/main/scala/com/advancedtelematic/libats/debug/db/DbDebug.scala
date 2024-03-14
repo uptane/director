@@ -15,14 +15,13 @@ object DbDebug {
     pp.setString(id.uuid.toString)
   }
 
-  implicit val setNamespace: slick.jdbc.SetParameter[Namespace] = SetParameter[Namespace] { (ns, pp) =>
-    pp.setString(ns.get)
+  implicit val setNamespace: slick.jdbc.SetParameter[Namespace] = SetParameter[Namespace] {
+    (ns, pp) =>
+      pp.setString(ns.get)
   }
 
-  def query(title: String, query: SQLActionBuilder)(implicit
-    db: Database,
-    ec: ExecutionContext
-  ): Future[Table] = {
+  def query(title: String,
+            query: SQLActionBuilder)(implicit db: Database, ec: ExecutionContext): Future[Table] = {
     implicit val getMap = GetResult[Map[String, Json]] { pr =>
       val rowAsMap = (1 to pr.numColumns).map { idx =>
         val columnName = pr.rs.getMetaData.getColumnName(idx)
@@ -67,8 +66,7 @@ object DbDebug {
   }
 
   def readTable[T](name: String, f: T => SQLActionBuilder)(
-    q: T
-  )(implicit db: Database, ec: ExecutionContext): Future[Table] =
+    q: T)(implicit db: Database, ec: ExecutionContext): Future[Table] =
     query(name, f(q))
 
   val DEFAULT_LIMIT = 200

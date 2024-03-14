@@ -26,7 +26,11 @@ import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.db.{DeviceRepository, GroupInfoRepository, GroupMemberRepository}
+import com.advancedtelematic.deviceregistry.db.{
+  DeviceRepository,
+  GroupInfoRepository,
+  GroupMemberRepository
+}
 import com.advancedtelematic.deviceregistry.{AllowUUIDPath, GroupMembership}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -36,36 +40,49 @@ import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceAuthorizer: Directive1[DeviceId])
-                    (implicit ec: ExecutionContext, db: Database, materializer: Materializer) extends Directives {
+class GroupsResource(namespaceExtractor: Directive1[Namespace],
+                     deviceNamespaceAuthorizer: Directive1[DeviceId])(
+  implicit ec: ExecutionContext,
+  db: Database,
+  materializer: Materializer)
+    extends Directives {
 
   private val DEVICE_OEM_ID_MAX_BYTES = 128
   private val FILTER_EXISTING_DEVICES_BATCH_SIZE = 50
 
   private val GroupIdPath = {
-    def groupAllowed(groupId: GroupId): Future[Namespace] = db.run(GroupInfoRepository.groupInfoNamespace(groupId))
+    def groupAllowed(groupId: GroupId): Future[Namespace] =
+      db.run(GroupInfoRepository.groupInfoNamespace(groupId))
     AllowUUIDPath(GroupId)(namespaceExtractor, groupAllowed)
   }
 
-  implicit val groupTypeUnmarshaller: FromStringUnmarshaller[GroupType] = Unmarshaller.strict(GroupType.withName)
-  implicit val groupNameUnmarshaller: FromStringUnmarshaller[GroupName] = Unmarshaller.strict(GroupName.validatedGroupName.from(_).valueOr(throw _))
+  implicit val groupTypeUnmarshaller: FromStringUnmarshaller[GroupType] =
+    Unmarshaller.strict(GroupType.withName)
+
+  implicit val groupNameUnmarshaller: FromStringUnmarshaller[GroupName] =
+    Unmarshaller.strict(GroupName.validatedGroupName.from(_).valueOr(throw _))
 
   implicit val sortByUnmarshaller: FromStringUnmarshaller[GroupSortBy] = Unmarshaller.strict {
     _.toLowerCase match {
       case "name"      => GroupSortBy.Name
       case "createdat" => GroupSortBy.CreatedAt
-      case s           => throw new IllegalArgumentException(s"Invalid value for sorting parameter: '$s'.")
+      case s => throw new IllegalArgumentException(s"Invalid value for sorting parameter: '$s'.")
     }
   }
 
   val groupMembership = new GroupMembership()
 
   def getDevicesInGroup(groupId: GroupId): Route =
-    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (offset, limit) =>
-      complete(groupMembership.listDevices(groupId, offset, limit))
+    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) {
+      (offset, limit) =>
+        complete(groupMembership.listDevices(groupId, offset, limit))
     }
 
-  def listGroups(ns: Namespace, offset: Option[Long], limit: Option[Long], sortBy: GroupSortBy, nameContains: Option[String]): Route =
+  def listGroups(ns: Namespace,
+                 offset: Option[Long],
+                 limit: Option[Long],
+                 sortBy: GroupSortBy,
+                 nameContains: Option[String]): Route =
     complete(db.run(GroupInfoRepository.list(ns, offset, limit, sortBy, nameContains)))
 
   def getGroup(groupId: GroupId): Route =
@@ -75,12 +92,14 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceA
                   namespace: Namespace,
                   groupType: GroupType,
                   expression: Option[GroupExpression]): Route =
-    complete(StatusCodes.Created -> groupMembership.create(groupName, namespace, groupType, expression))
+    complete(
+      StatusCodes.Created -> groupMembership.create(groupName, namespace, groupType, expression)
+    )
 
   def createGroupWithDevices(groupName: GroupName,
                              namespace: Namespace,
-                             byteSource: Source[ByteString, Any])
-                            (implicit materializer: Materializer): Route = {
+                             byteSource: Source[ByteString, Any])(
+    implicit materializer: Materializer): Route = {
 
     val deviceIds = byteSource
       .via(Framing.delimiter(ByteString("\n"), DEVICE_OEM_ID_MAX_BYTES, allowTruncation = true))
@@ -94,9 +113,8 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceA
       .map(_.map(DeviceRepository.filterExisting(namespace, _)))
       .flatMap(dbActions => db.run(DBIO.sequence(dbActions)))
       .map(_.flatten)
-      .recoverWith {
-        case _: FramingException =>
-          FastFuture.failed(Errors.MalformedInputFile)
+      .recoverWith { case _: FramingException =>
+        FastFuture.failed(Errors.MalformedInputFile)
       }
 
     val createGroupAndAddDevices =
@@ -131,62 +149,67 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace], deviceNamespaceA
     complete(groupMembership.removeGroupMember(groupId, deviceId))
 
   // This can take some time, req. timeout should be bigger and/or this should be done in the background
-  def updateGroupHibernationStatus(ns: Namespace, groupId: GroupId): Route = {
+  def updateGroupHibernationStatus(ns: Namespace, groupId: GroupId): Route =
     post {
       entity(as[UpdateHibernationStatusRequest]) { req =>
         val f = db.run(GroupMemberRepository.setHibernationStatus(ns, groupId, req.status))
         complete(f.map(_ => StatusCodes.OK))
       }
     }
-  }
 
   val route: Route =
     (pathPrefix("device_groups") & namespaceExtractor) { ns =>
       pathEnd {
-        (get & parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?, Symbol("sortBy").as[GroupSortBy].?, Symbol("nameContains").as[String].?)) {
-          (offset, limit, sortBy, nameContains) => listGroups(ns, offset, limit, sortBy.getOrElse(GroupSortBy.Name), nameContains)
+        (get & parameters(
+          Symbol("offset").as(nonNegativeLong).?,
+          Symbol("limit").as(nonNegativeLong).?,
+          Symbol("sortBy").as[GroupSortBy].?,
+          Symbol("nameContains").as[String].?
+        )) { (offset, limit, sortBy, nameContains) =>
+          listGroups(ns, offset, limit, sortBy.getOrElse(GroupSortBy.Name), nameContains)
         } ~
-        post {
-          entity(as[CreateGroup]) { req =>
-            createGroup(req.name, ns, req.groupType, req.expression)
-          } ~
-          (fileUpload("deviceIds") & parameter(Symbol("groupName").as[GroupName])) {
-            case ((_, byteSource), groupName) =>
-              createGroupWithDevices(groupName, ns, byteSource)
+          post {
+            entity(as[CreateGroup]) { req =>
+              createGroup(req.name, ns, req.groupType, req.expression)
+            } ~
+              (fileUpload("deviceIds") & parameter(Symbol("groupName").as[GroupName])) {
+                case ((_, byteSource), groupName) =>
+                  createGroupWithDevices(groupName, ns, byteSource)
+              }
           }
-        }
       } ~
-      GroupIdPath { groupId =>
-        (get & pathEndOrSingleSlash) {
-          getGroup(groupId)
-        } ~
-        path("hibernation") {
-           updateGroupHibernationStatus(ns, groupId)
-        } ~
-        pathPrefix("devices") {
-          get {
-            getDevicesInGroup(groupId)
+        GroupIdPath { groupId =>
+          (get & pathEndOrSingleSlash) {
+            getGroup(groupId)
           } ~
-          deviceNamespaceAuthorizer { deviceUuid =>
-            post {
-              addDeviceToGroup(groupId, deviceUuid)
+            path("hibernation") {
+              updateGroupHibernationStatus(ns, groupId)
+            } ~
+            pathPrefix("devices") {
+              get {
+                getDevicesInGroup(groupId)
+              } ~
+                deviceNamespaceAuthorizer { deviceUuid =>
+                  post {
+                    addDeviceToGroup(groupId, deviceUuid)
+                  } ~
+                    delete {
+                      removeDeviceFromGroup(groupId, deviceUuid)
+                    }
+                }
             } ~
             delete {
-              removeDeviceFromGroup(groupId, deviceUuid)
+              deleteGroup(groupId)
+            } ~
+            (put & path("rename") & parameter(Symbol("groupName").as[GroupName])) { groupName =>
+              renameGroup(groupId, groupName)
+            } ~
+            (get & path("count") & pathEnd) {
+              countDevices(groupId)
             }
-          }
-        } ~
-        delete {
-          deleteGroup(groupId)
-        } ~
-        (put & path("rename") & parameter(Symbol("groupName").as[GroupName])) { groupName =>
-          renameGroup(groupId, groupName)
-        } ~
-        (get & path("count") & pathEnd) {
-          countDevices(groupId)
         }
-      }
     }
+
 }
 
 case class CreateGroup(name: GroupName, groupType: GroupType, expression: Option[GroupExpression])

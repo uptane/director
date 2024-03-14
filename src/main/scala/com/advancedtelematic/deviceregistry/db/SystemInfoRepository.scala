@@ -31,22 +31,21 @@ object SystemInfoRepository {
 
   private val _log = LoggerFactory.getLogger(this.getClass)
 
-  private implicit val lenientJsonMapper: slick.jdbc.MySQLProfile.BaseColumnType[io.circe.Json] = MappedColumnType.base[Json, String](
-    _.noSpaces
-    ,
-    { str =>
-      io.circe.parser.parse(str) match {
-        case Left(err) =>
-          _log.warn(s"Could not decode json string from database: $err")
-          Json.Null
-        case Right(v) => v
-      }
-    }
-  )
+  private implicit val lenientJsonMapper: slick.jdbc.MySQLProfile.BaseColumnType[io.circe.Json] =
+    MappedColumnType.base[Json, String](
+      _.noSpaces,
+      str =>
+        io.circe.parser.parse(str) match {
+          case Left(err) =>
+            _log.warn(s"Could not decode json string from database: $err")
+            Json.Null
+          case Right(v) => v
+        }
+    )
 
   // scalastyle:off
   class SystemInfoTable(tag: Tag) extends Table[SystemInfo](tag, "DeviceSystem") {
-    def uuid       = column[DeviceId]("uuid")
+    def uuid = column[DeviceId]("uuid")
     def systemInfo = column[Json]("system_info")
 
     def * = (uuid, systemInfo).shaped <> ((SystemInfo.apply _).tupled, SystemInfo.unapply _)
@@ -57,9 +56,11 @@ object SystemInfoRepository {
 
   final case class NetworkInfo(deviceUuid: DeviceId,
                                localIpV4: Option[String] = None,
-                               hostname: Option[String]=None,
-                               macAddress: Option[String]=None)
+                               hostname: Option[String] = None,
+                               macAddress: Option[String] = None)
+
   object NetworkInfo {
+
     implicit val NetworkInfoEncoder: Encoder[NetworkInfo] = Encoder.instance { x =>
       import io.circe.syntax._
       Json.obj(
@@ -68,14 +69,18 @@ object SystemInfoRepository {
         "hostname" -> x.hostname.asJson
       )
     }
-    implicit val DeviceIdToNetworkInfoDecoder: Decoder[DeviceId => NetworkInfo] = Decoder.instance { c =>
-      for {
-        ip <- c.getOrElse[Option[String]]("local_ipv4")(None)
-        mac <- c.getOrElse[Option[String]]("mac")(None)
-        hostname <- c.getOrElse[Option[String]]("hostname")(None)
-      } yield (uuid: DeviceId) => NetworkInfo(uuid, ip, hostname, mac)
+
+    implicit val DeviceIdToNetworkInfoDecoder: Decoder[DeviceId => NetworkInfo] = Decoder.instance {
+      c =>
+        for {
+          ip <- c.getOrElse[Option[String]]("local_ipv4")(None)
+          mac <- c.getOrElse[Option[String]]("mac")(None)
+          hostname <- c.getOrElse[Option[String]]("hostname")(None)
+        } yield (uuid: DeviceId) => NetworkInfo(uuid, ip, hostname, mac)
     }
+
   }
+
   implicit val networkInfoWithDeviceIdEncoder: Encoder[NetworkInfo] = Encoder.instance { x =>
     import io.circe.syntax._
     Json.obj(
@@ -85,6 +90,7 @@ object SystemInfoRepository {
       "hostname" -> x.hostname.asJson
     )
   }
+
   implicit val networkInfoWithDeviceIdDecoder: Decoder[NetworkInfo] = Decoder.instance { x =>
     for {
       id <- x.get[DeviceId]("deviceUuid")
@@ -95,9 +101,9 @@ object SystemInfoRepository {
   }
 
   class SysInfoNetworkTable(tag: Tag) extends Table[NetworkInfo](tag, "DeviceSystem") {
-    def uuid       = column[DeviceId]("uuid")
-    def localIpV4  = column[Option[String]]("local_ipv4")
-    def hostname   = column[Option[String]]("hostname")
+    def uuid = column[DeviceId]("uuid")
+    def localIpV4 = column[Option[String]]("local_ipv4")
+    def hostname = column[Option[String]]("hostname")
     def macAddress = column[Option[String]]("mac_address")
 
     def pk = primaryKey("sys_info_pk", uuid)
@@ -110,11 +116,15 @@ object SystemInfoRepository {
     networkInfos.insertOrUpdate(value).map(_ => Done)
 
   def getNetworkInfo(deviceUuid: DeviceId)(implicit ec: ExecutionContext): DBIO[NetworkInfo] =
-    networkInfos.filter(_.uuid === deviceUuid).result.failIfEmpty(Errors.MissingSystemInfo).map(_.head)
+    networkInfos
+      .filter(_.uuid === deviceUuid)
+      .result
+      .failIfEmpty(Errors.MissingSystemInfo)
+      .map(_.head)
 
-  def getNetworksInfo(devices: Seq[DeviceId])(implicit ec: ExecutionContext): DBIO[Map[DeviceId, NetworkInfo]] = {
-    networkInfos.filter(_.uuid inSet devices).map(ni => (ni.uuid -> ni)).result.map(_.toMap)
-  }
+  def getNetworksInfo(devices: Seq[DeviceId])(
+    implicit ec: ExecutionContext): DBIO[Map[DeviceId, NetworkInfo]] =
+    networkInfos.filter(_.uuid.inSet(devices)).map(ni => ni.uuid -> ni).result.map(_.toMap)
 
   val systemInfos = TableQuery[SystemInfoTable]
 
@@ -128,13 +138,12 @@ object SystemInfoRepository {
     State.pure(j),
     _.toList.traverse(addUniqueIdsSIM).map(Json.fromValues),
     _.toList
-      .traverse {
-        case (other, value) => addUniqueIdsSIM(value).map(other -> _)
+      .traverse { case (other, value) =>
+        addUniqueIdsSIM(value).map(other -> _)
       }
-      .flatMap(
-        xs =>
-          State { nr =>
-            (nr + 1, Json.fromFields(("id-nr" -> Json.fromString(s"$nr")) :: xs))
+      .flatMap(xs =>
+        State { nr =>
+          (nr + 1, Json.fromFields(("id-nr" -> Json.fromString(s"$nr")) :: xs))
         }
       )
   )
@@ -188,4 +197,5 @@ object SystemInfoRepository {
 
   def delete(uuid: DeviceId): DBIO[Int] =
     systemInfos.filter(_.uuid === uuid).delete
+
 }

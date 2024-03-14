@@ -12,14 +12,15 @@ import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.ExecutionContext
 
-/**
-  * Base API routing class.
+/** Base API routing class.
   */
-class DeviceRegistryRoutes(
-    namespaceExtractor: Directive1[Namespace],
-    deviceNamespaceAuthorizer: Directive1[DeviceId],
-    messageBus: MessageBusPublisher
-)(implicit db: Database, system: ActorSystem, mat: Materializer, exec: ExecutionContext)
+class DeviceRegistryRoutes(namespaceExtractor: Directive1[Namespace],
+                           deviceNamespaceAuthorizer: Directive1[DeviceId],
+                           messageBus: MessageBusPublisher)(
+  implicit db: Database,
+  system: ActorSystem,
+  mat: Materializer,
+  exec: ExecutionContext)
     extends Directives {
 
   val route: Route =
@@ -28,13 +29,26 @@ class DeviceRegistryRoutes(
         handleRejections(rejectionHandler) {
           ErrorHandler.handleErrors {
             new DevicesResource(namespaceExtractor, messageBus, deviceNamespaceAuthorizer).route ~
-            new DeviceMonitoringResource(namespaceExtractor, deviceNamespaceAuthorizer, messageBus).route ~
-            new SystemInfoResource(messageBus, namespaceExtractor, deviceNamespaceAuthorizer).route ~
-            new PublicCredentialsResource(namespaceExtractor, messageBus, deviceNamespaceAuthorizer).route ~
-            new PackageListsResource(namespaceExtractor).route ~
-            new GroupsResource(namespaceExtractor, deviceNamespaceAuthorizer).route
+              new DeviceMonitoringResource(
+                namespaceExtractor,
+                deviceNamespaceAuthorizer,
+                messageBus
+              ).route ~
+              new SystemInfoResource(
+                messageBus,
+                namespaceExtractor,
+                deviceNamespaceAuthorizer
+              ).route ~
+              new PublicCredentialsResource(
+                namespaceExtractor,
+                messageBus,
+                deviceNamespaceAuthorizer
+              ).route ~
+              new PackageListsResource(namespaceExtractor).route ~
+              new GroupsResource(namespaceExtractor, deviceNamespaceAuthorizer).route
           }
         }
       }
     }
+
 }

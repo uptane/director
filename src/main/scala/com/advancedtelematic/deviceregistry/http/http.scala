@@ -7,7 +7,9 @@ import akka.http.scaladsl.unmarshalling.{PredefinedFromStringUnmarshallers, Unma
 import akka.http.scaladsl.util.FastFuture
 
 package object http {
-  val `application/toml`: WithFixedCharset = MediaType.applicationWithFixedCharset("toml", `UTF-8`).toContentType
+
+  val `application/toml`: WithFixedCharset =
+    MediaType.applicationWithFixedCharset("toml", `UTF-8`).toContentType
 
   val nonNegativeLong: Unmarshaller[String, Long] =
     PredefinedFromStringUnmarshallers.longFromStringUnmarshaller
@@ -15,4 +17,5 @@ package object http {
         if (value < 0) FastFuture.failed(new IllegalArgumentException("Value cannot be negative"))
         else FastFuture.successful(value)
       }
+
 }

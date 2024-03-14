@@ -7,11 +7,14 @@ import io.circe.{Decoder, Encoder}
 import scala.annotation.nowarn
 
 @nowarn
-final case class GroupName private(value: String) extends AnyVal
+final case class GroupName private (value: String) extends AnyVal
 
 object GroupName {
 
-  implicit val validatedGroupName: com.advancedtelematic.libats.data.ValidatedGeneric[com.advancedtelematic.deviceregistry.data.GroupName,String] = new ValidatedGeneric[GroupName, String] {
+  implicit val validatedGroupName: com.advancedtelematic.libats.data.ValidatedGeneric[
+    com.advancedtelematic.deviceregistry.data.GroupName,
+    String
+  ] = new ValidatedGeneric[GroupName, String] {
     override def to(expression: GroupName): String = expression.value
     override def from(s: String): Either[ValidationError, GroupName] = GroupName.from(s)
   }

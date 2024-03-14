@@ -11,7 +11,9 @@ package com.advancedtelematic.deviceregistry.common
 case class PackageStat(packageVersion: String, installedCount: Int)
 
 object PackageStat {
+
   import io.circe.Encoder
   import io.circe.generic.semiauto._
+
   implicit val encoder: Encoder[PackageStat] = deriveEncoder[PackageStat]
 }

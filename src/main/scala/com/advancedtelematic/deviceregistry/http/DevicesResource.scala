@@ -23,7 +23,17 @@ import com.advancedtelematic.deviceregistry.common.Errors
 import com.advancedtelematic.deviceregistry.common.Errors.{Codes, MissingDevice}
 import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
+import com.advancedtelematic.deviceregistry.data.DataType.{
+  DeviceT,
+  DevicesQuery,
+  InstallationStatsLevel,
+  RenameTagId,
+  SearchParams,
+  SetDevice,
+  UpdateDevice,
+  UpdateHibernationStatusRequest,
+  UpdateTagValue
+}
 import com.advancedtelematic.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
@@ -32,9 +42,26 @@ import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.deviceregistry.data.TagId.validatedTagId
-import com.advancedtelematic.deviceregistry.data.{Device, DeviceSortBy, GroupExpression, GroupSortBy, PackageId, SortDirection, TagId}
+import com.advancedtelematic.deviceregistry.data.{
+  Device,
+  DeviceSortBy,
+  GroupExpression,
+  GroupSortBy,
+  PackageId,
+  SortDirection,
+  TagId
+}
 import com.advancedtelematic.deviceregistry.db.DbOps.PaginationResultOps
-import com.advancedtelematic.deviceregistry.db.{DeviceRepository, EcuReplacementRepository, EventJournal, GroupInfoRepository, GroupMemberRepository, InstallationReportRepository, InstalledPackages, TaggedDeviceRepository}
+import com.advancedtelematic.deviceregistry.db.{
+  DeviceRepository,
+  EcuReplacementRepository,
+  EventJournal,
+  GroupInfoRepository,
+  GroupMemberRepository,
+  InstallationReportRepository,
+  InstalledPackages,
+  TaggedDeviceRepository
+}
 import com.advancedtelematic.deviceregistry.messages.DeviceCreated
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
 import com.advancedtelematic.libats.http.Errors.JsonError
@@ -43,7 +70,10 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeleteDeviceRequest,
+  DeviceEventMessage
+}
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import io.circe.Json
 import io.circe.syntax.EncoderOps
@@ -61,67 +91,75 @@ object DevicesResource {
   private[DevicesResource] implicit val EventPayloadDecoder: io.circe.Decoder[EventPayload] =
     io.circe.Decoder.instance { c =>
       for {
-        id         <- c.get[String]("id")
+        id <- c.get[String]("id")
         deviceTime <- c.get[Instant]("deviceTime")(io.circe.Decoder.decodeInstant)
-        eventType  <- c.get[EventType]("eventType")
-        payload    <- c.get[Json]("event")
-      } yield
-        (deviceUuid: DeviceId, receivedAt: Instant) =>
-          Event(deviceUuid, id, eventType, deviceTime, receivedAt, payload)
+        eventType <- c.get[EventType]("eventType")
+        payload <- c.get[Json]("event")
+      } yield (deviceUuid: DeviceId, receivedAt: Instant) =>
+        Event(deviceUuid, id, eventType, deviceTime, receivedAt, payload)
     }
 
   implicit val groupIdUnmarshaller: Unmarshaller[String, GroupId] = GroupId.unmarshaller
 
-  implicit val resultCodeUnmarshaller: FromStringUnmarshaller[ResultCode] = Unmarshaller.strict(ResultCode)
+  implicit val resultCodeUnmarshaller: FromStringUnmarshaller[ResultCode] =
+    Unmarshaller.strict(ResultCode)
 
-  implicit val correlationIdUnmarshaller: FromStringUnmarshaller[CorrelationId] = Unmarshaller.strict {
-    CorrelationId.fromString(_).leftMap(new IllegalArgumentException(_)).valueOr(throw _)
-  }
+  implicit val correlationIdUnmarshaller: FromStringUnmarshaller[CorrelationId] =
+    Unmarshaller.strict {
+      CorrelationId.fromString(_).leftMap(new IllegalArgumentException(_)).valueOr(throw _)
+    }
 
   implicit val installationStatsLevelUnmarshaller: FromStringUnmarshaller[InstallationStatsLevel] =
     Unmarshaller.strict {
       _.toLowerCase match {
         case "device" => InstallationStatsLevel.Device
         case "ecu"    => InstallationStatsLevel.Ecu
-        case s        => throw new IllegalArgumentException(s"Invalid value for installation stats level parameter: $s.")
+        case s =>
+          throw new IllegalArgumentException(
+            s"Invalid value for installation stats level parameter: $s."
+          )
       }
     }
 
-  implicit val deviceSortByUnmarshaller: FromStringUnmarshaller[DeviceSortBy] = Unmarshaller.strict {
-    _.toLowerCase match {
-      case "name"      => DeviceSortBy.Name
-      case "createdat" => DeviceSortBy.CreatedAt
-      case "deviceid" => DeviceSortBy.DeviceId
-      case "uuid" => DeviceSortBy.Uuid
-      case "activatedat" => DeviceSortBy.ActivatedAt
-      case "lastseen" => DeviceSortBy.LastSeen
-      case s           => throw new IllegalArgumentException(s"Invalid value for sorting parameter: '$s'.")
+  implicit val deviceSortByUnmarshaller: FromStringUnmarshaller[DeviceSortBy] =
+    Unmarshaller.strict {
+      _.toLowerCase match {
+        case "name"        => DeviceSortBy.Name
+        case "createdat"   => DeviceSortBy.CreatedAt
+        case "deviceid"    => DeviceSortBy.DeviceId
+        case "uuid"        => DeviceSortBy.Uuid
+        case "activatedat" => DeviceSortBy.ActivatedAt
+        case "lastseen"    => DeviceSortBy.LastSeen
+        case s => throw new IllegalArgumentException(s"Invalid value for sorting parameter: '$s'.")
+      }
     }
-  }
+
   implicit val groupSortByUnmarshaller: FromStringUnmarshaller[GroupSortBy] = Unmarshaller.strict {
     _.toLowerCase match {
-      case "name" => GroupSortBy.Name
+      case "name"      => GroupSortBy.Name
       case "createdat" => GroupSortBy.CreatedAt
-      case s           => throw new IllegalArgumentException(s"Invalid value for sorting parameter: '$s'.")
+      case s => throw new IllegalArgumentException(s"Invalid value for sorting parameter: '$s'.")
     }
   }
 
-  implicit val sortDirectionUnmarshaller: FromStringUnmarshaller[SortDirection] = Unmarshaller.strict {
-    _.toLowerCase match {
-      case "asc" => SortDirection.Asc
-      case "desc" => SortDirection.Desc
-      case s => throw new IllegalArgumentException(s"Invalid value for sorting direction: '$s'.")
+  implicit val sortDirectionUnmarshaller: FromStringUnmarshaller[SortDirection] =
+    Unmarshaller.strict {
+      _.toLowerCase match {
+        case "asc"  => SortDirection.Asc
+        case "desc" => SortDirection.Desc
+        case s => throw new IllegalArgumentException(s"Invalid value for sorting direction: '$s'.")
+      }
     }
-  }
 
   val tagIdMatcher: PathMatcher1[TagId] = Segment.flatMap(TagId.from(_).toOption)
 }
 
-class DevicesResource(
-    namespaceExtractor: Directive1[Namespace],
-    messageBus: MessageBusPublisher,
-    deviceNamespaceAuthorizer: Directive1[DeviceId]
-)(implicit db: Database, mat: Materializer, ec: ExecutionContext) {
+class DevicesResource(namespaceExtractor: Directive1[Namespace],
+                      messageBus: MessageBusPublisher,
+                      deviceNamespaceAuthorizer: Directive1[DeviceId])(
+  implicit db: Database,
+  mat: Materializer,
+  ec: ExecutionContext) {
 
   import DevicesResource.*
   import Directives.*
@@ -153,18 +191,25 @@ class DevicesResource(
       Symbol("sortBy").as[DeviceSortBy].?,
       Symbol("sortDirection").as[SortDirection].?,
       Symbol("offset").as(nonNegativeLong).?,
-      Symbol("limit").as(nonNegativeLong).?).as(SearchParams.apply _) { params =>
-        complete(db.run(DeviceRepository.search(ns, params)))
-      }
+      Symbol("limit").as(nonNegativeLong).?
+    ).as(SearchParams.apply _) { params =>
+      complete(db.run(DeviceRepository.search(ns, params)))
+    }
 
   def createDevice(ns: Namespace, device: DeviceT): Route = {
     val f = db
       .run(DeviceRepository.create(ns, device))
-      .andThen {
-        case scala.util.Success(uuid) =>
-          messageBus.publish(
-            DeviceCreated(ns, uuid, device.deviceName, device.deviceId, device.deviceType, Instant.now())
+      .andThen { case scala.util.Success(uuid) =>
+        messageBus.publish(
+          DeviceCreated(
+            ns,
+            uuid,
+            device.deviceName,
+            device.deviceId,
+            device.deviceType,
+            Instant.now()
           )
+        )
       }
 
     onSuccess(f) { uuid =>
@@ -176,18 +221,21 @@ class DevicesResource(
 
   def deleteDevice(ns: Namespace, uuid: DeviceId): Route = {
     val f = messageBus.publish(DeleteDeviceRequest(ns, uuid, Instant.now()))
-    onSuccess(f) { complete(StatusCodes.Accepted) }
+    onSuccess(f)(complete(StatusCodes.Accepted))
   }
 
   def fetchDevice(uuid: DeviceId): Route =
     complete(db.run(DeviceRepository.findByUuid(uuid)))
 
   def setDevice(ns: Namespace, uuid: DeviceId, updateDevice: SetDevice): Route =
-    complete(db.run(DeviceRepository.setDevice(ns, uuid, updateDevice.deviceName, updateDevice.notes)))
+    complete(
+      db.run(DeviceRepository.setDevice(ns, uuid, updateDevice.deviceName, updateDevice.notes))
+    )
 
   def updateDevice(ns: Namespace, uuid: DeviceId, updateDevice: UpdateDevice): Route =
-    complete(db.run(DeviceRepository.updateDevice(ns, uuid, updateDevice.deviceName, updateDevice.notes)))
-
+    complete(
+      db.run(DeviceRepository.updateDevice(ns, uuid, updateDevice.deviceName, updateDevice.notes))
+    )
 
   def queryDevices(ns: Namespace, query: DevicesQuery): Future[List[Device]] = {
     val oemDevices = query.oemIds.getOrElse(List.empty[DeviceOemId])
@@ -197,10 +245,15 @@ class DevicesResource(
       foundUuidDevices <- db.run(DeviceRepository.findByDeviceUuids(ns, uuidDevices))
     } yield {
       val foundDevices = (foundOemDevices ++ foundUuidDevices).toSet.toList
-      val missingOemDevices = oemDevices.filterNot(expected => foundOemDevices.map(_.deviceId).contains(expected))
-      val missingUuidDevices = uuidDevices.filterNot(expected  => foundUuidDevices.map(_.uuid).contains(expected))
-      if(missingOemDevices.nonEmpty || missingUuidDevices.nonEmpty) {
-        val msg = Map("missingOemIds" -> missingOemDevices.map(_.underlying).mkString(","), "missingDeviceUuids" -> missingUuidDevices.map(_.uuid).mkString(","))
+      val missingOemDevices =
+        oemDevices.filterNot(expected => foundOemDevices.map(_.deviceId).contains(expected))
+      val missingUuidDevices =
+        uuidDevices.filterNot(expected => foundUuidDevices.map(_.uuid).contains(expected))
+      if (missingOemDevices.nonEmpty || missingUuidDevices.nonEmpty) {
+        val msg = Map(
+          "missingOemIds" -> missingOemDevices.map(_.underlying).mkString(","),
+          "missingDeviceUuids" -> missingUuidDevices.map(_.uuid).mkString(",")
+        )
         throw JsonError(Codes.MissingDevice, StatusCodes.NotFound, msg.asJson, "Devices not found")
       }
       foundDevices
@@ -211,21 +264,26 @@ class DevicesResource(
     complete(db.run(DeviceRepository.countDevicesForExpression(ns, expression)))
 
   def getGroupsForDevice(uuid: DeviceId): Route =
-    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (offset, limit) =>
-      complete(db.run(GroupMemberRepository.listGroupsForDevice(uuid, offset, limit)))
+    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) {
+      (offset, limit) =>
+        complete(db.run(GroupMemberRepository.listGroupsForDevice(uuid, offset, limit)))
     }
 
   def updateInstalledSoftware(device: DeviceId): Route =
     entity(as[Seq[PackageId]]) { installedSoftware =>
       val f = db.run(InstalledPackages.setInstalled(device, installedSoftware.toSet))
-      onSuccess(f) { complete(StatusCodes.NoContent) }
+      onSuccess(f)(complete(StatusCodes.NoContent))
     }
 
   def getDevicesCount(pkg: PackageId, ns: Namespace): Route =
     complete(db.run(InstalledPackages.getDevicesCount(pkg, ns)))
 
   def listPackagesOnDevice(device: DeviceId): Route =
-    parameters(Symbol("nameContains").as[String].?, Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (nameContains, offset, limit) =>
+    parameters(
+      Symbol("nameContains").as[String].?,
+      Symbol("offset").as(nonNegativeLong).?,
+      Symbol("limit").as(nonNegativeLong).?
+    ) { (nameContains, offset, limit) =>
       complete(db.run(InstalledPackages.installedOn(device, nameContains, offset, limit)))
     }
 
@@ -236,16 +294,18 @@ class DevicesResource(
     Unmarshaller.strict(Instant.parse)
 
   def getActiveDeviceCount(ns: Namespace): Route =
-    parameters(Symbol("start").as[OffsetDateTime], Symbol("end").as[OffsetDateTime]) { (start, end) =>
-      complete(
-        db.run(DeviceRepository.countActivatedDevices(ns, start.toInstant, end.toInstant))
-          .map(ActiveDeviceCount.apply)
-      )
+    parameters(Symbol("start").as[OffsetDateTime], Symbol("end").as[OffsetDateTime]) {
+      (start, end) =>
+        complete(
+          db.run(DeviceRepository.countActivatedDevices(ns, start.toInstant, end.toInstant))
+            .map(ActiveDeviceCount.apply)
+        )
     }
 
   def getDistinctPackages(ns: Namespace): Route =
-    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (offset, limit) =>
-      complete(db.run(InstalledPackages.getInstalledForAllDevices(ns, offset, limit)))
+    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) {
+      (offset, limit) =>
+        complete(db.run(InstalledPackages.getInstalledForAllDevices(ns, offset, limit)))
     }
 
   def findAffected(ns: Namespace): Route =
@@ -257,21 +317,36 @@ class DevicesResource(
     }
 
   def getPackageStats(ns: Namespace, name: PackageId.Name): Route =
-    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) { (offset, limit) =>
-      val f = db.run(InstalledPackages.listAllWithPackageByName(ns, name, offset, limit))
-      complete(f)
+    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) {
+      (offset, limit) =>
+        val f = db.run(InstalledPackages.listAllWithPackageByName(ns, name, offset, limit))
+        complete(f)
     }
 
-  def fetchInstallationHistory(deviceId: DeviceId, offset: Option[Long], limit: Option[Long]): Route =
-    complete(db.run(EcuReplacementRepository.deviceHistory(deviceId, offset.orDefaultOffset, limit.orDefaultLimit)))
+  def fetchInstallationHistory(deviceId: DeviceId,
+                               offset: Option[Long],
+                               limit: Option[Long]): Route =
+    complete(
+      db.run(
+        EcuReplacementRepository
+          .deviceHistory(deviceId, offset.orDefaultOffset, limit.orDefaultLimit)
+      )
+    )
 
   def installationReports(deviceId: DeviceId, offset: Option[Long], limit: Option[Long]): Route =
-    complete(db.run(InstallationReportRepository.installationReports(deviceId, offset.orDefaultOffset, limit.orDefaultLimit)))
+    complete(
+      db.run(
+        InstallationReportRepository
+          .installationReports(deviceId, offset.orDefaultOffset, limit.orDefaultLimit)
+      )
+    )
 
-  def fetchInstallationStats(correlationId: CorrelationId, reportLevel: Option[InstallationStatsLevel]): Route = {
+  def fetchInstallationStats(correlationId: CorrelationId,
+                             reportLevel: Option[InstallationStatsLevel]): Route = {
     val action = reportLevel match {
-      case Some(InstallationStatsLevel.Ecu) => InstallationReportRepository.installationStatsPerEcu(correlationId)
-      case _                                => InstallationReportRepository.installationStatsPerDevice(correlationId)
+      case Some(InstallationStatsLevel.Ecu) =>
+        InstallationReportRepository.installationStatsPerEcu(correlationId)
+      case _ => InstallationReportRepository.installationStatsPerDevice(correlationId)
     }
     complete(db.run(action))
   }
@@ -282,7 +357,10 @@ class DevicesResource(
   private def fetchDeviceTags(deviceId: DeviceId): Route =
     complete(db.run(TaggedDeviceRepository.fetchForDevice(deviceId)))
 
-  private def patchDeviceTagValue(namespace: Namespace, deviceId: DeviceId, tagId: TagId, tagValue: String) = {
+  private def patchDeviceTagValue(namespace: Namespace,
+                                  deviceId: DeviceId,
+                                  tagId: TagId,
+                                  tagValue: String) = {
     val f = db.run {
       for {
         _ <- TaggedDeviceRepository.updateDeviceTagValue(namespace, deviceId, tagId, tagValue)
@@ -316,8 +394,9 @@ class DevicesResource(
 
     val f = csvRows.map(_.map { row =>
       val deviceId = DeviceOemId(row(deviceIdKey))
-      val tags = row.collect { case (k, v) if k != deviceIdKey =>
-        validatedTagId.from(k).map(_ -> v).valueOr(_ => throw Errors.MalformedInputFile)
+      val tags = row.collect {
+        case (k, v) if k != deviceIdKey =>
+          validatedTagId.from(k).map(_ -> v).valueOr(_ => throw Errors.MalformedInputFile)
       }
       TaggedDeviceRepository
         .tagDeviceByOemId(ns, deviceId, tags)
@@ -333,129 +412,138 @@ class DevicesResource(
     }
   }
 
-  private def updateHibernationStatus(ns: Namespace, uuid: DeviceId): Route = {
+  private def updateHibernationStatus(ns: Namespace, uuid: DeviceId): Route =
     post {
       entity(as[UpdateHibernationStatusRequest]) { req =>
         val f = db.run(DeviceRepository.setHibernationStatus(ns, uuid, req.status))
         complete(f.map(_ => StatusCodes.OK))
       }
     }
-  }
 
   def api: Route = namespaceExtractor { ns =>
     pathPrefix("devices") {
       (post & pathEnd & entity(as[DeviceT])) { device =>
         createDevice(ns, device)
       } ~
-      get {
-        (path("count") & parameter(Symbol("expression").as[GroupExpression].?)) {
-          case None      => complete(Errors.InvalidGroupExpression(""))
-          case Some(exp) => countDynamicGroupCandidates(ns, exp)
-        } ~
-        (path("stats") & parameters(Symbol("correlationId").as[CorrelationId], Symbol("reportLevel").as[InstallationStatsLevel].?)) {
-          (cid, reportLevel) => fetchInstallationStats(cid, reportLevel)
-        } ~
-        (pathEnd & entity(as[DevicesQuery])) { devicesQuery =>
-          complete(queryDevices(ns, devicesQuery))
-        } ~
-        pathEnd {
-          searchDevice(ns)
-        }
-      } ~
-      deviceNamespaceAuthorizer { uuid =>
         get {
-          path("groups") {
-            getGroupsForDevice(uuid)
+          (path("count") & parameter(Symbol("expression").as[GroupExpression].?)) {
+            case None      => complete(Errors.InvalidGroupExpression(""))
+            case Some(exp) => countDynamicGroupCandidates(ns, exp)
           } ~
-          path("packages") {
-            listPackagesOnDevice(uuid)
+            (path("stats") & parameters(
+              Symbol("correlationId").as[CorrelationId],
+              Symbol("reportLevel").as[InstallationStatsLevel].?
+            )) { (cid, reportLevel) =>
+              fetchInstallationStats(cid, reportLevel)
+            } ~
+            (pathEnd & entity(as[DevicesQuery])) { devicesQuery =>
+              complete(queryDevices(ns, devicesQuery))
+            } ~
+            pathEnd {
+              searchDevice(ns)
+            }
+        } ~
+        deviceNamespaceAuthorizer { uuid =>
+          get {
+            path("groups") {
+              getGroupsForDevice(uuid)
+            } ~
+              path("packages") {
+                listPackagesOnDevice(uuid)
+              } ~
+              path("active_device_count") {
+                getActiveDeviceCount(ns)
+              } ~
+              (path("installation_reports") & parameters(
+                Symbol("offset").as(nonNegativeLong).?,
+                Symbol("limit").as(nonNegativeLong).?
+              )) { (offset, limit) =>
+                installationReports(uuid, offset, limit)
+              } ~
+              (path("installation_history") & parameters(
+                Symbol("offset").as(nonNegativeLong).?,
+                Symbol("limit").as(nonNegativeLong).?
+              )) { (offset, limit) =>
+                fetchInstallationHistory(uuid, offset, limit)
+              } ~
+              (pathPrefix("device_count") & extractPackageId) { pkg =>
+                getDevicesCount(pkg, ns)
+              } ~
+              path("device_tags") {
+                fetchDeviceTags(uuid)
+              } ~
+              pathEnd {
+                fetchDevice(uuid)
+              }
           } ~
-          path("active_device_count") {
-            getActiveDeviceCount(ns)
-          } ~
-          (path("installation_reports") & parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?)) {
-            (offset, limit) => installationReports(uuid, offset, limit)
-          } ~
-          (path("installation_history") & parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?)) {
-            (offset, limit) => fetchInstallationHistory(uuid, offset, limit)
-          } ~
-          (pathPrefix("device_count") & extractPackageId) { pkg =>
-            getDevicesCount(pkg, ns)
-          } ~
-          path("device_tags") {
-            fetchDeviceTags(uuid)
+            path("hibernation") {
+              updateHibernationStatus(ns, uuid)
+            } ~
+            (put & pathEnd & entity(as[SetDevice])) { setBody =>
+              setDevice(ns, uuid, setBody)
+            } ~
+            (patch & pathEnd & entity(as[UpdateDevice])) { updateBody =>
+              updateDevice(ns, uuid, updateBody)
+            } ~
+            (patch & path("device_tags") & entity(as[UpdateTagValue])) { utv =>
+              patchDeviceTagValue(ns, uuid, utv.tagId, utv.tagValue)
+            } ~
+            (delete & pathEnd) {
+              deleteDevice(ns, uuid)
+            } ~
+            path("events") {
+              import DevicesResource.EventPayloadDecoder
+              (get & parameter(Symbol("correlationId").as[CorrelationId].?)) { correlationId =>
+                // TODO: This should not return raw Events
+                // https://saeljira.it.here.com/browse/OTA-4163
+                // API should not return arbitrary json (`payload`) to the clients. This is why we index interesting events, so we can give this info to clients
+                val events = eventJournal.getEvents(uuid, correlationId)
+                complete(events)
+              } ~
+                (post & pathEnd) {
+                  extractLog { log =>
+                    entity(as[List[EventPayload]]) { xs =>
+                      val timestamp = Instant.now()
+                      val recordingResult: List[Future[Unit]] =
+                        xs.map(_.apply(uuid, timestamp))
+                          .map(x => messageBus.publish(DeviceEventMessage(ns, x)))
+                      onComplete(Future.sequence(recordingResult)) {
+                        case scala.util.Success(_) =>
+                          complete(StatusCodes.NoContent)
+
+                        case scala.util.Failure(t) =>
+                          log.error(t, "Unable write events to log.")
+                          complete(StatusCodes.ServiceUnavailable)
+                      }
+                    }
+                  }
+                }
+            }
+        }
+    } ~
+      pathPrefix("device_tags") {
+        (put & path(tagIdMatcher) & entity(as[RenameTagId])) { (tagId, body) =>
+          renameDeviceTag(ns, tagId, body.tagId)
+        } ~
+          (delete & path(tagIdMatcher)) { tagId =>
+            deleteDeviceTag(ns, tagId)
           } ~
           pathEnd {
-            fetchDevice(uuid)
-          }
-        } ~
-        path("hibernation") {
-          updateHibernationStatus(ns, uuid)
-        } ~
-        (put & pathEnd & entity(as[SetDevice])) { setBody =>
-          setDevice(ns, uuid, setBody)
-        } ~
-        (patch & pathEnd & entity(as[UpdateDevice])) { updateBody =>
-          updateDevice(ns, uuid, updateBody)
-        } ~
-        (patch & path("device_tags") & entity(as[UpdateTagValue])) { utv =>
-          patchDeviceTagValue(ns, uuid, utv.tagId, utv.tagValue)
-        } ~
-        (delete & pathEnd) {
-          deleteDevice(ns, uuid)
-        } ~
-        path("events") {
-          import DevicesResource.EventPayloadDecoder
-          (get & parameter(Symbol("correlationId").as[CorrelationId].?)) { correlationId =>
-            // TODO: This should not return raw Events
-            // https://saeljira.it.here.com/browse/OTA-4163
-            // API should not return arbitrary json (`payload`) to the clients. This is why we index interesting events, so we can give this info to clients
-            val events = eventJournal.getEvents(uuid, correlationId)
-            complete(events)
-          } ~
-          (post & pathEnd) {
-            extractLog { log =>
-              entity(as[List[EventPayload]]) { xs =>
-                val timestamp = Instant.now()
-                val recordingResult: List[Future[Unit]] =
-                  xs.map(_.apply(uuid, timestamp)).map(x => messageBus.publish(DeviceEventMessage(ns, x)))
-                onComplete(Future.sequence(recordingResult)) {
-                  case scala.util.Success(_) =>
-                    complete(StatusCodes.NoContent)
-
-                  case scala.util.Failure(t) =>
-                    log.error(t, "Unable write events to log.")
-                    complete(StatusCodes.ServiceUnavailable)
-                }
+            get {
+              fetchDeviceTags(ns)
+            } ~
+              // TODO use extractRequestEntity instead of fileUpload
+              (post & fileUpload("custom-device-fields")) { case (_, byteSource) =>
+                tagDevicesFromCsv(ns, byteSource)
               }
-            }
           }
-        }
-      }
-    } ~
-    pathPrefix("device_tags") {
-      (put & path(tagIdMatcher) & entity(as[RenameTagId])) { (tagId, body) =>
-        renameDeviceTag(ns, tagId, body.tagId)
       } ~
-      (delete & path(tagIdMatcher)) { tagId =>
-        deleteDeviceTag(ns, tagId)
+      (get & pathPrefix("device_count") & extractPackageId) { pkg =>
+        getDevicesCount(pkg, ns)
       } ~
-      pathEnd {
-        get {
-          fetchDeviceTags(ns)
-        } ~
-        // TODO use extractRequestEntity instead of fileUpload
-        (post & fileUpload("custom-device-fields")) { case (_, byteSource) =>
-          tagDevicesFromCsv(ns, byteSource)
-        }
+      (get & path("active_device_count")) {
+        getActiveDeviceCount(ns)
       }
-    } ~
-    (get & pathPrefix("device_count") & extractPackageId) { pkg =>
-      getDevicesCount(pkg, ns)
-    } ~
-    (get & path("active_device_count")) {
-      getActiveDeviceCount(ns)
-    }
   }
 
   def mydeviceRoutes: Route = namespaceExtractor { _ => // Don't use this as a namespace
@@ -463,9 +551,9 @@ class DevicesResource(
       (get & pathEnd) {
         fetchDevice(uuid)
       } ~
-      (put & path("packages")) {
-        updateInstalledSoftware(uuid)
-      }
+        (put & path("packages")) {
+          updateInstalledSoftware(uuid)
+        }
     }
   }
 
@@ -474,12 +562,12 @@ class DevicesResource(
       (pathEnd & get) {
         getDistinctPackages(ns)
       } ~
-      (path(Segment) & get) { name =>
-        getPackageStats(ns, name)
-      } ~
-      (path("affected") & post) {
-        findAffected(ns)
-      }
+        (path(Segment) & get) { name =>
+          getPackageStats(ns, name)
+        } ~
+        (path("affected") & post) {
+          findAffected(ns)
+        }
     }
   }
 

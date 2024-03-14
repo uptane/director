@@ -18,19 +18,21 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import scala.concurrent.Future
 
 object AllowUUIDPath {
-  def deviceUUID(namespaceExtractor: Directive1[Namespace], allowFn: DeviceId => Future[Namespace]): Directive1[DeviceId] =
+
+  def deviceUUID(namespaceExtractor: Directive1[Namespace],
+                 allowFn: DeviceId => Future[Namespace]): Directive1[DeviceId] =
     apply(DeviceId)(namespaceExtractor, allowFn)
 
-  def apply[T <: UUIDKey](idValue: UUIDKeyObj[T])
-                         (namespaceExtractor: Directive1[Namespace], allowFn: T => Future[Namespace])
-                         (implicit gen : idValue.SelfGen): Directive1[T] =
-    (Directives.pathPrefix(idValue.Path(gen)) & namespaceExtractor).tflatMap {
-      case (value, ans) =>
-        onSuccess(allowFn(value)).flatMap {
-          case namespace if namespace == ans =>
-            provide(value)
-          case _ =>
-            reject(AuthorizationFailedRejection)
-        }
+  def apply[T <: UUIDKey](idValue: UUIDKeyObj[T])(namespaceExtractor: Directive1[Namespace],
+                                                  allowFn: T => Future[Namespace])(
+    implicit gen: idValue.SelfGen): Directive1[T] =
+    (Directives.pathPrefix(idValue.Path(gen)) & namespaceExtractor).tflatMap { case (value, ans) =>
+      onSuccess(allowFn(value)).flatMap {
+        case namespace if namespace == ans =>
+          provide(value)
+        case _ =>
+          reject(AuthorizationFailedRejection)
+      }
     }
+
 }

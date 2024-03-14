@@ -8,7 +8,10 @@ import com.advancedtelematic.deviceregistry.data.DataType.ObservationPublishResu
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceMetricsObservation, deviceMetricsObservationMessageLike}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  deviceMetricsObservationMessageLike,
+  DeviceMetricsObservation
+}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.{Decoder, Json}
 import org.slf4j.LoggerFactory
@@ -20,18 +23,23 @@ import scala.util.{Failure, Success}
 protected case class DeviceObservationRequest(observedAt: Instant, payload: Json)
 
 protected object DeviceObservationRequest {
-  implicit val deviceObservationRequestDecoder: io.circe.Decoder[DeviceObservationRequest] = Decoder.instance { cursor =>
-    for {
-      observedAt <- cursor.get[Double]("date").map { epoch => Instant.ofEpochMilli((epoch * 1000).longValue()) } // Losing some precision here
-      payload <- cursor.as[Json]
-    } yield DeviceObservationRequest(observedAt, payload)
-  }
+
+  implicit val deviceObservationRequestDecoder: io.circe.Decoder[DeviceObservationRequest] =
+    Decoder.instance { cursor =>
+      for {
+        observedAt <- cursor.get[Double]("date").map { epoch =>
+          Instant.ofEpochMilli((epoch * 1000).longValue())
+        } // Losing some precision here
+        payload <- cursor.as[Json]
+      } yield DeviceObservationRequest(observedAt, payload)
+    }
+
 }
 
 class DeviceMonitoringResource(namespaceExtractor: Directive1[Namespace],
                                deviceNamespaceAuthorizer: Directive1[DataType.DeviceId],
-                               messageBus: MessageBusPublisher
-                              )(implicit system: ActorSystem) {
+                               messageBus: MessageBusPublisher)(implicit system: ActorSystem) {
+
   import akka.http.scaladsl.server.Directives.*
   import system.dispatcher
 
@@ -49,25 +57,27 @@ class DeviceMonitoringResource(namespaceExtractor: Directive1[Namespace],
 
             complete(f)
           } ~
-          (path("fluentbit-metrics") & post & entity(as[List[DeviceObservationRequest]])) { req =>
-            val f = req.map { r =>
-              log.debug("device observation from client: {}", r.payload.noSpaces)
-              val msg = DeviceMetricsObservation(ns, uuid, r.payload, Instant.now())
-              messageBus.publish(msg).transformWith {
-                case Success(_) => Future.successful(ObservationPublishResult(publishedSuccessfully = true, msg))
-                case Failure(_) => Future.successful(ObservationPublishResult(publishedSuccessfully = false, msg))
+            (path("fluentbit-metrics") & post & entity(as[List[DeviceObservationRequest]])) { req =>
+              val f = req.map { r =>
+                log.debug("device observation from client: {}", r.payload.noSpaces)
+                val msg = DeviceMetricsObservation(ns, uuid, r.payload, Instant.now())
+                messageBus.publish(msg).transformWith {
+                  case Success(_) =>
+                    Future.successful(ObservationPublishResult(publishedSuccessfully = true, msg))
+                  case Failure(_) =>
+                    Future.successful(ObservationPublishResult(publishedSuccessfully = false, msg))
+                }
               }
+              complete(Future.sequence(f).map { results =>
+                if (results.exists(_.publishedSuccessfully == false)) {
+                  StatusCodes.RangeNotSatisfiable -> results
+                } else {
+                  StatusCodes.NoContent -> List.empty[ObservationPublishResult]
+                }
+              })
             }
-            complete(Future.sequence(f).map { results =>
-              if (results.exists(_.publishedSuccessfully == false)) {
-                StatusCodes.RangeNotSatisfiable -> results
-              }
-              else {
-                StatusCodes.NoContent -> List.empty[ObservationPublishResult]
-              }
-            })
-          }
         }
       }
     }
+
 }
