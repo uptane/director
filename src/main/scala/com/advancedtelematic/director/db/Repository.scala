@@ -196,7 +196,13 @@ protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec:
       added = afterSecondaries
         .filterNot(e => beforeSecondaries.map(_.ecuSerial).contains(e.ecuSerial))
         .map(_.asEcuAndHardwareId)
-    } yield ProvisionedDeviceRepository.Updated(device.id, replacedPrimary, removed, added, Instant.now)
+    } yield ProvisionedDeviceRepository.Updated(
+      device.id,
+      replacedPrimary,
+      removed,
+      added,
+      Instant.now
+    )
   }
 
   private def replaceDeviceEcus(
@@ -398,7 +404,8 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       .transactionally
   }
 
-  def persistMany(deviceRepository: ProvisionedDeviceRepository)(assignments: Seq[Assignment]): Future[Unit] =
+  def persistMany(deviceRepository: ProvisionedDeviceRepository)(
+    assignments: Seq[Assignment]): Future[Unit] =
     db.run {
       (Schema.assignments ++= assignments).andThen {
         deviceRepository.setMetadataOutdatedAction(

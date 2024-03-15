@@ -7,7 +7,10 @@ import com.advancedtelematic.director.deviceregistry.common.Errors.{
   ConflictingPackageListItem,
   MissingPackageListItem
 }
-import com.advancedtelematic.director.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  PackageListItem,
+  PackageListItemCount
+}
 import com.advancedtelematic.director.deviceregistry.data.PackageId
 import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.devices
 import com.advancedtelematic.director.deviceregistry.db.InstalledPackages.installedPackages

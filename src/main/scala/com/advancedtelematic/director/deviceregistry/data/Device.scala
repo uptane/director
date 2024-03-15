@@ -90,12 +90,14 @@ object Device {
 
   object ActiveDeviceCount {
 
-    implicit val EncoderInstance
-      : io.circe.Encoder[com.advancedtelematic.director.deviceregistry.data.Device.ActiveDeviceCount] =
+    implicit val EncoderInstance: io.circe.Encoder[
+      com.advancedtelematic.director.deviceregistry.data.Device.ActiveDeviceCount
+    ] =
       Encoder.encodeInt.contramap[ActiveDeviceCount](_.deviceCount)
 
-    implicit val DecoderInstance
-      : io.circe.Decoder[com.advancedtelematic.director.deviceregistry.data.Device.ActiveDeviceCount] =
+    implicit val DecoderInstance: io.circe.Decoder[
+      com.advancedtelematic.director.deviceregistry.data.Device.ActiveDeviceCount
+    ] =
       Decoder.decodeInt.map(ActiveDeviceCount.apply)
 
   }

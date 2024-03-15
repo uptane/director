@@ -29,8 +29,9 @@ object DeviceCreated {
   import com.advancedtelematic.libats.codecs.CirceCodecs._
   import com.advancedtelematic.director.deviceregistry.data.Codecs._
 
-  implicit val EncoderInstance
-    : io.circe.Encoder.AsObject[com.advancedtelematic.director.deviceregistry.messages.DeviceCreated] =
+  implicit val EncoderInstance: io.circe.Encoder.AsObject[
+    com.advancedtelematic.director.deviceregistry.messages.DeviceCreated
+  ] =
     io.circe.generic.semiauto.deriveEncoder[DeviceCreated]
 
   implicit val DecoderInstance

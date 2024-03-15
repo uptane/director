@@ -1,6 +1,9 @@
 package com.advancedtelematic.director.http
 
-import com.advancedtelematic.director.db.{ProvisionedDeviceRepositorySupport, RepoNamespaceRepositorySupport}
+import com.advancedtelematic.director.db.{
+  ProvisionedDeviceRepositorySupport,
+  RepoNamespaceRepositorySupport
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libtuf.data.TufDataType.{Ed25519KeyType, RepoId}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient

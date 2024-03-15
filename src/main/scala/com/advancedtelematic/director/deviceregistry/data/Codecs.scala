@@ -16,16 +16,18 @@ object Codecs {
     : io.circe.Decoder[com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId] =
     Decoder.decodeString.map(Device.DeviceOemId.apply)
 
-  implicit val deviceTEncoder
-    : io.circe.Encoder.AsObject[com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT] =
+  implicit val deviceTEncoder: io.circe.Encoder.AsObject[
+    com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+  ] =
     io.circe.generic.semiauto.deriveEncoder[DeviceT]
 
   implicit val deviceTDecoder
     : io.circe.Decoder[com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT] =
     io.circe.generic.semiauto.deriveDecoder[DeviceT]
 
-  implicit val setDeviceEncoder
-    : io.circe.Encoder.AsObject[com.advancedtelematic.director.deviceregistry.data.DataType.SetDevice] =
+  implicit val setDeviceEncoder: io.circe.Encoder.AsObject[
+    com.advancedtelematic.director.deviceregistry.data.DataType.SetDevice
+  ] =
     io.circe.generic.semiauto.deriveEncoder[SetDevice]
 
   implicit val setDeviceDecoder
@@ -46,36 +48,42 @@ object Codecs {
     com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStat
   ] = io.circe.generic.semiauto.deriveEncoder[InstallationStat]
 
-  implicit val installationStatDecoder
-    : io.circe.Decoder[com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStat] =
+  implicit val installationStatDecoder: io.circe.Decoder[
+    com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStat
+  ] =
     io.circe.generic.semiauto.deriveDecoder[InstallationStat]
 
-  implicit val packageListItemCodec
-    : io.circe.Codec.AsObject[com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem] =
+  implicit val packageListItemCodec: io.circe.Codec.AsObject[
+    com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem
+  ] =
     io.circe.generic.semiauto.deriveCodec[PackageListItem]
 
   implicit val packageListItemCountCodec: io.circe.Codec.AsObject[
     com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItemCount
   ] = io.circe.generic.semiauto.deriveCodec[PackageListItemCount]
 
-  implicit val renameTagIdCodec
-    : io.circe.Codec.AsObject[com.advancedtelematic.director.deviceregistry.data.DataType.RenameTagId] =
+  implicit val renameTagIdCodec: io.circe.Codec.AsObject[
+    com.advancedtelematic.director.deviceregistry.data.DataType.RenameTagId
+  ] =
     io.circe.generic.semiauto.deriveCodec[RenameTagId]
 
-  implicit val updateTagValueCodec
-    : io.circe.Codec.AsObject[com.advancedtelematic.director.deviceregistry.data.DataType.UpdateTagValue] =
+  implicit val updateTagValueCodec: io.circe.Codec.AsObject[
+    com.advancedtelematic.director.deviceregistry.data.DataType.UpdateTagValue
+  ] =
     io.circe.generic.semiauto.deriveCodec[UpdateTagValue]
 
   implicit val tagInfoCodec
     : io.circe.Codec.AsObject[com.advancedtelematic.director.deviceregistry.data.DataType.TagInfo] =
     io.circe.generic.semiauto.deriveCodec[TagInfo]
 
-  implicit val deviceUuidsCodec
-    : io.circe.Codec.AsObject[com.advancedtelematic.director.deviceregistry.data.DataType.DeviceUuids] =
+  implicit val deviceUuidsCodec: io.circe.Codec.AsObject[
+    com.advancedtelematic.director.deviceregistry.data.DataType.DeviceUuids
+  ] =
     io.circe.generic.semiauto.deriveCodec[DeviceUuids]
 
-  implicit val deviceQueryCodec
-    : io.circe.Codec.AsObject[com.advancedtelematic.director.deviceregistry.data.DataType.DevicesQuery] =
+  implicit val deviceQueryCodec: io.circe.Codec.AsObject[
+    com.advancedtelematic.director.deviceregistry.data.DataType.DevicesQuery
+  ] =
     io.circe.generic.semiauto.deriveCodec[DevicesQuery]
 
   implicit val updateHibernationStatusRequestCodec: Codec[UpdateHibernationStatusRequest] =

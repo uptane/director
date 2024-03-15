@@ -11,8 +11,8 @@ import com.advancedtelematic.director.data.DbDataType.{
 import com.advancedtelematic.director.db.{
   AssignmentsRepositorySupport,
   AutoUpdateDefinitionRepositorySupport,
-  ProvisionedDeviceRepositorySupport,
-  EcuTargetsRepositorySupport
+  EcuTargetsRepositorySupport,
+  ProvisionedDeviceRepositorySupport
 }
 import com.advancedtelematic.libats.data.DataType.{AutoUpdateId, Namespace}
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
@@ -93,10 +93,10 @@ class TufTargetAddedListener()(implicit val db: Database, val ec: ExecutionConte
       }
 
       await(
-        assignmentsRepository.persistManyForEcuTarget(ecuTargetsRepository, provisionedDeviceRepository)(
-          ecuTarget,
-          newAssignments
-        )
+        assignmentsRepository.persistManyForEcuTarget(
+          ecuTargetsRepository,
+          provisionedDeviceRepository
+        )(ecuTarget, newAssignments)
       )
     }
 

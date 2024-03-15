@@ -4,8 +4,8 @@ import com.advancedtelematic.director.data.DbDataType.Assignment
 import com.advancedtelematic.director.db.{
   AssignmentsRepositorySupport,
   DbDeviceRoleRepositorySupport,
-  ProvisionedDeviceRepositorySupport,
-  EcuTargetsRepositorySupport
+  EcuTargetsRepositorySupport,
+  ProvisionedDeviceRepositorySupport
 }
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -50,7 +50,8 @@ class DeviceRoleGeneration(keyserverClient: KeyserverClient)(
     if (isOutdated) {
       _log.info(s"targets for $deviceId is outdated")
       val t = await(roleGeneration(ns, deviceId).regenerateAllSignedRoles(repoId))
-      val regenerated = await(assignmentsRepository.markRegenerated(provisionedDeviceRepository)(deviceId))
+      val regenerated =
+        await(assignmentsRepository.markRegenerated(provisionedDeviceRepository)(deviceId))
       t -> regenerated
     } else { // return existing/refreshed targets
       implicit val refresher = roleRefresher(ns, deviceId)

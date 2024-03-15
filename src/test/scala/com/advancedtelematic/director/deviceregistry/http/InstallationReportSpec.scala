@@ -6,9 +6,15 @@ import com.advancedtelematic.director.deviceregistry.daemon.{
   EcuReplacementListener
 }
 import com.advancedtelematic.director.deviceregistry.data.Codecs.installationStatDecoder
-import com.advancedtelematic.director.deviceregistry.data.DataType.{InstallationStat, InstallationStatsLevel}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  InstallationStat,
+  InstallationStatsLevel
+}
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
+import com.advancedtelematic.director.deviceregistry.data.{
+  DeviceStatus,
+  InstallationReportGenerators
+}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.data.PaginationResult

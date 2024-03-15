@@ -27,7 +27,10 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.{
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.*
-import com.advancedtelematic.director.deviceregistry.db.InstalledPackages.{DevicesCount, InstalledPackage}
+import com.advancedtelematic.director.deviceregistry.db.InstalledPackages.{
+  DevicesCount,
+  InstalledPackage
+}
 import com.advancedtelematic.director.deviceregistry.db.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*

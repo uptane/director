@@ -258,8 +258,9 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext)
 
   def cancel(namespace: Namespace, devices: Seq[DeviceId])(
     implicit messageBusPublisher: MessageBusPublisher): Future[Seq[Assignment]] =
-    assignmentsRepository.processCancellation(provisionedDeviceRepository)(namespace, devices).flatMap {
-      canceledAssignments =>
+    assignmentsRepository
+      .processCancellation(provisionedDeviceRepository)(namespace, devices)
+      .flatMap { canceledAssignments =>
         Future.traverse(canceledAssignments) { canceledAssignment =>
           val ev: DeviceUpdateEvent =
             DeviceUpdateCanceled(
@@ -270,6 +271,6 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext)
             )
           messageBusPublisher.publish(ev).map(_ => canceledAssignment)
         }
-    }
+      }
 
 }

@@ -4,7 +4,10 @@ import akka.http.scaladsl.model.StatusCodes.{Created, NoContent}
 import akka.http.scaladsl.server.*
 import akka.http.scaladsl.server.Directives.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  PackageListItem,
+  PackageListItemCount
+}
 import com.advancedtelematic.director.deviceregistry.data.PackageId
 import com.advancedtelematic.director.deviceregistry.db.PackageListItemRepository
 import com.advancedtelematic.libats.data.DataType.Namespace

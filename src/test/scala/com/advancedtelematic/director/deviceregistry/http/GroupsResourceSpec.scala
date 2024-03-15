@@ -15,10 +15,18 @@ import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
 import com.advancedtelematic.director.deviceregistry.common.Errors.Codes.MalformedInput
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceT,
+  UpdateHibernationStatusRequest
+}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
+import com.advancedtelematic.director.deviceregistry.data.{
+  Group,
+  GroupExpression,
+  GroupName,
+  GroupSortBy
+}
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import org.scalacheck.Arbitrary.*

@@ -5,7 +5,7 @@ import java.time.Instant
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive1, Route}
-import com.advancedtelematic.director.db.{ProvisionedDeviceRepositorySupport, EcuRepositorySupport}
+import com.advancedtelematic.director.db.{EcuRepositorySupport, ProvisionedDeviceRepositorySupport}
 import com.advancedtelematic.director.http.PaginationParametersDirectives._
 import com.advancedtelematic.libats.data.DataType.{MultiTargetUpdateId, Namespace}
 import com.advancedtelematic.libats.http.UUIDKeyAkka._

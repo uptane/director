@@ -54,7 +54,12 @@ class DeviceRegistration(keyserverClient: KeyserverClient)(
       val _ecus = ecus.map(_.toEcu(ns, deviceId))
 
       for {
-        result <- provisionedDeviceRepository.create(ecuRepository)(ns, deviceId, primaryEcuId, _ecus)
+        result <- provisionedDeviceRepository.create(ecuRepository)(
+          ns,
+          deviceId,
+          primaryEcuId,
+          _ecus
+        )
         _ <- roleGeneration.findFreshTargets(ns, repoId, deviceId)
       } yield result
     } else

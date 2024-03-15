@@ -1,4 +1,4 @@
-;/*
+; /*
  * Copyright (c) 2017 ATS Advanced Telematic Systems GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -11,11 +11,17 @@ package com.advancedtelematic.director.deviceregistry.http
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.{NetworkInfo, removeIdNrs}
+import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.{
+  removeIdNrs,
+  NetworkInfo
+}
 import com.advancedtelematic.director.deviceregistry.http.ResourcePropSpec
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  AktualizrConfigChanged,
+  DeviceSystemInfoChanged
+}
 import io.circe.Json
 import org.scalacheck.Shrink
 import org.scalatest.OptionValues.*

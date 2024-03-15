@@ -10,7 +10,10 @@ package com.advancedtelematic.director.deviceregistry.db
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.codecs.SlickEnumMapper
-import com.advancedtelematic.director.deviceregistry.data.DataType.{IndexedEventType, PackageListItemCount}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  IndexedEventType,
+  PackageListItemCount
+}
 import com.advancedtelematic.director.deviceregistry.data.{CredentialsType, GroupType, PackageId}
 import slick.jdbc.MySQLProfile.api._
 

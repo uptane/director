@@ -12,7 +12,12 @@ import com.advancedtelematic.libats.data.ErrorCode
 import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, RawError}
 import com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.director.deviceregistry.data.{DeviceName, Group, GroupExpression, GroupName}
+import com.advancedtelematic.director.deviceregistry.data.{
+  DeviceName,
+  Group,
+  GroupExpression,
+  GroupName
+}
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.GroupMember
 import com.advancedtelematic.director.deviceregistry.db.PublicCredentialsRepository.DevicePublicCredentials

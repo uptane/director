@@ -31,12 +31,14 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
       comment <- Gen.alphaNumStr
     } yield PackageListItem(defaultNs, packageId, comment)
 
-  private implicit val arbListedPackage
-    : org.scalacheck.Arbitrary[com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem] =
+  private implicit val arbListedPackage: org.scalacheck.Arbitrary[
+    com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem
+  ] =
     Arbitrary(genListedPackage)
 
-  private implicit val arbNonConflictingDeviceTs
-    : org.scalacheck.Arbitrary[Seq[com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT]] =
+  private implicit val arbNonConflictingDeviceTs: org.scalacheck.Arbitrary[Seq[
+    com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+  ]] =
     Arbitrary(genNonConflictingDeviceTs)
 
   private def createListedPackage(listedPackage: PackageListItem): HttpRequest =

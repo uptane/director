@@ -26,7 +26,10 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceSta
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.*
-import com.advancedtelematic.director.deviceregistry.db.DbOps.{deviceTableToSlickOrder, PaginationResultOps}
+import com.advancedtelematic.director.deviceregistry.db.DbOps.{
+  deviceTableToSlickOrder,
+  PaginationResultOps
+}
 import com.advancedtelematic.director.deviceregistry.db.GroupInfoRepository.groupInfos
 import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.groupMembers
 import com.advancedtelematic.director.deviceregistry.db.SlickMappings.*
