@@ -1,23 +1,24 @@
 package com.advancedtelematic.director.deviceregistry.data
 
 import cats.data.NonEmptyList
-import cats.implicits._
+import cats.implicits.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.Errors
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
-import GeneratorOps._
+import GeneratorOps.*
 import com.advancedtelematic.director.deviceregistry.DatabaseSpec
-import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST._
-import com.advancedtelematic.director.deviceregistry.db.DeviceRepository
-import com.advancedtelematic.director.deviceregistry.db.DeviceRepository._
+import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST.*
+import com.advancedtelematic.director.deviceregistry.db.{DeviceRepository, SearchDBIO}
+import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.*
 import com.advancedtelematic.director.deviceregistry.db.TaggedDeviceRepository.tagDeviceByOemId
-import org.scalatest.EitherValues._
-import org.scalatest.OptionValues._
+import org.scalatest.EitherValues.*
+import org.scalatest.OptionValues.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import slick.jdbc.MySQLProfile.api._
+import slick.jdbc.MySQLProfile.api.*
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+
 import scala.language.implicitConversions
 
 class GroupExpressionParserSpec extends AnyFunSuite with Matchers {
@@ -337,7 +338,7 @@ class GroupExpressionRunSpec extends AnyFunSuite with Matchers with DatabaseSpec
 
   def runGroupExpression(strExp: String) = {
     val exp = GroupExpression.from(strExp).toOption.get
-    db.run(DeviceRepository.searchByExpression(ns, exp)).futureValue
+    db.run(SearchDBIO.searchByExpression(ns, exp)).futureValue
   }
 
   test("returns matching device") {
