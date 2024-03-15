@@ -12,16 +12,15 @@ import cats.syntax.show._
 import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
 import org.scalacheck.{Arbitrary, Gen}
 
-/**
-  * Created by vladimir on 16/03/16.
+/** Created by vladimir on 16/03/16.
   */
 trait DeviceIdGenerators {
 
-  /**
-    * For property based testing purposes, we need to explain how to
-    * randomly generate (possibly invalid) VINs.
+  /** For property based testing purposes, we need to explain how to randomly generate (possibly
+    * invalid) VINs.
     *
-    * @see [[https://www.scalacheck.org/]]
+    * @see
+    *   [[https://www.scalacheck.org/]]
     */
   val genVin: Gen[DeviceOemId] =
     for {
@@ -32,17 +31,17 @@ trait DeviceIdGenerators {
     Arbitrary(genVin)
 
   val genVinChar: Gen[Char] =
-    Gen.oneOf('A' to 'Z' diff List('I', 'O', 'Q'))
+    Gen.oneOf(('A' to 'Z').diff(List('I', 'O', 'Q')))
 
   val genInvalidDeviceId: Gen[DeviceOemId] = {
 
     val genTooLongVin: Gen[String] = for {
-      n  <- Gen.choose(18, 100) // scalastyle:ignore magic.number
+      n <- Gen.choose(18, 100) // scalastyle:ignore magic.number
       cs <- Gen.listOfN(n, genVinChar)
     } yield cs.mkString
 
     val genTooShortVin: Gen[String] = for {
-      n  <- Gen.choose(1, 16) // scalastyle:ignore magic.number
+      n <- Gen.choose(1, 16) // scalastyle:ignore magic.number
       cs <- Gen.listOfN(n, genVinChar)
     } yield cs.mkString
 
@@ -60,4 +59,5 @@ trait DeviceIdGenerators {
 
   def getInvalidVin: DeviceOemId =
     genInvalidDeviceId.sample.getOrElse(getInvalidVin)
+
 }

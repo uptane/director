@@ -17,9 +17,10 @@ import org.scalatest.OptionValues._
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext
 
-class DeviceManifestReportedListenerSpec extends DirectorSpec
-  with MysqlDatabaseSpec
-  with DeviceManifestRepositorySupport {
+class DeviceManifestReportedListenerSpec
+    extends DirectorSpec
+    with MysqlDatabaseSpec
+    with DeviceManifestRepositorySupport {
 
   val defaultNs = DataType.Namespace(this.getClass.getName)
 
@@ -31,21 +32,25 @@ class DeviceManifestReportedListenerSpec extends DirectorSpec
     val manifest = GenDeviceManifest.generate
     val signedManifest = SignedPayload(Seq.empty, manifest.asJson, manifest.asJson)
 
-    val msg = Messages.DeviceManifestReported(defaultNs, DeviceId.generate(), signedManifest, Instant.now())
+    val msg =
+      Messages.DeviceManifestReported(defaultNs, DeviceId.generate(), signedManifest, Instant.now())
 
     listener.apply(msg).futureValue
 
     val (saved, receivedAt) = deviceManifestRepository.find(msg.deviceId).futureValue.value
 
     saved shouldBe msg.manifest.signed
-    receivedAt.truncatedTo(ChronoUnit.SECONDS) shouldBe msg.receivedAt.truncatedTo(ChronoUnit.SECONDS)
+    receivedAt.truncatedTo(ChronoUnit.SECONDS) shouldBe msg.receivedAt.truncatedTo(
+      ChronoUnit.SECONDS
+    )
   }
 
   test("it doesn't create new row if manifest did not change") {
     val manifest = GenDeviceManifest.generate
     val signedManifest = SignedPayload(Seq.empty, manifest.asJson, manifest.asJson)
 
-    val msg = Messages.DeviceManifestReported(defaultNs, DeviceId.generate(), signedManifest, Instant.now())
+    val msg =
+      Messages.DeviceManifestReported(defaultNs, DeviceId.generate(), signedManifest, Instant.now())
 
     listener.apply(msg).futureValue
     listener.apply(msg.copy(receivedAt = Instant.now().plusSeconds(30))).futureValue
@@ -76,4 +81,5 @@ class DeviceManifestReportedListenerSpec extends DirectorSpec
     all should contain(manifest.asJson)
     all should contain(manifest2.asJson)
   }
+
 }

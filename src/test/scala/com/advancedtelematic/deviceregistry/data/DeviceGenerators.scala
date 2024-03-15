@@ -22,7 +22,7 @@ trait DeviceGenerators {
   import Device._
 
   def genDeviceName: Gen[DeviceName] = for {
-    //use a minimum length for DeviceName to reduce possibility of naming conflicts
+    // use a minimum length for DeviceName to reduce possibility of naming conflicts
     size <- Gen.choose(50, 200)
     name <- Gen.listOfN(size, Gen.alphaNumChar)
   } yield validatedDeviceType.from(name.mkString).toOption.get
@@ -44,21 +44,21 @@ trait DeviceGenerators {
 
   def genDeviceWith(deviceNameGen: Gen[DeviceName], deviceIdGen: Gen[DeviceOemId]): Gen[Device] =
     for {
-      uuid       <- genDeviceUUID
-      name       <- deviceNameGen
-      deviceId   <- deviceIdGen
+      uuid <- genDeviceUUID
+      name <- deviceNameGen
+      deviceId <- deviceIdGen
       deviceType <- genDeviceType
-      lastSeen   <- Gen.option(genInstant)
-      activated  <- Gen.option(genInstant)
+      lastSeen <- Gen.option(genInstant)
+      activated <- Gen.option(genInstant)
     } yield Device(defaultNs, uuid, name, deviceId, deviceType, lastSeen, Instant.now(), activated)
 
   val genDevice: Gen[Device] = genDeviceWith(genDeviceName, genDeviceId)
 
   def genDeviceTWith(deviceNameGen: Gen[DeviceName], deviceIdGen: Gen[DeviceOemId]): Gen[DeviceT] =
     for {
-      uuid       <- Gen.option(genDeviceUUID)
-      name       <- deviceNameGen
-      deviceId   <- deviceIdGen
+      uuid <- Gen.option(genDeviceUUID)
+      name <- deviceNameGen
+      deviceId <- deviceIdGen
       deviceType <- genDeviceType
     } yield DeviceT(uuid, name, deviceId, deviceType)
 
@@ -69,32 +69,30 @@ trait DeviceGenerators {
 
   def genConflictFreeDeviceTs(n: Int): Gen[Seq[DeviceT]] =
     for {
-      dns  <- Gen.containerOfN[Seq, DeviceName](n, genDeviceName)
+      dns <- Gen.containerOfN[Seq, DeviceName](n, genDeviceName)
       dids <- Gen.containerOfN[Seq, DeviceOemId](n, genDeviceId)
-    } yield {
-      dns.zip(dids).map {
-        case (nameG, idG) =>
-          genDeviceTWith(nameG, idG).sample.get
-      }
+    } yield dns.zip(dids).map { case (nameG, idG) =>
+      genDeviceTWith(nameG, idG).sample.get
     }
 
   implicit lazy val arbDeviceName: Arbitrary[DeviceName] = Arbitrary(genDeviceName)
   implicit lazy val arbDeviceUUID: Arbitrary[DeviceId] = Arbitrary(genDeviceUUID)
-  implicit lazy val arbDeviceId: Arbitrary[DeviceOemId]     = Arbitrary(genDeviceId)
+  implicit lazy val arbDeviceId: Arbitrary[DeviceOemId] = Arbitrary(genDeviceId)
   implicit lazy val arbDeviceType: Arbitrary[DeviceType] = Arbitrary(genDeviceType)
-  implicit lazy val arbLastSeen: Arbitrary[Instant]      = Arbitrary(genInstant)
-  implicit lazy val arbDevice: Arbitrary[Device]         = Arbitrary(genDevice)
-  implicit lazy val arbDeviceT: Arbitrary[DeviceT]       = Arbitrary(genDeviceT)
+  implicit lazy val arbLastSeen: Arbitrary[Instant] = Arbitrary(genInstant)
+  implicit lazy val arbDevice: Arbitrary[Device] = Arbitrary(genDevice)
+  implicit lazy val arbDeviceT: Arbitrary[DeviceT] = Arbitrary(genDeviceT)
 
 }
 
 object DeviceGenerators extends DeviceGenerators
 
 object InvalidDeviceGenerators extends DeviceGenerators with DeviceIdGenerators {
+
   val genInvalidVehicle: Gen[Device] = for {
     // TODO: for now, just generate an invalid VIN with a valid namespace
     deviceId <- genInvalidDeviceId
-    d        <- genDevice
+    d <- genDevice
   } yield d.copy(deviceId = deviceId, namespace = defaultNs)
 
   def getInvalidVehicle: Device = genInvalidVehicle.sample.getOrElse(getInvalidVehicle)

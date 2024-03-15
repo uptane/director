@@ -13,16 +13,14 @@ import org.scalacheck.{Arbitrary, Gen}
 
 trait Namespaces {
 
-  /**
-    * For property based testing purposes, we need to explain how to
-    * randomly generate namespaces.
+  /** For property based testing purposes, we need to explain how to randomly generate namespaces.
     *
-    * @see [[https://www.scalacheck.org/]]
+    * @see
+    *   [[https://www.scalacheck.org/]]
     */
-  val NamespaceGen: Gen[Namespace] = {
+  val NamespaceGen: Gen[Namespace] =
     // TODO: for now, just use simple identifiers
     Gen.identifier.map(Namespace.apply)
-  }
 
   implicit val arbitraryNamespace: Arbitrary[Namespace] = Arbitrary(NamespaceGen)
 

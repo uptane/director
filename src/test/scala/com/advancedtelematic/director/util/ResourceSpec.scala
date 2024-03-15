@@ -14,7 +14,13 @@ import com.advancedtelematic.director.data.AdminDataType.TargetUpdate
 import com.advancedtelematic.director.data.UptaneDataType.*
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.DeviceRequest
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationReport, InstallationReportEntity, MissingInstallationReport}
+import com.advancedtelematic.director.data.DeviceRequest.{
+  DeviceManifest,
+  EcuManifest,
+  InstallationReport,
+  InstallationReportEntity,
+  MissingInstallationReport
+}
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
@@ -49,26 +55,46 @@ trait RouteResourceSpec extends ResourceSpec {
 trait DeviceManifestSpec {
   import io.circe.syntax._
 
-  def sign[T : Encoder](key: TufKeyPair, payload: T): SignedPayload[T] = {
+  def sign[T: Encoder](key: TufKeyPair, payload: T): SignedPayload[T] = {
     val signature = TufCrypto.signPayload(key.privkey, payload.asJson).toClient(key.pubkey.id)
     SignedPayload(List(signature), payload, payload.asJson)
   }
 
   def buildEcuManifest(ecuSerial: EcuIdentifier, targetUpdate: TargetUpdate): EcuManifest = {
-    val image = Image(targetUpdate.target, FileInfo(Hashes(targetUpdate.checksum), targetUpdate.targetLength))
+    val image =
+      Image(targetUpdate.target, FileInfo(Hashes(targetUpdate.checksum), targetUpdate.targetLength))
     EcuManifest(image, ecuSerial, "", custom = None)
   }
 
-  def buildPrimaryManifest(primary: Ecu, ecuKey: TufKeyPair, targetUpdate: TargetUpdate, reportO: Option[InstallationReport] = None): SignedPayload[DeviceManifest] = {
+  def buildPrimaryManifest(
+    primary: Ecu,
+    ecuKey: TufKeyPair,
+    targetUpdate: TargetUpdate,
+    reportO: Option[InstallationReport] = None): SignedPayload[DeviceManifest] = {
     val ecuManifest = sign(ecuKey, buildEcuManifest(primary.ecuSerial, targetUpdate))
-    val report = reportO.map { r => InstallationReportEntity("mock-content-type", r) }.toRight(MissingInstallationReport)
-    sign(ecuKey, DeviceRequest.DeviceManifest(primary.ecuSerial, Map(primary.ecuSerial -> ecuManifest), installation_report = report))
+    val report = reportO
+      .map(r => InstallationReportEntity("mock-content-type", r))
+      .toRight(MissingInstallationReport)
+    sign(
+      ecuKey,
+      DeviceRequest.DeviceManifest(
+        primary.ecuSerial,
+        Map(primary.ecuSerial -> ecuManifest),
+        installation_report = report
+      )
+    )
   }
 
-  def buildSecondaryManifest(primary: EcuIdentifier, ecuKey: TufKeyPair, secondary: EcuIdentifier, secondaryKey: TufKeyPair, updates: Map[EcuIdentifier, TargetUpdate]): SignedPayload[DeviceManifest] = {
+  def buildSecondaryManifest(
+    primary: EcuIdentifier,
+    ecuKey: TufKeyPair,
+    secondary: EcuIdentifier,
+    secondaryKey: TufKeyPair,
+    updates: Map[EcuIdentifier, TargetUpdate]): SignedPayload[DeviceManifest] = {
     val secondaryManifest = sign(secondaryKey, buildEcuManifest(secondary, updates(secondary)))
     val primaryManifest = sign(ecuKey, buildEcuManifest(primary, updates(primary)))
-    val m = Map(primary -> primaryManifest, secondary-> secondaryManifest)
+    val m = Map(primary -> primaryManifest, secondary -> secondaryManifest)
     sign(ecuKey, DeviceManifest(primary, m, installation_report = Left(MissingInstallationReport)))
   }
+
 }

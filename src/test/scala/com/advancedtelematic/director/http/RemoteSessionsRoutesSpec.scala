@@ -10,7 +10,12 @@ import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.crypt.TufCrypto
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{RemoteSessionsPayload, RemoteSessionsRole, RootRole, SshSessionProperties}
+import com.advancedtelematic.libtuf.data.ClientDataType.{
+  RemoteSessionsPayload,
+  RemoteSessionsRole,
+  RootRole,
+  SshSessionProperties
+}
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{RoleType, SignedPayload}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -21,19 +26,22 @@ import java.time.temporal.ChronoUnit
 import org.scalatest.LoneElement.*
 import org.scalatest.OptionValues.*
 
-
-class RemoteSessionsRoutesSpec extends DirectorSpec
-with RouteResourceSpec
-with RepoNamespaceRepositorySupport
-with AdminResources
-with RepositorySpec
-with Generators
-with DeviceResources {
+class RemoteSessionsRoutesSpec
+    extends DirectorSpec
+    with RouteResourceSpec
+    with RepoNamespaceRepositorySupport
+    with AdminResources
+    with RepositorySpec
+    with Generators
+    with DeviceResources {
 
   testWithRepo("can set a remote session for a device") { implicit ns =>
     val deviceId = DeviceId.generate()
 
-    val session = RemoteSessionsPayload(SshSessionProperties("someapiversion", Map.empty, Vector.empty, Vector.empty), "someapiversion")
+    val session = RemoteSessionsPayload(
+      SshSessionProperties("someapiversion", Map.empty, Vector.empty, Vector.empty),
+      "someapiversion"
+    )
 
     val body = RemoteSessionRequest(session, 0)
 
@@ -43,7 +51,10 @@ with DeviceResources {
       signedRole.remote_sessions shouldBe session
     }
 
-    Get(apiUri(s"device/${deviceId.show}/remote-sessions.json"), body).namespaced ~> routes ~> check {
+    Get(
+      apiUri(s"device/${deviceId.show}/remote-sessions.json"),
+      body
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
 
       val signedRole = responseAs[SignedPayload[RemoteSessionsRole]].signed
@@ -59,7 +70,10 @@ with DeviceResources {
   }
 
   testWithRepo("updating with wrong previousVersion returns conflict") { implicit ns =>
-    val session = RemoteSessionsPayload(SshSessionProperties("someapiversion", Map.empty, Vector.empty, Vector.empty), "someapiversion")
+    val session = RemoteSessionsPayload(
+      SshSessionProperties("someapiversion", Map.empty, Vector.empty, Vector.empty),
+      "someapiversion"
+    )
 
     val body = RemoteSessionRequest(session, 0)
 
@@ -82,9 +96,15 @@ with DeviceResources {
   testWithRepo("accepts an offline signed remote sessions payload") { implicit ns =>
     val deviceId = DeviceId.generate()
 
-    val beforeSession = RemoteSessionsPayload(SshSessionProperties("someapiversion", Map.empty, Vector.empty, Vector.empty), "someapiversion")
+    val beforeSession = RemoteSessionsPayload(
+      SshSessionProperties("someapiversion", Map.empty, Vector.empty, Vector.empty),
+      "someapiversion"
+    )
 
-    Post(apiUri(s"admin/remote-sessions"), RemoteSessionRequest(beforeSession, 0)).namespaced ~> routes ~> check {
+    Post(
+      apiUri(s"admin/remote-sessions"),
+      RemoteSessionRequest(beforeSession, 0)
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -96,10 +116,21 @@ with DeviceResources {
 
     val keyPair = keyserverClient.fetchKeypairByKeyId(keyId).value
 
-    val session = RemoteSessionsPayload(SshSessionProperties("someapiversion", Map.empty, Vector("ra-server-host"), Vector("ra-server-key")), "someapiversion")
-    val remoteSessionsRole = RemoteSessionsRole(session, Instant.now().plus(365, ChronoUnit.DAYS), 2)
-    val signature = TufCrypto.signPayload(keyPair.privkey, remoteSessionsRole.asJson).toClient(keyPair.pubkey.id)
-    val signedPayload = SignedPayload(List(signature), remoteSessionsRole, remoteSessionsRole.asJson)
+    val session = RemoteSessionsPayload(
+      SshSessionProperties(
+        "someapiversion",
+        Map.empty,
+        Vector("ra-server-host"),
+        Vector("ra-server-key")
+      ),
+      "someapiversion"
+    )
+    val remoteSessionsRole =
+      RemoteSessionsRole(session, Instant.now().plus(365, ChronoUnit.DAYS), 2)
+    val signature =
+      TufCrypto.signPayload(keyPair.privkey, remoteSessionsRole.asJson).toClient(keyPair.pubkey.id)
+    val signedPayload =
+      SignedPayload(List(signature), remoteSessionsRole, remoteSessionsRole.asJson)
 
     Post(apiUri(s"admin/remote-sessions.json"), signedPayload).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
@@ -112,4 +143,5 @@ with DeviceResources {
       signedPayload.remote_sessions shouldBe session
     }
   }
+
 }

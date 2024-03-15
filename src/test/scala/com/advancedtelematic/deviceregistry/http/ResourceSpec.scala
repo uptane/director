@@ -10,7 +10,12 @@ package com.advancedtelematic.deviceregistry.http
 
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
-import com.advancedtelematic.deviceregistry.data.{DeviceGenerators, GroupGenerators, PackageIdGenerators, SimpleJsonGenerator}
+import com.advancedtelematic.deviceregistry.data.{
+  DeviceGenerators,
+  GroupGenerators,
+  PackageIdGenerators,
+  SimpleJsonGenerator
+}
 import com.advancedtelematic.deviceregistry.db.DeviceRepository
 import com.advancedtelematic.deviceregistry.{AllowUUIDPath, DatabaseSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
@@ -37,7 +42,8 @@ trait ResourceSpec
     with PublicCredentialsRequests
     with PackageIdGenerators
     with Matchers
-    with SimpleJsonGenerator with ServiceHttpClientSupport { // TODO: Use mock
+    with SimpleJsonGenerator
+    with ServiceHttpClientSupport { // TODO: Use mock
 
   self: Suite =>
 
@@ -60,9 +66,12 @@ trait ResourceSpec
   // Route
   lazy implicit val route: Route =
     new DeviceRegistryRoutes(namespaceExtractor, namespaceAuthorizer, messageBus).route
+
 }
 
 trait ResourcePropSpec extends AnyPropSpec with ResourceSpec with ScalaCheckPropertyChecks {
 
-  implicit override val generatorDrivenConfig = PropertyCheckConfiguration(minSuccessful = 1, minSize = 3)
+  implicit override val generatorDrivenConfig =
+    PropertyCheckConfiguration(minSuccessful = 1, minSize = 3)
+
 }

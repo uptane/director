@@ -1,6 +1,5 @@
 package com.advancedtelematic.director.http
 
-
 import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
@@ -11,7 +10,10 @@ import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.TargetItemCustom
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
-import com.advancedtelematic.director.db.{DbDeviceRoleRepositorySupport, RepoNamespaceRepositorySupport}
+import com.advancedtelematic.director.db.{
+  DbDeviceRoleRepositorySupport,
+  RepoNamespaceRepositorySupport
+}
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
 import com.advancedtelematic.director.util.*
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, MultiTargetUpdateId, Namespace}
@@ -34,13 +36,18 @@ import scala.annotation.unused
 trait AssignmentResources {
   self: DirectorSpec & RouteResourceSpec & NamespacedTests & AdminResources =>
 
-  def createDeviceAssignment(deviceId: DeviceId, hwId: HardwareIdentifier, targetUpdateO: Option[TargetUpdateRequest] = None,
-                             correlationIdO: Option[CorrelationId] = None)(checkV: => Any)(implicit ns: Namespace, pos: Position): AssignUpdateRequest = {
+  def createDeviceAssignment(deviceId: DeviceId,
+                             hwId: HardwareIdentifier,
+                             targetUpdateO: Option[TargetUpdateRequest] = None,
+                             correlationIdO: Option[CorrelationId] = None)(
+    checkV: => Any)(implicit ns: Namespace, pos: Position): AssignUpdateRequest =
     createAssignment(Seq(deviceId), hwId, targetUpdateO, correlationIdO)(checkV)
-  }
 
-  def createAssignment(deviceIds: Seq[DeviceId], hwId: HardwareIdentifier, targetUpdateO: Option[TargetUpdateRequest] = None,
-                       correlationIdO: Option[CorrelationId] = None)(checkV: => Any)(implicit ns: Namespace, pos: Position): AssignUpdateRequest = {
+  def createAssignment(deviceIds: Seq[DeviceId],
+                       hwId: HardwareIdentifier,
+                       targetUpdateO: Option[TargetUpdateRequest] = None,
+                       correlationIdO: Option[CorrelationId] = None)(
+    checkV: => Any)(implicit ns: Namespace, pos: Position): AssignUpdateRequest = {
     val correlationId = correlationIdO.getOrElse(GenCorrelationId.generate)
 
     val targetUpdate = targetUpdateO.getOrElse(GenTargetUpdateRequest.generate)
@@ -58,62 +65,68 @@ trait AssignmentResources {
     assignment
   }
 
-  def createAssignmentOk(deviceIds: Seq[DeviceId], hwId: HardwareIdentifier, targetUpdateO: Option[TargetUpdateRequest] = None,
-                         correlationIdO: Option[CorrelationId] = None)(implicit ns: Namespace, pos: Position): AssignUpdateRequest = {
+  def createAssignmentOk(deviceIds: Seq[DeviceId],
+                         hwId: HardwareIdentifier,
+                         targetUpdateO: Option[TargetUpdateRequest] = None,
+                         correlationIdO: Option[CorrelationId] = None)(
+    implicit ns: Namespace,
+    pos: Position): AssignUpdateRequest =
     createAssignment(deviceIds, hwId, targetUpdateO, correlationIdO) {
       status shouldBe StatusCodes.Created
     }
-  }
 
-  def createDeviceAssignmentOk(deviceId: DeviceId, hwId: HardwareIdentifier, targetUpdateO: Option[TargetUpdateRequest] = None,
-                               correlationIdO: Option[CorrelationId] = None)(implicit ns: Namespace, pos: Position): AssignUpdateRequest = {
+  def createDeviceAssignmentOk(deviceId: DeviceId,
+                               hwId: HardwareIdentifier,
+                               targetUpdateO: Option[TargetUpdateRequest] = None,
+                               correlationIdO: Option[CorrelationId] = None)(
+    implicit ns: Namespace,
+    pos: Position): AssignUpdateRequest =
     createAssignmentOk(Seq(deviceId), hwId, targetUpdateO, correlationIdO)
-  }
 
-  def getDeviceAssignment[T](deviceId: DeviceId)(checkFn: => T)(implicit ns: Namespace): T = {
+  def getDeviceAssignment[T](deviceId: DeviceId)(checkFn: => T)(implicit ns: Namespace): T =
     Get(apiUri(s"assignments/${deviceId.show}")).namespaced ~> routes ~> check(checkFn)
-  }
 
-  def getDeviceAssignmentOk(deviceId: DeviceId)(implicit ns: Namespace, pos: Position): Seq[QueueResponse] = {
+  def getDeviceAssignmentOk(
+    deviceId: DeviceId)(implicit ns: Namespace, pos: Position): Seq[QueueResponse] =
     getDeviceAssignment(deviceId) {
       status shouldBe StatusCodes.OK
       responseAs[Seq[QueueResponse]]
     }
-  }
 
-  def getMultipleDeviceAssignments[T](devices: Set[DeviceId])(checkFn: => T)(implicit ns: Namespace, @unused pos: Position): T = {
-    Get(apiUri(
-      // make a quick csv query
-      s"assignments?ids=${devices.map(_.uuid.show).mkString(",")}"
+  def getMultipleDeviceAssignments[T](devices: Set[DeviceId])(
+    checkFn: => T)(implicit ns: Namespace, @unused pos: Position): T =
+    Get(
+      apiUri(
+        // make a quick csv query
+        s"assignments?ids=${devices.map(_.uuid.show).mkString(",")}"
       )
     ).namespaced ~> routes ~> check(checkFn)
-  }
 
-  def getTargetsOk(deviceId: DeviceId)(implicit ns: Namespace): SignedPayload[TargetsRole] = {
+  def getTargetsOk(deviceId: DeviceId)(implicit ns: Namespace): SignedPayload[TargetsRole] =
     Get(apiUri(s"device/${deviceId.show}/targets.json")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       responseAs[SignedPayload[TargetsRole]]
     }
-  }
 
-  def cancelAssignmentsOk(deviceIds: Seq[DeviceId])(implicit ns: Namespace): Seq[DeviceId] = {
+  def cancelAssignmentsOk(deviceIds: Seq[DeviceId])(implicit ns: Namespace): Seq[DeviceId] =
     Patch(apiUri("assignments"), deviceIds).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       responseAs[Seq[DeviceId]]
     }
-  }
+
 }
 
-class AssignmentsResourceSpec extends DirectorSpec
-  with RouteResourceSpec
-  with RepoNamespaceRepositorySupport
-  with DbDeviceRoleRepositorySupport
-  with AdminResources
-  with AssignmentResources
-  with RepositorySpec
-  with DeviceResources
-  with DeviceManifestSpec
-  with Inspectors {
+class AssignmentsResourceSpec
+    extends DirectorSpec
+    with RouteResourceSpec
+    with RepoNamespaceRepositorySupport
+    with DbDeviceRoleRepositorySupport
+    with AdminResources
+    with AssignmentResources
+    with RepositorySpec
+    with DeviceResources
+    with DeviceManifestSpec
+    with Inspectors {
 
   override implicit val msgPub = new MockMessageBus
 
@@ -137,7 +150,9 @@ class AssignmentsResourceSpec extends DirectorSpec
     }
   }
 
-  testWithRepo("returns PrimaryIsNotListedForDevice when ecus to register do not include primary ecu") { implicit ns =>
+  testWithRepo(
+    "returns PrimaryIsNotListedForDevice when ecus to register do not include primary ecu"
+  ) { implicit ns =>
     val device = DeviceId.generate()
     val (regEcu, _) = GenRegisterEcuKeys.generate
     val ecu = GenEcuIdentifier.generate
@@ -162,7 +177,11 @@ class AssignmentsResourceSpec extends DirectorSpec
       responseAs[UpdateId]
     }
 
-    Get(apiUri(s"assignments/devices?mtuId=${mtuId.show}&ids=${regDev0.deviceId.show},${regDev1.deviceId.show}")).namespaced ~> routes ~> check {
+    Get(
+      apiUri(
+        s"assignments/devices?mtuId=${mtuId.show}&ids=${regDev0.deviceId.show},${regDev1.deviceId.show}"
+      )
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       responseAs[Seq[DeviceId]] should contain(regDev0.deviceId)
       responseAs[Seq[DeviceId]] shouldNot contain(regDev1.deviceId)
@@ -181,7 +200,12 @@ class AssignmentsResourceSpec extends DirectorSpec
       responseAs[UpdateId]
     }
 
-    val assignment = AssignUpdateRequest(MultiTargetUpdateId(mtuId.uuid), Seq(regDev0.deviceId, regDev1.deviceId), mtuId, dryRun = Some(true))
+    val assignment = AssignUpdateRequest(
+      MultiTargetUpdateId(mtuId.uuid),
+      Seq(regDev0.deviceId, regDev1.deviceId),
+      mtuId,
+      dryRun = Some(true)
+    )
 
     Post(apiUri("assignments"), assignment).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
@@ -208,12 +232,22 @@ class AssignmentsResourceSpec extends DirectorSpec
     val regDev1 = registerAdminDeviceOk(regDev0.primary.hardwareId.some)
 
     val targetUpdate = GenTargetUpdateRequest.generate
-    putManifestOk(regDev0.deviceId, buildPrimaryManifest(regDev0.primary, regDev0.primaryKey, targetUpdate.to))
+    putManifestOk(
+      regDev0.deviceId,
+      buildPrimaryManifest(regDev0.primary, regDev0.primaryKey, targetUpdate.to)
+    )
 
     val otherUpdate = GenTargetUpdate.generate
-    putManifestOk(regDev1.deviceId, buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, otherUpdate))
+    putManifestOk(
+      regDev1.deviceId,
+      buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, otherUpdate)
+    )
 
-    createAssignment(List(regDev0.deviceId, regDev1.deviceId), regDev0.primary.hardwareId, targetUpdate.some) {
+    createAssignment(
+      List(regDev0.deviceId, regDev1.deviceId),
+      regDev0.primary.hardwareId,
+      targetUpdate.some
+    ) {
       status shouldBe StatusCodes.Created
 
       val response = responseAs[AssignmentCreateResult]
@@ -233,12 +267,22 @@ class AssignmentsResourceSpec extends DirectorSpec
     val regDev1 = registerAdminDeviceOk(regDev0.primary.hardwareId.some)
 
     val targetUpdate = GenTargetUpdateRequest.generate
-    putManifestOk(regDev0.deviceId, buildPrimaryManifest(regDev0.primary, regDev0.primaryKey, targetUpdate.to))
+    putManifestOk(
+      regDev0.deviceId,
+      buildPrimaryManifest(regDev0.primary, regDev0.primaryKey, targetUpdate.to)
+    )
 
     val otherUpdate = GenTargetUpdate.generate
-    putManifestOk(regDev1.deviceId, buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, otherUpdate))
+    putManifestOk(
+      regDev1.deviceId,
+      buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, otherUpdate)
+    )
 
-    createAssignmentOk(List(regDev0.deviceId, regDev1.deviceId), regDev0.primary.hardwareId, targetUpdate.some)
+    createAssignmentOk(
+      List(regDev0.deviceId, regDev1.deviceId),
+      regDev0.primary.hardwareId,
+      targetUpdate.some
+    )
 
     val queue0 = getDeviceAssignmentOk(regDev0.deviceId)
     queue0 should be(empty)
@@ -259,10 +303,17 @@ class AssignmentsResourceSpec extends DirectorSpec
     updateScheduler.create(ns, regDev0.deviceId, scheduledUpdate, Instant.now).futureValue
 
     val existingUpdate = GenTargetUpdate.generate
-    putManifestOk(regDev1.deviceId, buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, existingUpdate))
+    putManifestOk(
+      regDev1.deviceId,
+      buildPrimaryManifest(regDev1.primary, regDev1.primaryKey, existingUpdate)
+    )
 
     val targetUpdate = GenTargetUpdateRequest.generate
-    createAssignment(List(regDev0.deviceId, regDev1.deviceId), regDev0.primary.hardwareId, targetUpdate.some) {
+    createAssignment(
+      List(regDev0.deviceId, regDev1.deviceId),
+      regDev0.primary.hardwareId,
+      targetUpdate.some
+    ) {
       status shouldBe StatusCodes.Created
 
       val response = responseAs[AssignmentCreateResult]
@@ -324,7 +375,9 @@ class AssignmentsResourceSpec extends DirectorSpec
     }
   }
 
-    testWithRepo("create assignment returns 4xx if there is a created assignment for an ecu already, but device should not be affected") { implicit ns =>
+  testWithRepo(
+    "create assignment returns 4xx if there is a created assignment for an ecu already, but device should not be affected"
+  ) { implicit ns =>
     val regDev = registerAdminDeviceOk()
 
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
@@ -344,7 +397,6 @@ class AssignmentsResourceSpec extends DirectorSpec
     }
   }
 
-
   testWithRepo("PATCH assignments cancels assigned updates") { implicit ns =>
     val regDev = registerAdminDeviceOk()
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
@@ -359,7 +411,7 @@ class AssignmentsResourceSpec extends DirectorSpec
     }
 
     msg shouldBe defined
-    msg.get shouldBe a [DeviceUpdateCanceled]
+    msg.get shouldBe a[DeviceUpdateCanceled]
   }
 
   testWithRepo("PATCH assignments can only cancel if update is not in-flight") { implicit ns =>
@@ -384,14 +436,18 @@ class AssignmentsResourceSpec extends DirectorSpec
     targets.signed.targets shouldBe empty
   }
 
-  testWithRepo("PATCH on assignments/device-id cancels assignment if in flight and force header is used") { implicit ns =>
+  testWithRepo(
+    "PATCH on assignments/device-id cancels assignment if in flight and force header is used"
+  ) { implicit ns =>
     val regDev = registerAdminDeviceOk()
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
     val targets0 = getTargetsOk(regDev.deviceId)
     targets0.signed.targets shouldNot be(empty)
 
-    Patch(apiUri(s"assignments/${regDev.deviceId.show}")).addHeader(new ForceHeader(true)).namespaced ~> routes ~> check {
+    Patch(apiUri(s"assignments/${regDev.deviceId.show}"))
+      .addHeader(new ForceHeader(true))
+      .namespaced ~> routes ~> check {
       status shouldBe StatusCodes.NoContent
     }
 
@@ -399,7 +455,9 @@ class AssignmentsResourceSpec extends DirectorSpec
     targets.signed.targets shouldBe empty
   }
 
-  testWithRepo("PATCH on assignments/device-id does not cancel assignment if in flight and force header is not used") { implicit ns =>
+  testWithRepo(
+    "PATCH on assignments/device-id does not cancel assignment if in flight and force header is not used"
+  ) { implicit ns =>
     val regDev = registerAdminDeviceOk()
     createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
@@ -424,40 +482,42 @@ class AssignmentsResourceSpec extends DirectorSpec
     msg shouldBe defined
   }
 
-  testWithRepo("Device ignores canceled assignment and sees new assignment created afterwards") { implicit ns =>
-    val regDev = registerAdminDeviceOk()
-    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
+  testWithRepo("Device ignores canceled assignment and sees new assignment created afterwards") {
+    implicit ns =>
+      val regDev = registerAdminDeviceOk()
+      createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
-    cancelAssignmentsOk(Seq(regDev.deviceId)) shouldBe Seq(regDev.deviceId)
+      cancelAssignmentsOk(Seq(regDev.deviceId)) shouldBe Seq(regDev.deviceId)
 
-    val t1 = getTargetsOk(regDev.deviceId)
-    t1.signed.targets shouldBe empty
+      val t1 = getTargetsOk(regDev.deviceId)
+      t1.signed.targets shouldBe empty
 
-    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
+      createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId)
 
-    val t2 = getTargetsOk(regDev.deviceId)
-    // check if a target is addressing our ECU:
-    val targetItemCustom = t2.signed.targets.headOption.value._2.customParsed[TargetItemCustom]
-    targetItemCustom.get.ecuIdentifiers.keys.head shouldBe regDev.ecus.keys.head
+      val t2 = getTargetsOk(regDev.deviceId)
+      // check if a target is addressing our ECU:
+      val targetItemCustom = t2.signed.targets.headOption.value._2.customParsed[TargetItemCustom]
+      targetItemCustom.get.ecuIdentifiers.keys.head shouldBe regDev.ecus.keys.head
   }
 
-  testWithRepo("can schedule an assignment when using the same ecu serial as another device") { implicit ns =>
-    val device1 = DeviceId.generate()
-    val device2 = DeviceId.generate()
-    val (regEcu, _) = GenRegisterEcuKeys.generate
-    val regDev1 = RegisterDevice(device1.some, regEcu.ecu_serial, List(regEcu))
-    val regDev2 = RegisterDevice(device2.some, regEcu.ecu_serial, List(regEcu))
+  testWithRepo("can schedule an assignment when using the same ecu serial as another device") {
+    implicit ns =>
+      val device1 = DeviceId.generate()
+      val device2 = DeviceId.generate()
+      val (regEcu, _) = GenRegisterEcuKeys.generate
+      val regDev1 = RegisterDevice(device1.some, regEcu.ecu_serial, List(regEcu))
+      val regDev2 = RegisterDevice(device2.some, regEcu.ecu_serial, List(regEcu))
 
-    Post(apiUri("admin/devices"), regDev1).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.Created
-    }
+      Post(apiUri("admin/devices"), regDev1).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.Created
+      }
 
-    Post(apiUri("admin/devices"), regDev2).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.Created
-    }
+      Post(apiUri("admin/devices"), regDev2).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.Created
+      }
 
-    createDeviceAssignmentOk(device1, regEcu.hardware_identifier)
-    createDeviceAssignmentOk(device2, regEcu.hardware_identifier)
+      createDeviceAssignmentOk(device1, regEcu.hardware_identifier)
+      createDeviceAssignmentOk(device2, regEcu.hardware_identifier)
   }
 
   testWithRepo("Retrieving assignments for multiple devices works") { implicit ns =>
@@ -478,7 +538,6 @@ class AssignmentsResourceSpec extends DirectorSpec
     val dev1AssignmentResp = createDeviceAssignmentOk(device1, regEcu.hardware_identifier)
     val dev2AssignmentResp = createDeviceAssignmentOk(device2, regEcu.hardware_identifier)
 
-
     getMultipleDeviceAssignments(Set(device1, device2)) {
       status shouldBe StatusCodes.OK
       val res = responseAs[Map[DeviceId, Seq[QueueResponse]]]
@@ -486,28 +545,37 @@ class AssignmentsResourceSpec extends DirectorSpec
       res.get(device1).getOrElse(Seq.empty[QueueResponse]).length shouldBe 1
       res.get(device2).getOrElse(Seq.empty[QueueResponse]).length shouldBe 1
 
-      res.get(device1).getOrElse(Seq.empty[QueueResponse]).head.correlationId shouldBe dev1AssignmentResp.correlationId
-      res.get(device2).getOrElse(Seq.empty[QueueResponse]).head.correlationId shouldBe dev2AssignmentResp.correlationId
+      res
+        .get(device1)
+        .getOrElse(Seq.empty[QueueResponse])
+        .head
+        .correlationId shouldBe dev1AssignmentResp.correlationId
+      res
+        .get(device2)
+        .getOrElse(Seq.empty[QueueResponse])
+        .head
+        .correlationId shouldBe dev2AssignmentResp.correlationId
     }
   }
 
-  testWithRepo("Retrieving assignments for more than 50 devices will limit results to 50") { implicit ns =>
-    val deviceIds = (1 to 60).toList.map { _ =>
-      val deviceId = DeviceId.generate()
-      val (regEcu, _) = GenRegisterEcuKeys.generate
-      val regDev = RegisterDevice(deviceId.some, regEcu.ecu_serial, List(regEcu))
-      Post(apiUri("admin/devices"), regDev).namespaced ~> routes ~> check {
-        status shouldBe StatusCodes.Created
+  testWithRepo("Retrieving assignments for more than 50 devices will limit results to 50") {
+    implicit ns =>
+      val deviceIds = (1 to 60).toList.map { _ =>
+        val deviceId = DeviceId.generate()
+        val (regEcu, _) = GenRegisterEcuKeys.generate
+        val regDev = RegisterDevice(deviceId.some, regEcu.ecu_serial, List(regEcu))
+        Post(apiUri("admin/devices"), regDev).namespaced ~> routes ~> check {
+          status shouldBe StatusCodes.Created
+        }
+        createDeviceAssignmentOk(deviceId, regEcu.hardware_identifier)
+        deviceId
       }
-      createDeviceAssignmentOk(deviceId, regEcu.hardware_identifier)
-      deviceId
-    }
 
-    getMultipleDeviceAssignments(deviceIds.toSet) {
-      status shouldBe StatusCodes.OK
-      val res = responseAs[Map[DeviceId, Seq[QueueResponse]]]
-      res.size shouldBe 50
-    }
+      getMultipleDeviceAssignments(deviceIds.toSet) {
+        status shouldBe StatusCodes.OK
+        val res = responseAs[Map[DeviceId, Seq[QueueResponse]]]
+        res.size shouldBe 50
+      }
   }
 
 }

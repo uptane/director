@@ -6,7 +6,10 @@ import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateInFlight}
-import com.advancedtelematic.deviceregistry.data.DataType.{DeviceInstallationResult, EcuInstallationResult}
+import com.advancedtelematic.deviceregistry.data.DataType.{
+  DeviceInstallationResult,
+  EcuInstallationResult
+}
 import com.advancedtelematic.deviceregistry.data.GeneratorOps._
 import com.advancedtelematic.deviceregistry.data.InstallationReportGenerators
 import com.advancedtelematic.deviceregistry.data.DeviceStatus
@@ -27,9 +30,11 @@ class DeviceUpdateEventListenerSpec
     with Matchers
     with InstallationReportGenerators {
 
-  implicit override val patienceConfig: PatienceConfig = PatienceConfig(Span(10, Seconds), Span(50, Millis))
+  implicit override val patienceConfig: PatienceConfig =
+    PatienceConfig(Span(10, Seconds), Span(50, Millis))
 
-  implicit val msgPub: com.advancedtelematic.libats.messaging.MessageBusPublisher = MessageBusPublisher.ignore
+  implicit val msgPub: com.advancedtelematic.libats.messaging.MessageBusPublisher =
+    MessageBusPublisher.ignore
 
   val listener = new DeviceUpdateEventListener(msgPub)
 
@@ -41,12 +46,28 @@ class DeviceUpdateEventListenerSpec
     listener.apply(message).futureValue shouldBe (())
 
     val expectedDeviceReports =
-      Seq(DeviceInstallationResult(correlationId, message.result.code, deviceUuid, message.result.success, message.eventTime, message.asJson))
-    val deviceReports = db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
+      Seq(
+        DeviceInstallationResult(
+          correlationId,
+          message.result.code,
+          deviceUuid,
+          message.result.success,
+          message.eventTime,
+          message.asJson
+        )
+      )
+    val deviceReports =
+      db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
     deviceReports.futureValue shouldBe expectedDeviceReports
 
-    val expectedEcuReports = message.ecuReports.map{
-      case (ecuId, ecuReport) => EcuInstallationResult(correlationId, ecuReport.result.code, deviceUuid, ecuId, message.result.success)
+    val expectedEcuReports = message.ecuReports.map { case (ecuId, ecuReport) =>
+      EcuInstallationResult(
+        correlationId,
+        ecuReport.result.code,
+        deviceUuid,
+        ecuId,
+        message.result.success
+      )
     }.toSeq
     val ecuReports = db.run(InstallationReportRepository.fetchEcuInstallationReport(correlationId))
     ecuReports.futureValue shouldBe expectedEcuReports
@@ -54,9 +75,11 @@ class DeviceUpdateEventListenerSpec
     // Saving the reports is idempotent
     listener.apply(message).futureValue shouldBe (())
 
-    val deviceReportsAgain = db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
+    val deviceReportsAgain =
+      db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
     deviceReportsAgain.futureValue shouldBe expectedDeviceReports
-    val ecuReportsAgain = db.run(InstallationReportRepository.fetchEcuInstallationReport(correlationId))
+    val ecuReportsAgain =
+      db.run(InstallationReportRepository.fetchEcuInstallationReport(correlationId))
     ecuReportsAgain.futureValue shouldBe expectedEcuReports
 
   }
@@ -64,27 +87,49 @@ class DeviceUpdateEventListenerSpec
   property("should save success result after failed one") {
     val deviceUuid = createDeviceOk(genDeviceT.generate)
     val correlationId = genCorrelationId.generate
-    val messageFailed = genDeviceUpdateCompleted(correlationId, ResultCode("-1"), deviceUuid).generate
-    val messageSuccess = genDeviceUpdateCompleted(correlationId, ResultCode("0"), deviceUuid).generate
+    val messageFailed =
+      genDeviceUpdateCompleted(correlationId, ResultCode("-1"), deviceUuid).generate
+    val messageSuccess =
+      genDeviceUpdateCompleted(correlationId, ResultCode("0"), deviceUuid).generate
 
     listener.apply(messageFailed).futureValue shouldBe (())
 
     val expectedDeviceReportsFailed =
-      Seq(DeviceInstallationResult(correlationId, messageFailed.result.code, deviceUuid, messageFailed.result.success, messageFailed.eventTime, messageFailed.asJson))
+      Seq(
+        DeviceInstallationResult(
+          correlationId,
+          messageFailed.result.code,
+          deviceUuid,
+          messageFailed.result.success,
+          messageFailed.eventTime,
+          messageFailed.asJson
+        )
+      )
     val expectedDeviceReportsSuccess =
-      Seq(DeviceInstallationResult(correlationId, messageSuccess.result.code, deviceUuid, messageSuccess.result.success, messageSuccess.eventTime, messageSuccess.asJson))
+      Seq(
+        DeviceInstallationResult(
+          correlationId,
+          messageSuccess.result.code,
+          deviceUuid,
+          messageSuccess.result.success,
+          messageSuccess.eventTime,
+          messageSuccess.asJson
+        )
+      )
 
-    val deviceReports = db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
+    val deviceReports =
+      db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
     deviceReports.futureValue shouldBe expectedDeviceReportsFailed
 
     listener.apply(messageSuccess).futureValue shouldBe (())
 
-    val deviceReportsAgain = db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
+    val deviceReportsAgain =
+      db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
     deviceReportsAgain.futureValue shouldBe expectedDeviceReportsSuccess
 
   }
 
-  property("should process DeviceUpdateInFlight"){
+  property("should process DeviceUpdateInFlight") {
     val deviceId = createDeviceOk(genDeviceT.generate)
     val correlationId = genCorrelationId.generate
     val updateInFlight = DeviceUpdateInFlight(defaultNs, Instant.now(), correlationId, deviceId)
@@ -98,4 +143,5 @@ class DeviceUpdateEventListenerSpec
 
     device.deviceStatus shouldBe DeviceStatus.UpdatePending
   }
+
 }

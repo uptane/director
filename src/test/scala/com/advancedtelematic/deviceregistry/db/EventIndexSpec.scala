@@ -17,10 +17,16 @@ import java.util.UUID
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-class EventIndexSpec extends AnyFunSuite with ScalaFutures with DatabaseSpec with Matchers with EitherValues {
+class EventIndexSpec
+    extends AnyFunSuite
+    with ScalaFutures
+    with DatabaseSpec
+    with Matchers
+    with EitherValues {
 
   val genCorrelationId: Gen[CorrelationId] =
     Gen.uuid.flatMap(uuid => Gen.oneOf(CampaignId(uuid), MultiTargetUpdateId(uuid)))
+
   val eventGen: Gen[Event] = for {
     device <- Gen.uuid.map(DeviceId.apply)
     eventId <- Gen.uuid.map(_.toString)
@@ -52,13 +58,18 @@ class EventIndexSpec extends AnyFunSuite with ScalaFutures with DatabaseSpec wit
       EventType("EcuInstallationApplied", 0) -> IndexedEventType.EcuInstallationApplied,
       EventType("EcuInstallationCompleted", 0) -> IndexedEventType.EcuInstallationCompleted,
       EventType("DevicePaused", 0) -> IndexedEventType.DevicePaused,
-      EventType("DeviceResumed", 0) -> IndexedEventType.DeviceResumed,
+      EventType("DeviceResumed", 0) -> IndexedEventType.DeviceResumed
     )
 
     eventTypeMap.foreach { case (eventType, indexedEventType) =>
       val (event, correlationId) = eventWithCorrelationIdGen(eventType).generate
       val indexedEvent = EventIndex.index(event).value
-      indexedEvent shouldBe IndexedEvent(event.deviceUuid, event.eventId, indexedEventType, correlationId.some)
+      indexedEvent shouldBe IndexedEvent(
+        event.deviceUuid,
+        event.eventId,
+        indexedEventType,
+        correlationId.some
+      )
     }
   }
 
@@ -66,13 +77,18 @@ class EventIndexSpec extends AnyFunSuite with ScalaFutures with DatabaseSpec wit
     val eventTypeMap = Map(
       EventType("campaign_accepted", 0) -> IndexedEventType.CampaignAccepted,
       EventType("campaign_declined", 0) -> IndexedEventType.CampaignDeclined,
-      EventType("campaign_postponed", 0) -> IndexedEventType.CampaignPostponed,
+      EventType("campaign_postponed", 0) -> IndexedEventType.CampaignPostponed
     )
     eventTypeMap.foreach { case (eventType, indexedEventType) =>
       val (event, campaignId) = eventWithCampaignIdGen(eventType).generate
       val correlationId = CampaignId(campaignId)
       val indexedEvent = EventIndex.index(event).value
-      indexedEvent shouldBe IndexedEvent(event.deviceUuid, event.eventId, indexedEventType, correlationId.some)
+      indexedEvent shouldBe IndexedEvent(
+        event.deviceUuid,
+        event.eventId,
+        indexedEventType,
+        correlationId.some
+      )
     }
   }
 
@@ -81,7 +97,12 @@ class EventIndexSpec extends AnyFunSuite with ScalaFutures with DatabaseSpec wit
 
     val indexedEvent = EventIndex.index(event).value
 
-    indexedEvent shouldBe IndexedEvent(event.deviceUuid, event.eventId, IndexedEventType.DownloadComplete, None)
+    indexedEvent shouldBe IndexedEvent(
+      event.deviceUuid,
+      event.eventId,
+      IndexedEventType.DownloadComplete,
+      None
+    )
   }
 
   test("does not index event if it cannot be parsed") {
@@ -91,4 +112,5 @@ class EventIndexSpec extends AnyFunSuite with ScalaFutures with DatabaseSpec wit
 
     indexedEvent shouldBe "Unknown event type EventType(UnknownEvent,20)"
   }
+
 }

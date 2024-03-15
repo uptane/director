@@ -32,7 +32,9 @@ trait GroupRequests {
   private val defaultExpression = GroupExpression.from("deviceid contains abcd").toOption.get
   protected val groupsApi = "device_groups"
 
-  def listDevicesInGroup(groupId: GroupId, offset: Option[Long] = None, limit: Option[Long] = None): HttpRequest =
+  def listDevicesInGroup(groupId: GroupId,
+                         offset: Option[Long] = None,
+                         limit: Option[Long] = None): HttpRequest =
     (offset, limit) match {
       case (None, None) =>
         Get(Resource.uri("device_groups", groupId.show, "devices"))
@@ -41,7 +43,10 @@ trait GroupRequests {
           Resource
             .uri("device_groups", groupId.show, "devices")
             .withQuery(
-              Query("offset" -> offset.getOrElse(0).toString, "limit" -> limit.getOrElse(50).toString)
+              Query(
+                "offset" -> offset.getOrElse(0).toString,
+                "limit" -> limit.getOrElse(50).toString
+              )
             )
         )
     }
@@ -58,22 +63,27 @@ trait GroupRequests {
   def countDevicesInGroup(groupId: GroupId): HttpRequest =
     Get(Resource.uri(groupsApi, groupId.show, "count"))
 
-  def listGroups(sortBy: Option[GroupSortBy] = None, limit : Option[Long] = None, nameContains: Option[String] = None): HttpRequest = {
-    val m = List("sortBy" -> sortBy, "limit" -> limit, "nameContains" -> nameContains).collect { case (k, Some(v)) => k -> v.toString }.toMap
+  def listGroups(sortBy: Option[GroupSortBy] = None,
+                 limit: Option[Long] = None,
+                 nameContains: Option[String] = None): HttpRequest = {
+    val m = List("sortBy" -> sortBy, "limit" -> limit, "nameContains" -> nameContains).collect {
+      case (k, Some(v)) => k -> v.toString
+    }.toMap
     Get(Resource.uri(groupsApi).withQuery(Query(m)))
   }
 
-  def deleteGroup(groupId: GroupId): HttpRequest = {
+  def deleteGroup(groupId: GroupId): HttpRequest =
     Delete(Resource.uri("device_groups", groupId.show))
-  }
 
   def createGroup(body: Json): HttpRequest =
     Post(Resource.uri(groupsApi), body)
 
-  def createGroup(groupType: GroupType, expression: Option[GroupExpression], groupName: Option[GroupName] = None): HttpRequest = {
+  def createGroup(groupType: GroupType,
+                  expression: Option[GroupExpression],
+                  groupName: Option[GroupName] = None): HttpRequest = {
     val name = groupName.getOrElse(genGroupName().sample.get)
     val expr = groupType match {
-      case GroupType.static => None
+      case GroupType.static  => None
       case GroupType.dynamic => expression.orElse(Some(defaultExpression))
     }
     Post(Resource.uri(groupsApi), CreateGroup(name, groupType, expr))
@@ -84,7 +94,9 @@ trait GroupRequests {
       Multipart.FormData.BodyPart.Strict(
         "deviceIds",
         HttpEntity(ContentTypes.`text/csv(UTF-8)`, oemIds.map(_.underlying).mkString("\n")),
-        Map("filename" -> "vins.csv")))
+        Map("filename" -> "vins.csv")
+      )
+    )
     Post(Resource.uri(groupsApi).withQuery(Query("groupName" -> groupName.value)), multipartForm)
   }
 
@@ -94,7 +106,8 @@ trait GroupRequests {
       responseAs[GroupId]
     }
 
-  def createDynamicGroupOk(expression: GroupExpression = defaultExpression, name: GroupName = genGroupName().sample.get): GroupId =
+  def createDynamicGroupOk(expression: GroupExpression = defaultExpression,
+                           name: GroupName = genGroupName().sample.get): GroupId =
     createGroup(GroupType.dynamic, Some(expression), Some(name)) ~> route ~> check {
       status shouldBe Created
       responseAs[GroupId]
@@ -115,5 +128,10 @@ trait GroupRequests {
     Delete(Resource.uri(groupsApi, groupId.show, "devices", deviceId.show))
 
   def renameGroup(groupId: GroupId, newGroupName: GroupName): HttpRequest =
-    Put(Resource.uri(groupsApi, groupId.show, "rename").withQuery(Query("groupName" -> newGroupName.value)))
+    Put(
+      Resource
+        .uri(groupsApi, groupId.show, "rename")
+        .withQuery(Query("groupName" -> newGroupName.value))
+    )
+
 }

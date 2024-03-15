@@ -14,8 +14,12 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalacheck.Gen
 import com.advancedtelematic.director.data.GeneratorOps.GenSample
 
-class DeleteDeviceRequestListenerSpec extends DirectorSpec
-                            with RouteResourceSpec with AdminResources with RepositorySpec with DeviceResources {
+class DeleteDeviceRequestListenerSpec
+    extends DirectorSpec
+    with RouteResourceSpec
+    with AdminResources
+    with RepositorySpec
+    with DeviceResources {
 
   val listener = new DeleteDeviceRequestListener()
 
@@ -23,7 +27,9 @@ class DeleteDeviceRequestListenerSpec extends DirectorSpec
     val dev = registerAdminDeviceOk()
     val hardwareId = dev.ecus.values.head.hardwareId
 
-    Get(apiUri(s"admin/devices?primaryHardwareId=${hardwareId.value}")).namespaced ~> routes ~> check {
+    Get(
+      apiUri(s"admin/devices?primaryHardwareId=${hardwareId.value}")
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       val page = responseAs[PaginationResult[ClientDataType.Device]]
       page.total should equal(1)
@@ -39,7 +45,9 @@ class DeleteDeviceRequestListenerSpec extends DirectorSpec
 
     listener(DeleteDeviceRequest(ns, dev.deviceId)).futureValue
 
-    Get(apiUri(s"admin/devices?primaryHardwareId=${hardwareId.value}")).namespaced ~> routes ~> check {
+    Get(
+      apiUri(s"admin/devices?primaryHardwareId=${hardwareId.value}")
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       val page = responseAs[PaginationResult[ClientDataType.Device]]
       page.total should equal(0)
@@ -53,7 +61,11 @@ class DeleteDeviceRequestListenerSpec extends DirectorSpec
   }
 
   test("OTA-2445: do not fail when deleting non-existent device") {
-    val msg = DeleteDeviceRequest(Gen.identifier.map(Namespace(_)).generate, Gen.uuid.map(DeviceId(_)).generate)
+    val msg = DeleteDeviceRequest(
+      Gen.identifier.map(Namespace(_)).generate,
+      Gen.uuid.map(DeviceId(_)).generate
+    )
     listener(msg).futureValue shouldBe Done
   }
+
 }

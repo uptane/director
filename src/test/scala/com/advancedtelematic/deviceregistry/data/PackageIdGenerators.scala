@@ -14,11 +14,10 @@ import org.scalacheck.{Arbitrary, Gen}
 
 trait PackageIdGenerators {
 
-  /**
-    * For property based testing purposes, we need to explain how to
-    * randomly generate package ids.
+  /** For property based testing purposes, we need to explain how to randomly generate package ids.
     *
-    * @see [[https://www.scalacheck.org/]]
+    * @see
+    *   [[https://www.scalacheck.org/]]
     */
   val genPackageIdName: Gen[PackageId.Name] =
     Gen
@@ -45,7 +44,7 @@ trait PackageIdGenerators {
 
   val genPackageId: Gen[PackageId] =
     for {
-      name    <- genPackageIdName
+      name <- genPackageIdName
       version <- genPackageIdVersion
     } yield PackageId(name, version)
 
@@ -56,9 +55,8 @@ trait PackageIdGenerators {
 
 object PackageIdGenerators extends PackageIdGenerators
 
-/**
-  * Generators for invalid data are kept in dedicated scopes
-  * to rule out their use as implicits (impersonating valid ones).
+/** Generators for invalid data are kept in dedicated scopes to rule out their use as implicits
+  * (impersonating valid ones).
   */
 trait InvalidPackageIdGenerators extends InvalidIdentGenerators {
 
@@ -75,7 +73,7 @@ trait InvalidPackageIdGenerators extends InvalidIdentGenerators {
 
   val genInvalidPackageId: Gen[PackageId] =
     for {
-      name    <- genInvalidPackageIdName
+      name <- genInvalidPackageIdName
       version <- genInvalidPackageIdVersion
     } yield PackageId(name, version)
 

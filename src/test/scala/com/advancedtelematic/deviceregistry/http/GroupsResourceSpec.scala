@@ -38,7 +38,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     PatienceConfig(timeout = Span(15, Seconds), interval = Span(15, Millis))
 
   test("gets all existing groups") {
-    //TODO: PRO-1182 turn this back into a property when we can delete groups
+    // TODO: PRO-1182 turn this back into a property when we can delete groups
     val groupNames = Gen.listOfN(10, arbitrary[GroupName]).sample.get
     groupNames.foreach(createStaticGroupOk)
 
@@ -90,7 +90,9 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
   test("DELETE deletes a dynamic group") {
     val device = genDeviceT.generate
-    val groupId = createDynamicGroupOk(GroupExpression.from(s"deviceid contains ${device.deviceId.underlying}").value)
+    val groupId = createDynamicGroupOk(
+      GroupExpression.from(s"deviceid contains ${device.deviceId.underlying}").value
+    )
 
     createDeviceOk(device)
 
@@ -130,12 +132,19 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val groupNames = names.map(GroupName.from(_).toOption.get)
     groupNames.foreach(n => createGroupOk(n))
 
-    val tests = Map("" -> names, "a1" -> Seq("a123ba"), "aa" -> Seq("aabb", "baaxbc"), "3b" -> Seq("a123ba", "cba3b"), "3" -> Seq("a123ba", "cba3b"))
+    val tests = Map(
+      "" -> names,
+      "a1" -> Seq("a123ba"),
+      "aa" -> Seq("aabb", "baaxbc"),
+      "3b" -> Seq("a123ba", "cba3b"),
+      "3" -> Seq("a123ba", "cba3b")
+    )
 
-    tests.foreach{ case (k, v) =>
+    tests.foreach { case (k, v) =>
       listGroups(nameContains = Some(k)) ~> route ~> check {
         status shouldBe OK
-        val responseGroupNames = responseAs[PaginationResult[Group]].values.map(_.groupName.value).filter(names.contains)
+        val responseGroupNames =
+          responseAs[PaginationResult[Group]].values.map(_.groupName.value).filter(names.contains)
         responseGroupNames.size shouldBe v.size
         responseGroupNames should contain allElementsOf v
       }
@@ -144,9 +153,9 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
   test("lists devices with custom pagination limit") {
     val deviceNumber = 50
-    val groupId      = createStaticGroupOk()
+    val groupId = createStaticGroupOk()
 
-    val deviceTs             = genConflictFreeDeviceTs(deviceNumber).sample.get
+    val deviceTs = genConflictFreeDeviceTs(deviceNumber).sample.get
     val deviceIds = deviceTs.map(createDeviceOk)
 
     deviceIds.foreach(deviceId => addDeviceToGroupOk(groupId, deviceId))
@@ -159,11 +168,11 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
   }
 
   test("lists devices with custom pagination limit and offset") {
-    val offset       = 10
+    val offset = 10
     val deviceNumber = 50
-    val groupId      = createStaticGroupOk()
+    val groupId = createStaticGroupOk()
 
-    val deviceTs             = genConflictFreeDeviceTs(deviceNumber).sample.get
+    val deviceTs = genConflictFreeDeviceTs(deviceNumber).sample.get
     val deviceIds = deviceTs.map(createDeviceOk)
 
     deviceIds.foreach(deviceId => addDeviceToGroupOk(groupId, deviceId))
@@ -204,7 +213,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
   test("gets detailed information of a group") {
     val groupName = genGroupName().sample.get
-    val groupId      = createStaticGroupOk(groupName)
+    val groupId = createStaticGroupOk(groupName)
 
     getGroupDetails(groupId) ~> route ~> check {
       status shouldBe OK
@@ -224,7 +233,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
   test("renames a group") {
     val newGroupName = genGroupName().sample.get
-    val groupId      = createStaticGroupOk()
+    val groupId = createStaticGroupOk()
 
     renameGroup(groupId, newGroupName) ~> route ~> check {
       status shouldBe OK
@@ -244,7 +253,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
   }
 
   test("adds devices to groups") {
-    val groupId    = createStaticGroupOk()
+    val groupId = createStaticGroupOk()
     val deviceUuid = createDeviceOk(genDeviceT.sample.get)
 
     addDeviceToGroup(groupId, deviceUuid) ~> route ~> check {
@@ -260,8 +269,8 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
   test("renaming a group to existing group fails") {
     val groupBName = genGroupName().sample.get
-    val groupAId   = createStaticGroupOk()
-    val _   = createStaticGroupOk(groupBName)
+    val groupAId = createStaticGroupOk()
+    val _ = createStaticGroupOk(groupBName)
 
     renameGroup(groupAId, groupBName) ~> route ~> check {
       status shouldBe Conflict
@@ -269,8 +278,8 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
   }
 
   test("removes devices from a group") {
-    val deviceId  = createDeviceOk(genDeviceT.sample.get)
-    val groupId   = createStaticGroupOk()
+    val deviceId = createDeviceOk(genDeviceT.sample.get)
+    val groupId = createStaticGroupOk()
 
     addDeviceToGroup(groupId, deviceId) ~> route ~> check {
       status shouldBe OK
@@ -301,12 +310,17 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     importGroup(groupName, deviceTs.map(_.deviceId)) ~> route ~> check {
       status shouldEqual Created
       val groupId = responseAs[GroupId]
-      val uuidsInGroup = new GroupMembership().listDevices(groupId, Some(0L), Some(deviceTs.size.toLong)).futureValue.values
+      val uuidsInGroup = new GroupMembership()
+        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .futureValue
+        .values
       uuidsInGroup should contain allElementsOf uuidsCreated
     }
   }
 
-  test("creates a static group from a file even when containing more than FILTER_EXISTING_DEVICES_BATCH_SIZE deviceIds") {
+  test(
+    "creates a static group from a file even when containing more than FILTER_EXISTING_DEVICES_BATCH_SIZE deviceIds"
+  ) {
     val groupName = genGroupName().sample.get
     val deviceTs = Gen.listOfN(500, genDeviceT).sample.get
     val uuidsCreated = deviceTs.map(createDeviceOk)
@@ -314,7 +328,10 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     importGroup(groupName, deviceTs.map(_.deviceId)) ~> route ~> check {
       status shouldEqual Created
       val groupId = responseAs[GroupId]
-      val uuidsInGroup = new GroupMembership().listDevices(groupId, Some(0L), Some(deviceTs.size.toLong)).futureValue.values
+      val uuidsInGroup = new GroupMembership()
+        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .futureValue
+        .values
       uuidsInGroup should contain allElementsOf uuidsCreated
     }
   }
@@ -326,12 +343,17 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     importGroup(groupName, deviceTs.map(_.deviceId)) ~> route ~> check {
       status shouldEqual Created
       val groupId = responseAs[GroupId]
-      val uuidsInGroup = new GroupMembership().listDevices(groupId, Some(0L), Some(deviceTs.size.toLong)).futureValue.values
+      val uuidsInGroup = new GroupMembership()
+        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .futureValue
+        .values
       uuidsInGroup shouldBe empty
     }
   }
 
-  test("creating a static group from a file fails with 400 if the deviceIds are longer than it's allowed") {
+  test(
+    "creating a static group from a file fails with 400 if the deviceIds are longer than it's allowed"
+  ) {
     val groupName = genGroupName().sample.get
     val oemId = Gen.listOfN(130, Gen.alphaNumChar).map(_.mkString).map(DeviceOemId).sample.get
 
@@ -347,8 +369,10 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
     addDeviceToGroupOk(groupId, deviceUuid)
 
-
-    Post(Resource.uri(groupsApi, groupId.show, "hibernation"), UpdateHibernationStatusRequest(true)) ~> route ~> check {
+    Post(
+      Resource.uri(groupsApi, groupId.show, "hibernation"),
+      UpdateHibernationStatusRequest(true)
+    ) ~> route ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -367,7 +391,10 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
       deviceIds += id
     }
 
-    Post(Resource.uri(groupsApi, groupId.show, "hibernation"), UpdateHibernationStatusRequest(true)) ~> route ~> check {
+    Post(
+      Resource.uri(groupsApi, groupId.show, "hibernation"),
+      UpdateHibernationStatusRequest(true)
+    ) ~> route ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -376,4 +403,5 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
       device.hibernated shouldBe true
     }
   }
+
 }

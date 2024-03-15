@@ -1,4 +1,5 @@
 package com.advancedtelematic.director.http
+
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show._
 import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, TargetUpdateRequest}
@@ -15,9 +16,12 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.Json
 import org.scalatest.OptionValues._
 
-
-class MultiTargetUpdatesResourceSpec extends DirectorSpec
-  with Generators with DefaultPatience with RouteResourceSpec with AdminResources {
+class MultiTargetUpdatesResourceSpec
+    extends DirectorSpec
+    with Generators
+    with DefaultPatience
+    with RouteResourceSpec
+    with AdminResources {
 
   test("fetching non-existent target info returns 404") {
     val id = UpdateId.generate()
@@ -33,7 +37,9 @@ class MultiTargetUpdatesResourceSpec extends DirectorSpec
 
     Get(apiUri(s"multi_target_updates/${mtu.show}")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
-      responseAs[Map[HardwareIdentifier, TargetUpdateRequest]] // This should be responseAs[MultiTargetUpdate], see comments on resource
+      responseAs[
+        Map[HardwareIdentifier, TargetUpdateRequest]
+      ] // This should be responseAs[MultiTargetUpdate], see comments on resource
     }
   }
 
@@ -75,10 +81,14 @@ class MultiTargetUpdatesResourceSpec extends DirectorSpec
 
     Get(apiUri(s"multi_target_updates/${id.show}")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
-      val r = responseAs[Map[HardwareIdentifier, TargetUpdateRequest]] // This should be responseAs[MultiTargetUpdate], see comments on resource
+      val r =
+        responseAs[
+          Map[HardwareIdentifier, TargetUpdateRequest]
+        ] // This should be responseAs[MultiTargetUpdate], see comments on resource
 
       val _, update = r.head._2
       update.to.userDefinedCustom.value shouldBe userDefinedCustom
     }
   }
+
 }

@@ -3,8 +3,15 @@ package com.advancedtelematic.deviceregistry.http
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.StatusCodes.{Created, NoContent, NotFound, OK}
 import cats.syntax.show.*
-import com.advancedtelematic.deviceregistry.data.Codecs.{packageListItemCodec, packageListItemCountCodec}
-import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, PackageListItem, PackageListItemCount}
+import com.advancedtelematic.deviceregistry.data.Codecs.{
+  packageListItemCodec,
+  packageListItemCountCodec
+}
+import com.advancedtelematic.deviceregistry.data.DataType.{
+  DeviceT,
+  PackageListItem,
+  PackageListItemCount
+}
 import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.deviceregistry.data.PackageId
 import com.advancedtelematic.deviceregistry.http.Resource.uri
@@ -17,14 +24,20 @@ import org.scalatest.concurrent.ScalaFutures
 class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
 
   private val genNonConflictingDeviceTs = Gen.choose(0, 20).flatMap(genConflictFreeDeviceTs)
+
   private val genListedPackage: Gen[PackageListItem] =
     for {
       packageId <- genPackageId
-      comment   <- Gen.alphaNumStr
+      comment <- Gen.alphaNumStr
     } yield PackageListItem(defaultNs, packageId, comment)
 
-  private implicit val arbListedPackage: org.scalacheck.Arbitrary[com.advancedtelematic.deviceregistry.data.DataType.PackageListItem] = Arbitrary(genListedPackage)
-  private implicit val arbNonConflictingDeviceTs: org.scalacheck.Arbitrary[Seq[com.advancedtelematic.deviceregistry.data.DataType.DeviceT]] = Arbitrary(genNonConflictingDeviceTs)
+  private implicit val arbListedPackage
+    : org.scalacheck.Arbitrary[com.advancedtelematic.deviceregistry.data.DataType.PackageListItem] =
+    Arbitrary(genListedPackage)
+
+  private implicit val arbNonConflictingDeviceTs
+    : org.scalacheck.Arbitrary[Seq[com.advancedtelematic.deviceregistry.data.DataType.DeviceT]] =
+    Arbitrary(genNonConflictingDeviceTs)
 
   private def createListedPackage(listedPackage: PackageListItem): HttpRequest =
     Post(uri("package_lists"), listedPackage)
@@ -118,8 +131,8 @@ class PackageListsResourceSpec extends ResourcePropSpec with ScalaFutures {
 
   property("can count how many devices have installed each of the listed packages") {
     forAll(SizeRange(20)) { (deviceTs: Seq[DeviceT], packageIds: Seq[PackageId], comment: String) =>
-
-      val listedPackages = Gen.someOf(packageIds).generate.map(PackageListItem(defaultNs, _, comment))
+      val listedPackages =
+        Gen.someOf(packageIds).generate.map(PackageListItem(defaultNs, _, comment))
       val deviceIds = deviceTs.map(createDeviceOk)
       val devicesWithPackages = deviceIds.map(did => did -> Gen.someOf(packageIds).generate)
 

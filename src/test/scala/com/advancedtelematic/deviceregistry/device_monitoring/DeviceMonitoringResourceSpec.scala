@@ -19,10 +19,10 @@ import org.scalatest.time.{Seconds, Span}
 import java.io.IOException
 import scala.concurrent.{ExecutionContext, Future}
 
-
 object TestPayloads {
-  val jsonPayload = io.circe.jawn.parse(
-    """
+
+  val jsonPayload = io.circe.jawn
+    .parse("""
       |{
       |    "cpu": {
       |        "cpu0.p_cpu": 0.19,
@@ -67,10 +67,11 @@ object TestPayloads {
       |        "type": "cpu-thermal0"
       |    }
       |}
-      |""".stripMargin).value
+      |""".stripMargin)
+    .value
 
-  val jsonPayloadBufferedList = io.circe.jawn.parse(
-    """
+  val jsonPayloadBufferedList = io.circe.jawn
+    .parse("""
       |[
       |{
       |    "cpu": {
@@ -124,27 +125,37 @@ object TestPayloads {
       |    }
       |}
       |]
-      |""".stripMargin).value
+      |""".stripMargin)
+    .value
+
 }
 
-
-class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures with DeviceGenerators {
+class DeviceMonitoringResourceSpec
+    extends AnyFunSuite
+    with ResourceSpec
+    with ScalaFutures
+    with DeviceGenerators {
 
   import com.advancedtelematic.deviceregistry.data.GeneratorOps._
 
-  override implicit def patienceConfig: PatienceConfig = super.patienceConfig.copy(timeout = Span(3, Seconds))
+  override implicit def patienceConfig: PatienceConfig =
+    super.patienceConfig.copy(timeout = Span(3, Seconds))
 
   override lazy val messageBus = new MockMessageBus()
-
 
   test("accepts metrics from device") {
     val uuid = createDeviceOk(genDeviceT.generate)
 
-    Post(Resource.uri("devices", uuid.show, "monitoring"), TestPayloads.jsonPayload) ~> route ~> check {
+    Post(
+      Resource.uri("devices", uuid.show, "monitoring"),
+      TestPayloads.jsonPayload
+    ) ~> route ~> check {
       status shouldBe StatusCodes.NoContent
     }
 
-    val msg = messageBus.findReceived[DeviceMetricsObservation]((msg: DeviceMetricsObservation) => msg.uuid == uuid)
+    val msg = messageBus.findReceived[DeviceMetricsObservation]((msg: DeviceMetricsObservation) =>
+      msg.uuid == uuid
+    )
 
     msg.value.payload shouldBe TestPayloads.jsonPayload
     msg.value.namespace shouldBe defaultNs
@@ -153,11 +164,17 @@ class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with Sc
   test("accepts metrics from device when they are buffered as a list") {
     val uuid = createDeviceOk(genDeviceT.generate)
 
-    Post(Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"), TestPayloads.jsonPayloadBufferedList) ~> route ~> check {
+    Post(
+      Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"),
+      TestPayloads.jsonPayloadBufferedList
+    ) ~> route ~> check {
       status shouldBe StatusCodes.NoContent
     }
 
-    val msgs = messageBus.findReceivedAll[DeviceMetricsObservation]((msg: DeviceMetricsObservation) => msg.uuid == uuid)
+    val msgs =
+      messageBus.findReceivedAll[DeviceMetricsObservation]((msg: DeviceMetricsObservation) =>
+        msg.uuid == uuid
+      )
     TestPayloads.jsonPayloadBufferedList.asArray.map(_.map { j =>
       msgs.map(_.payload) should contain(j)
       msgs.map { msg =>
@@ -165,19 +182,27 @@ class DeviceMonitoringResourceSpec extends AnyFunSuite with ResourceSpec with Sc
       }
     })
   }
-}
 
+}
 
 class BadMessageBus extends MockMessageBus {
-  override def publish[T](msg: T)(implicit ex: ExecutionContext, messageLike: MessageLike[T]): Future[Unit] = {
+
+  override def publish[T](
+    msg: T)(implicit ex: ExecutionContext, messageLike: MessageLike[T]): Future[Unit] =
     Future.failed(new IOException)
-  }
+
 }
-class DeviceMonitoringResourceSpecBadMsgPub extends AnyFunSuite with ResourceSpec with ScalaFutures with DeviceGenerators {
+
+class DeviceMonitoringResourceSpecBadMsgPub
+    extends AnyFunSuite
+    with ResourceSpec
+    with ScalaFutures
+    with DeviceGenerators {
 
   import com.advancedtelematic.deviceregistry.data.GeneratorOps._
 
-  override implicit def patienceConfig: PatienceConfig = super.patienceConfig.copy(timeout = Span(3, Seconds))
+  override implicit def patienceConfig: PatienceConfig =
+    super.patienceConfig.copy(timeout = Span(3, Seconds))
 
   override lazy val messageBus: BadMessageBus = new BadMessageBus()
 
@@ -185,9 +210,15 @@ class DeviceMonitoringResourceSpecBadMsgPub extends AnyFunSuite with ResourceSpe
     import com.advancedtelematic.deviceregistry.data.Codecs.ObservationPublishResultCodec
     val uuid = createDeviceOk(genDeviceT.generate)
 
-    Post(Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"), TestPayloads.jsonPayloadBufferedList) ~> route ~> check {
+    Post(
+      Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"),
+      TestPayloads.jsonPayloadBufferedList
+    ) ~> route ~> check {
       status shouldBe StatusCodes.RangeNotSatisfiable
-      responseAs[List[ObservationPublishResult]].filter(_.publishedSuccessfully == false).length shouldBe 2
+      responseAs[List[ObservationPublishResult]]
+        .filter(_.publishedSuccessfully == false)
+        .length shouldBe 2
     }
   }
+
 }

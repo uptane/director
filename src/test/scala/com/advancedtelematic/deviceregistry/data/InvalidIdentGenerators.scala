@@ -18,8 +18,10 @@ trait InvalidIdentGenerators {
     Gen.oneOf('!', '@', '#', '$', '^', '&', '*', '(', ')')
 
   val genInvalidIdent: Gen[String] =
-    for (prefix <- Gen.identifier;
-         suffix <- Gen.identifier) yield prefix + getSymbol + suffix
+    for (
+      prefix <- Gen.identifier;
+      suffix <- Gen.identifier
+    ) yield prefix + getSymbol + suffix
 
   def getInvalidIdent: String = genInvalidIdent.sample.getOrElse(getInvalidIdent)
 

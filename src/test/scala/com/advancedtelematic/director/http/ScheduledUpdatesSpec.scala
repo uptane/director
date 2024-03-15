@@ -3,7 +3,12 @@ package com.advancedtelematic.director.http
 import org.scalatest.OptionValues.*
 import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
-import com.advancedtelematic.director.util.{DirectorSpec, NamespacedTests, RepositorySpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{
+  DirectorSpec,
+  NamespacedTests,
+  RepositorySpec,
+  RouteResourceSpec
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import org.scalactic.source.Position
@@ -25,36 +30,49 @@ import io.circe.Json
 trait ScheduledUpdatesResources {
   self: DirectorSpec & RouteResourceSpec & NamespacedTests =>
 
-  def createScheduledUpdateOk(deviceId: DeviceId, hardwareId: HardwareIdentifier)(implicit ns: Namespace, pos: Position): ScheduledUpdateId = {
+  def createScheduledUpdateOk(deviceId: DeviceId, hardwareId: HardwareIdentifier)(
+    implicit ns: Namespace,
+    pos: Position): ScheduledUpdateId = {
     val mtu = MultiTargetUpdate(Map(hardwareId -> GenTargetUpdateRequest.generate))
     createScheduledUpdateOk(deviceId, mtu)
   }
 
-  def createScheduledUpdateOk(deviceId: DeviceId, mtu: MultiTargetUpdate)(implicit ns: Namespace, pos: Position): ScheduledUpdateId = {
+  def createScheduledUpdateOk(deviceId: DeviceId, mtu: MultiTargetUpdate)(
+    implicit ns: Namespace,
+    pos: Position): ScheduledUpdateId = {
     val mtuId = Post(apiUri("multi_target_updates"), mtu).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Created
       responseAs[UpdateId]
     }
 
-    val req = CreateScheduledUpdateRequest(device = deviceId, updateId = mtuId, scheduledAt = Instant.now())
+    val req =
+      CreateScheduledUpdateRequest(device = deviceId, updateId = mtuId, scheduledAt = Instant.now())
 
-    Post(apiUri(s"admin/devices/${deviceId.show}/scheduled-updates"), req).namespaced ~> routes ~> check {
+    Post(
+      apiUri(s"admin/devices/${deviceId.show}/scheduled-updates"),
+      req
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Created
       responseAs[ScheduledUpdateId]
     }
   }
 
-  def listScheduledUpdatesOK(deviceId: DeviceId)(implicit ns: Namespace, pos: Position): PaginationResult[ScheduledUpdate] = {
+  def listScheduledUpdatesOK(
+    deviceId: DeviceId)(implicit ns: Namespace, pos: Position): PaginationResult[ScheduledUpdate] =
     Get(apiUri(s"admin/devices/${deviceId.show}/scheduled-updates")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       responseAs[PaginationResult[ScheduledUpdate]]
     }
-  }
+
 }
 
-class ScheduledUpdatesSpec extends DirectorSpec
-  with RouteResourceSpec
-  with AdminResources with RepositorySpec with DeviceResources with ScheduledUpdatesResources {
+class ScheduledUpdatesSpec
+    extends DirectorSpec
+    with RouteResourceSpec
+    with AdminResources
+    with RepositorySpec
+    with DeviceResources
+    with ScheduledUpdatesResources {
 
   testWithRepo("creates and lists a scheduled update") { implicit ns =>
     val regDev = registerAdminDeviceOk()
@@ -78,13 +96,23 @@ class ScheduledUpdatesSpec extends DirectorSpec
       responseAs[UpdateId]
     }
 
-    val req = CreateScheduledUpdateRequest(device = regDev.deviceId, updateId = mtuId, scheduledAt = Instant.now())
+    val req = CreateScheduledUpdateRequest(
+      device = regDev.deviceId,
+      updateId = mtuId,
+      scheduledAt = Instant.now()
+    )
 
-    Post(apiUri(s"admin/devices/${regDev.deviceId.show}/scheduled-updates"), req).namespaced ~> routes ~> check {
+    Post(
+      apiUri(s"admin/devices/${regDev.deviceId.show}/scheduled-updates"),
+      req
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Created
     }
 
-    Post(apiUri(s"admin/devices/${regDev.deviceId.show}/scheduled-updates"), req).namespaced ~> routes ~> check {
+    Post(
+      apiUri(s"admin/devices/${regDev.deviceId.show}/scheduled-updates"),
+      req
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.BadRequest
       val error = responseAs[ErrorRepresentation]
       error.code shouldBe ErrorCodes.UpdateScheduleError
@@ -99,7 +127,9 @@ class ScheduledUpdatesSpec extends DirectorSpec
 
     val id = createScheduledUpdateOk(regDev.deviceId, regDev.primary.hardwareId)
 
-    Delete(apiUri(s"admin/devices/${regDev.deviceId.show}/scheduled-updates/${id.show}")).namespaced ~> routes ~> check {
+    Delete(
+      apiUri(s"admin/devices/${regDev.deviceId.show}/scheduled-updates/${id.show}")
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -108,14 +138,23 @@ class ScheduledUpdatesSpec extends DirectorSpec
     existing.values.loneElement.status shouldBe ScheduledUpdate.Status.Cancelled
   }
 
-  testWithRepo("returns an error if device does not have compatible ECUs cannot be updated") { implicit ns =>
-    val regDev = registerAdminDeviceOk()
-    val mtuId = createMtuOk()
-    val req = CreateScheduledUpdateRequest(device = regDev.deviceId, updateId = mtuId, scheduledAt = Instant.now())
+  testWithRepo("returns an error if device does not have compatible ECUs cannot be updated") {
+    implicit ns =>
+      val regDev = registerAdminDeviceOk()
+      val mtuId = createMtuOk()
+      val req = CreateScheduledUpdateRequest(
+        device = regDev.deviceId,
+        updateId = mtuId,
+        scheduledAt = Instant.now()
+      )
 
-    Post(apiUri(s"admin/devices/${regDev.deviceId.show}/scheduled-updates"), req).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.BadRequest
-      responseAs[ErrorRepresentation].code shouldBe ErrorCodes.UpdateScheduleError
-    }
+      Post(
+        apiUri(s"admin/devices/${regDev.deviceId.show}/scheduled-updates"),
+        req
+      ).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.BadRequest
+        responseAs[ErrorRepresentation].code shouldBe ErrorCodes.UpdateScheduleError
+      }
   }
+
 }

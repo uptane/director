@@ -18,8 +18,8 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 
 import java.util.Base64
 
-
 trait PublicCredentialsRequests { self: ResourceSpec =>
+
   import StatusCodes.*
   import com.advancedtelematic.deviceregistry.data.Device.*
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -36,7 +36,8 @@ trait PublicCredentialsRequests { self: ResourceSpec =>
 
   def fetchPublicCredentialsOk(device: DeviceId): Array[Byte] =
     fetchPublicCredentials(device) ~> route ~> check {
-      implicit val CredentialsDecoder = io.circe.generic.semiauto.deriveDecoder[FetchPublicCredentials]
+      implicit val CredentialsDecoder =
+        io.circe.generic.semiauto.deriveDecoder[FetchPublicCredentials]
       status shouldBe OK
       val resp = responseAs[FetchPublicCredentials]
       base64Decoder.decode(resp.credentials)
@@ -45,15 +46,23 @@ trait PublicCredentialsRequests { self: ResourceSpec =>
   def createDeviceWithCredentials(devT: DeviceT): HttpRequest =
     Put(Resource.uri(credentialsApi), devT)
 
-  def updatePublicCredentials(device: DeviceOemId, creds: Array[Byte], cType: Option[CredentialsType]): HttpRequest = {
-    val devT = validatedDeviceType.from(device.underlying)
-      .map(DeviceT(None, _, device, DeviceType.Other, Some(base64Encoder.encodeToString(creds)), cType))
+  def updatePublicCredentials(device: DeviceOemId,
+                              creds: Array[Byte],
+                              cType: Option[CredentialsType]): HttpRequest = {
+    val devT = validatedDeviceType
+      .from(device.underlying)
+      .map(
+        DeviceT(None, _, device, DeviceType.Other, Some(base64Encoder.encodeToString(creds)), cType)
+      )
     createDeviceWithCredentials(devT.toOption.get)
   }
 
-  def updatePublicCredentialsOk(device: DeviceOemId, creds: Array[Byte], cType: Option[CredentialsType] = None): DeviceId =
+  def updatePublicCredentialsOk(device: DeviceOemId,
+                                creds: Array[Byte],
+                                cType: Option[CredentialsType] = None): DeviceId =
     updatePublicCredentials(device, creds, cType) ~> route ~> check {
       status shouldBe OK
       responseAs[DeviceId]
     }
+
 }
