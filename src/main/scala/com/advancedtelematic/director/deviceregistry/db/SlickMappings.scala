@@ -6,26 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.codecs.SlickEnumMapper
-import com.advancedtelematic.deviceregistry.data.DataType.{IndexedEventType, PackageListItemCount}
-import com.advancedtelematic.deviceregistry.data.{CredentialsType, GroupType, PackageId}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{IndexedEventType, PackageListItemCount}
+import com.advancedtelematic.director.deviceregistry.data.{CredentialsType, GroupType, PackageId}
 import slick.jdbc.MySQLProfile.api._
 
 object SlickMappings {
 
   implicit val groupTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[
-    com.advancedtelematic.deviceregistry.data.GroupType.Value
+    com.advancedtelematic.director.deviceregistry.data.GroupType.Value
   ] = SlickEnumMapper.enumMapper(GroupType)
 
   implicit val credentialsTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[
-    com.advancedtelematic.deviceregistry.data.CredentialsType.Value
+    com.advancedtelematic.director.deviceregistry.data.CredentialsType.Value
   ] = SlickEnumMapper.enumMapper(CredentialsType)
 
   implicit val indexedEventTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[
-    com.advancedtelematic.deviceregistry.data.DataType.IndexedEventType.Value
+    com.advancedtelematic.director.deviceregistry.data.DataType.IndexedEventType.Value
   ] = SlickEnumMapper.enumMapper(IndexedEventType)
 
   private[db] implicit val namespaceColumnType

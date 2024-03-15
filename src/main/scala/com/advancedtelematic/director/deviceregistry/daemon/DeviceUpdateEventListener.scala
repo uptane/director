@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry.daemon
+package com.advancedtelematic.director.deviceregistry.daemon
 
 import java.time.Instant
 import akka.http.scaladsl.util.FastFuture
@@ -15,11 +15,11 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceUpdateEvent,
   DeviceUpdateInFlight
 }
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.daemon.DeviceUpdateStatus._
-import com.advancedtelematic.deviceregistry.data.DeviceStatus
-import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.deviceregistry.db.{DeviceRepository, InstallationReportRepository}
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.daemon.DeviceUpdateStatus._
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.db.{DeviceRepository, InstallationReportRepository}
 import io.circe.syntax._
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._

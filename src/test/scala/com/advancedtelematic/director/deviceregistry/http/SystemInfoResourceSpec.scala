@@ -1,4 +1,4 @@
-/*
+;/*
  * Copyright (c) 2017 ATS Advanced Telematic Systems GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -6,18 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
-import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.{removeIdNrs, NetworkInfo}
+import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
+import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.{NetworkInfo, removeIdNrs}
+import com.advancedtelematic.director.deviceregistry.http.ResourcePropSpec
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  AktualizrConfigChanged,
-  DeviceSystemInfoChanged
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
 import io.circe.Json
 import org.scalacheck.Shrink
 import org.scalatest.OptionValues.*
@@ -75,7 +73,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   property(
     "POST /devices/list-network-info returns empty strings if network info was not reported"
   ) {
-    import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
+    import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
     import io.circe.Json
     forAll { (devices: Seq[DeviceT], json: Option[Json]) =>
       val uuids = devices.map(d => createDeviceOk(d))
@@ -132,7 +130,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
 
         postListNetworkInfos(uuids) ~> route ~> check {
           status shouldBe OK
-          import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
+          import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
           val res = responseAs[List[NetworkInfo]]
           res.map { networkInfo =>
             uuids should contain(networkInfo.deviceUuid)

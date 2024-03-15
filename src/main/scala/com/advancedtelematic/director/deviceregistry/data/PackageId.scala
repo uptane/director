@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import cats.{Eq, Show}
 
@@ -17,11 +17,11 @@ object PackageId {
   type Version = String
 
   implicit val EncoderInstance
-    : io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.data.PackageId] =
+    : io.circe.Encoder.AsObject[com.advancedtelematic.director.deviceregistry.data.PackageId] =
     io.circe.generic.semiauto.deriveEncoder[PackageId]
 
   implicit val DecoderInstance
-    : io.circe.Decoder[com.advancedtelematic.deviceregistry.data.PackageId] =
+    : io.circe.Decoder[com.advancedtelematic.director.deviceregistry.data.PackageId] =
     io.circe.generic.semiauto.deriveDecoder[PackageId]
 
   /** Use the underlying (string) ordering, show and equality for package ids.

@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.common
+package com.advancedtelematic.director.deviceregistry.common
 
 import com.advancedtelematic.libats.data.ErrorCode
 import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, RawError}
-import com.advancedtelematic.deviceregistry.data.DataType.PackageListItem
-import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.deviceregistry.data.{DeviceName, Group, GroupExpression, GroupName}
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.db.GroupMemberRepository.GroupMember
-import com.advancedtelematic.deviceregistry.db.PublicCredentialsRepository.DevicePublicCredentials
-import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.SystemInfo
+import com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.{DeviceName, Group, GroupExpression, GroupName}
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.GroupMember
+import com.advancedtelematic.director.deviceregistry.db.PublicCredentialsRepository.DevicePublicCredentials
+import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.SystemInfo
 
 object Errors {
   import akka.http.scaladsl.model.StatusCodes

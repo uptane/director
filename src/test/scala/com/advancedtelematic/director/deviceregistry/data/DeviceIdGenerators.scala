@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import cats.syntax.show._
-import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import org.scalacheck.{Arbitrary, Gen}
 
 /** Created by vladimir on 16/03/16.

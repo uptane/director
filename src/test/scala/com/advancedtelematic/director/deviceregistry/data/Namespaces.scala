@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import org.scalacheck.{Arbitrary, Gen}

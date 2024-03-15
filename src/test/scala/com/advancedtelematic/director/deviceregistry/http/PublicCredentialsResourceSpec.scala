@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import akka.http.scaladsl.model.StatusCodes.*
-import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.deviceregistry.data.{CredentialsType, Device}
-import com.advancedtelematic.deviceregistry.http.PublicCredentialsResource.FetchPublicCredentials
+import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.director.deviceregistry.data.{CredentialsType, Device}
+import com.advancedtelematic.director.deviceregistry.http.PublicCredentialsResource.FetchPublicCredentials
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import io.circe.generic.auto.*
 import org.scalacheck.{Arbitrary, Gen}

@@ -1,17 +1,17 @@
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.deviceregistry.common.Errors.{
+import com.advancedtelematic.director.deviceregistry.common.Errors.{
   ConflictingPackageListItem,
   MissingPackageListItem
 }
-import com.advancedtelematic.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount}
-import com.advancedtelematic.deviceregistry.data.PackageId
-import com.advancedtelematic.deviceregistry.db.DeviceRepository.devices
-import com.advancedtelematic.deviceregistry.db.InstalledPackages.installedPackages
-import com.advancedtelematic.deviceregistry.db.SlickMappings._
+import com.advancedtelematic.director.deviceregistry.data.DataType.{PackageListItem, PackageListItemCount}
+import com.advancedtelematic.director.deviceregistry.data.PackageId
+import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.devices
+import com.advancedtelematic.director.deviceregistry.db.InstalledPackages.installedPackages
+import com.advancedtelematic.director.deviceregistry.db.SlickMappings._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext

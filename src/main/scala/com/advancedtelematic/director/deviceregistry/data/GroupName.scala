@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import com.advancedtelematic.libats.codecs.CirceValidatedGeneric
 import com.advancedtelematic.libats.data.{ValidatedGeneric, ValidationError}
@@ -12,7 +12,7 @@ final case class GroupName private (value: String) extends AnyVal
 object GroupName {
 
   implicit val validatedGroupName: com.advancedtelematic.libats.data.ValidatedGeneric[
-    com.advancedtelematic.deviceregistry.data.GroupName,
+    com.advancedtelematic.director.deviceregistry.data.GroupName,
     String
   ] = new ValidatedGeneric[GroupName, String] {
     override def to(expression: GroupName): String = expression.value

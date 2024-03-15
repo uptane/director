@@ -6,16 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.daemon
+package com.advancedtelematic.director.deviceregistry.daemon
 
 import akka.Done
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.data.DeviceStatus
-import com.advancedtelematic.deviceregistry.db.DeviceRepository
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.db.DeviceRepository
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceSeen
-import com.advancedtelematic.deviceregistry.messages.DeviceActivated
+import com.advancedtelematic.director.deviceregistry.messages.DeviceActivated
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}

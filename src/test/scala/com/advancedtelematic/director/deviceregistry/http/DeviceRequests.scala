@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.model.Uri.{Path, Query}
@@ -15,10 +15,10 @@ import cats.instances.int.*
 import cats.instances.string.*
 import cats.syntax.option.*
 import cats.syntax.show.*
-import com.advancedtelematic.deviceregistry.data.*
-import com.advancedtelematic.deviceregistry.data.Codecs.*
-import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.deviceregistry.data.DataType.{
+import com.advancedtelematic.director.deviceregistry.data.*
+import com.advancedtelematic.director.deviceregistry.data.Codecs.*
+import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceT,
   DevicesQuery,
   SetDevice,
@@ -26,12 +26,12 @@ import com.advancedtelematic.deviceregistry.data.DataType.{
   UpdateDevice,
   UpdateTagValue
 }
-import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
-import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.data.SortDirection.SortDirection
-import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.NetworkInfo
+import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
+import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.http.HttpOps.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -60,7 +60,7 @@ object Resource {
 trait DeviceRequests { self: ResourceSpec =>
 
   import StatusCodes.*
-  import com.advancedtelematic.deviceregistry.data.Device.*
+  import com.advancedtelematic.director.deviceregistry.data.Device.*
 
   val api = "devices"
 
@@ -205,7 +205,7 @@ trait DeviceRequests { self: ResourceSpec =>
 
   def createNetworkInfo(uuid: DeviceId, networkInfo: NetworkInfo): HttpRequest = {
     val uri = Resource.uri(api, uuid.show, "system_info", "network")
-    import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdEncoder
+    import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdEncoder
     Put(uri, networkInfo)
   }
 

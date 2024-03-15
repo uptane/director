@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -14,22 +14,22 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.data.DataType.{
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeletedDevice,
   DeviceT,
   HibernationStatus,
   SearchParams
 }
-import com.advancedtelematic.deviceregistry.data.Device.*
-import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.data.*
-import com.advancedtelematic.deviceregistry.db.DbOps.{deviceTableToSlickOrder, PaginationResultOps}
-import com.advancedtelematic.deviceregistry.db.GroupInfoRepository.groupInfos
-import com.advancedtelematic.deviceregistry.db.GroupMemberRepository.groupMembers
-import com.advancedtelematic.deviceregistry.db.SlickMappings.*
+import com.advancedtelematic.director.deviceregistry.data.Device.*
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.data.*
+import com.advancedtelematic.director.deviceregistry.db.DbOps.{deviceTableToSlickOrder, PaginationResultOps}
+import com.advancedtelematic.director.deviceregistry.db.GroupInfoRepository.groupInfos
+import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.groupMembers
+import com.advancedtelematic.director.deviceregistry.db.SlickMappings.*
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*

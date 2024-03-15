@@ -1,14 +1,14 @@
-package com.advancedtelematic.deviceregistry.daemon
+package com.advancedtelematic.director.deviceregistry.daemon
 
 import cats.syntax.show.*
-import com.advancedtelematic.deviceregistry.db.{DeviceRepository, EcuReplacementRepository}
+import com.advancedtelematic.director.deviceregistry.db.{DeviceRepository, EcuReplacementRepository}
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   EcuReplacement,
   EcuReplacementFailed
 }
-import com.advancedtelematic.deviceregistry.common.Errors.MissingDevice
-import com.advancedtelematic.deviceregistry.data.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.common.Errors.MissingDevice
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*
 

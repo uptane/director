@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import java.time.Instant
 
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.deviceregistry.data.DeviceName.validatedDeviceType
+import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import Namespaces.defaultNs
 import org.scalacheck.{Arbitrary, Gen}
 

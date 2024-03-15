@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.data.DataType.Namespace
@@ -14,18 +14,18 @@ import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.common.Errors.MemberAlreadyExists
-import com.advancedtelematic.deviceregistry.data.DataType.HibernationStatus
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.{
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.common.Errors.MemberAlreadyExists
+import com.advancedtelematic.director.deviceregistry.data.DataType.HibernationStatus
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.{
   Device,
   GroupExpression,
   GroupExpressionAST,
   GroupType,
   TagId
 }
-import com.advancedtelematic.deviceregistry.db.DbOps.PaginationResultOps
+import com.advancedtelematic.director.deviceregistry.db.DbOps.PaginationResultOps
 import slick.jdbc.{PositionedParameters, SetParameter}
 import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.Tag

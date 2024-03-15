@@ -1,16 +1,16 @@
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import cats.data.NonEmptyList
 import cats.implicits._
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.Errors
-import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import GeneratorOps._
-import com.advancedtelematic.deviceregistry.DatabaseSpec
-import com.advancedtelematic.deviceregistry.data.GroupExpressionAST._
-import com.advancedtelematic.deviceregistry.db.DeviceRepository
-import com.advancedtelematic.deviceregistry.db.DeviceRepository._
-import com.advancedtelematic.deviceregistry.db.TaggedDeviceRepository.tagDeviceByOemId
+import com.advancedtelematic.director.deviceregistry.DatabaseSpec
+import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST._
+import com.advancedtelematic.director.deviceregistry.db.DeviceRepository
+import com.advancedtelematic.director.deviceregistry.db.DeviceRepository._
+import com.advancedtelematic.director.deviceregistry.db.TaggedDeviceRepository.tagDeviceByOemId
 import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import org.scalatest.concurrent.ScalaFutures

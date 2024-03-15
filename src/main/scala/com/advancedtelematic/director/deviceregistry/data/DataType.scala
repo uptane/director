@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import java.time.Instant
 import cats.Show
@@ -6,14 +6,14 @@ import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, Res
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event}
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
-import com.advancedtelematic.deviceregistry.data.CredentialsType.CredentialsType
-import com.advancedtelematic.deviceregistry.data.DataType.IndexedEventType.IndexedEventType
-import com.advancedtelematic.deviceregistry.data.Device.{DeviceOemId, DeviceType}
-import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
-import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.data.SortDirection.SortDirection
+import com.advancedtelematic.director.deviceregistry.data.CredentialsType.CredentialsType
+import com.advancedtelematic.director.deviceregistry.data.DataType.IndexedEventType.IndexedEventType
+import com.advancedtelematic.director.deviceregistry.data.Device.{DeviceOemId, DeviceType}
+import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
 import io.circe.Json
 
 object DataType {

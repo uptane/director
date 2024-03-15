@@ -1,9 +1,9 @@
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import cats.syntax.either.*
 import com.advancedtelematic.libats.codecs.CirceValidatedGeneric
 import com.advancedtelematic.libats.data.{ValidatedGeneric, ValidationError}
-import com.advancedtelematic.deviceregistry.data.GroupExpressionParser.parse
+import com.advancedtelematic.director.deviceregistry.data.GroupExpressionParser.parse
 import io.circe.{Decoder, Encoder}
 
 import scala.annotation.nowarn
@@ -24,7 +24,7 @@ final case class GroupExpression private (value: String) extends AnyVal {
 object GroupExpression {
 
   implicit val validatedGroupExpression: com.advancedtelematic.libats.data.ValidatedGeneric[
-    com.advancedtelematic.deviceregistry.data.GroupExpression,
+    com.advancedtelematic.director.deviceregistry.data.GroupExpression,
     String
   ] = new ValidatedGeneric[GroupExpression, String] {
     override def to(expression: GroupExpression): String = expression.value

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.common
+package com.advancedtelematic.director.deviceregistry.common
 
 case class PackageStat(packageVersion: String, installedCount: Int)
 

@@ -1,11 +1,11 @@
-package com.advancedtelematic.deviceregistry.daemon
+package com.advancedtelematic.director.deviceregistry.daemon
 
 import akka.http.scaladsl.model.StatusCodes.{NotFound, OK}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
-import com.advancedtelematic.deviceregistry.data.GeneratorOps.GenSample
+import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.GenSample
 import cats.syntax.show.*
-import com.advancedtelematic.deviceregistry.http.{DeviceRequests, ResourceSpec}
+import com.advancedtelematic.director.deviceregistry.http.{DeviceRequests, ResourceSpec}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import org.scalatest.OptionValues.*
 import org.scalatest.concurrent.Eventually.eventually

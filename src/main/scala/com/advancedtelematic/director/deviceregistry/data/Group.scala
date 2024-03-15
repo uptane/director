@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import java.time.Instant
 import java.util.UUID
@@ -14,8 +14,8 @@ import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.advancedtelematic.libats.codecs.CirceCodecs._
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.UUIDKey.{UUIDKey, UUIDKeyObj}
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
 import slick.jdbc.MySQLProfile.api._
@@ -33,7 +33,7 @@ object GroupType extends Enumeration {
   val static, dynamic = Value
 
   implicit val groupTypeMapper: slick.jdbc.MySQLProfile.BaseColumnType[
-    com.advancedtelematic.deviceregistry.data.GroupType.GroupType
+    com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
   ] = MappedColumnType.base[GroupType, String](_.toString, GroupType.withName)
 
   implicit val groupTypeEncoder: Encoder[GroupType] = Encoder.encodeEnumeration(GroupType)

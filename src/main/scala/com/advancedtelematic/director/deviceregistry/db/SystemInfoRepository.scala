@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import akka.Done
 import cats.data.State
@@ -15,7 +15,7 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.common.Errors
 import io.circe.{Decoder, Encoder, Json}
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._

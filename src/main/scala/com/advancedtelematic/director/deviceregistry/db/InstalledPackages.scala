@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import java.time.Instant
 
@@ -16,11 +16,11 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import SlickMappings._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.deviceregistry.common.PackageStat
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.PackageId
-import com.advancedtelematic.deviceregistry.data.PackageId.Name
-import com.advancedtelematic.deviceregistry.db.DbOps.PaginationResultOps
+import com.advancedtelematic.director.deviceregistry.common.PackageStat
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.PackageId
+import com.advancedtelematic.director.deviceregistry.data.PackageId.Name
+import com.advancedtelematic.director.deviceregistry.db.DbOps.PaginationResultOps
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext
@@ -35,7 +35,7 @@ object InstalledPackages {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
 
     implicit val EncoderInstance: io.circe.Encoder.AsObject[
-      com.advancedtelematic.deviceregistry.db.InstalledPackages.InstalledPackage
+      com.advancedtelematic.director.deviceregistry.db.InstalledPackages.InstalledPackage
     ] = io.circe.generic.semiauto.deriveEncoder[InstalledPackage]
 
   }
@@ -45,7 +45,7 @@ object InstalledPackages {
   object DevicesCount {
 
     implicit val EncoderInstance: io.circe.Encoder.AsObject[
-      com.advancedtelematic.deviceregistry.db.InstalledPackages.DevicesCount
+      com.advancedtelematic.director.deviceregistry.db.InstalledPackages.DevicesCount
     ] = io.circe.generic.semiauto.deriveEncoder[DevicesCount]
 
   }

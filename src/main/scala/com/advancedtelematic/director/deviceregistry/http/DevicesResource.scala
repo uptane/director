@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import com.advancedtelematic.libats.http.ValidatedGenericMarshalling.validatedStringUnmarshaller
 import akka.http.scaladsl.model.*
@@ -19,11 +19,11 @@ import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import cats.syntax.either.*
 import cats.syntax.show.*
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.common.Errors.{Codes, MissingDevice}
-import com.advancedtelematic.deviceregistry.data.Codecs.*
-import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.deviceregistry.data.DataType.{
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.common.Errors.{Codes, MissingDevice}
+import com.advancedtelematic.director.deviceregistry.data.Codecs.*
+import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceT,
   DevicesQuery,
   InstallationStatsLevel,
@@ -34,15 +34,15 @@ import com.advancedtelematic.deviceregistry.data.DataType.{
   UpdateHibernationStatusRequest,
   UpdateTagValue
 }
-import com.advancedtelematic.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
-import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
-import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.data.SortDirection.SortDirection
-import com.advancedtelematic.deviceregistry.data.TagId.validatedTagId
-import com.advancedtelematic.deviceregistry.data.{
+import com.advancedtelematic.director.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
+import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
+import com.advancedtelematic.director.deviceregistry.data.TagId.validatedTagId
+import com.advancedtelematic.director.deviceregistry.data.{
   Device,
   DeviceSortBy,
   GroupExpression,
@@ -51,8 +51,8 @@ import com.advancedtelematic.deviceregistry.data.{
   SortDirection,
   TagId
 }
-import com.advancedtelematic.deviceregistry.db.DbOps.PaginationResultOps
-import com.advancedtelematic.deviceregistry.db.{
+import com.advancedtelematic.director.deviceregistry.db.DbOps.PaginationResultOps
+import com.advancedtelematic.director.deviceregistry.db.{
   DeviceRepository,
   EcuReplacementRepository,
   EventJournal,
@@ -62,7 +62,7 @@ import com.advancedtelematic.deviceregistry.db.{
   InstalledPackages,
   TaggedDeviceRepository
 }
-import com.advancedtelematic.deviceregistry.messages.DeviceCreated
+import com.advancedtelematic.director.deviceregistry.messages.DeviceCreated
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
 import com.advancedtelematic.libats.http.Errors.JsonError
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*

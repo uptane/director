@@ -6,31 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes.*
 import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
-import com.advancedtelematic.deviceregistry.common.Errors.Codes
-import com.advancedtelematic.deviceregistry.common.{Errors, PackageStat}
-import com.advancedtelematic.deviceregistry.daemon.DeviceSeenListener
-import com.advancedtelematic.deviceregistry.data.Codecs.*
-import com.advancedtelematic.deviceregistry.data.DataType.{
+import com.advancedtelematic.director.deviceregistry.common.Errors.Codes
+import com.advancedtelematic.director.deviceregistry.common.{Errors, PackageStat}
+import com.advancedtelematic.director.deviceregistry.daemon.DeviceSeenListener
+import com.advancedtelematic.director.deviceregistry.data.Codecs.*
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceT,
   DevicesQuery,
   RenameTagId,
   TagInfo,
   UpdateHibernationStatusRequest
 }
-import com.advancedtelematic.deviceregistry.data.DeviceName.validatedDeviceType
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.*
-import com.advancedtelematic.deviceregistry.db.InstalledPackages.{DevicesCount, InstalledPackage}
-import com.advancedtelematic.deviceregistry.db.{InstalledPackages, TaggedDeviceRepository}
+import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.*
+import com.advancedtelematic.director.deviceregistry.db.InstalledPackages.{DevicesCount, InstalledPackage}
+import com.advancedtelematic.director.deviceregistry.db.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.deviceregistry.data.DeviceStatus.*
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
@@ -53,7 +53,7 @@ import java.util.UUID
 class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventually {
 
   import Device.*
-  import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
+  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   private implicit val exec: scala.concurrent.ExecutionContextExecutor = system.dispatcher
@@ -449,7 +449,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   private[this] implicit val InstalledPackageDecoderInstance: io.circe.Decoder[
-    com.advancedtelematic.deviceregistry.db.InstalledPackages.InstalledPackage
+    com.advancedtelematic.director.deviceregistry.db.InstalledPackages.InstalledPackage
   ] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs.*
     io.circe.generic.semiauto.deriveDecoder[InstalledPackage]

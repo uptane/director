@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.messages
+package com.advancedtelematic.director.deviceregistry.messages
 
 import java.time.Instant
 
@@ -22,7 +22,7 @@ object DeviceActivated {
   import com.advancedtelematic.libats.codecs.CirceCodecs._
 
   implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[
-    com.advancedtelematic.deviceregistry.messages.DeviceActivated
+    com.advancedtelematic.director.deviceregistry.messages.DeviceActivated
   ] = MessageLike.derive[DeviceActivated](_.uuid.show)
 
 }

@@ -6,19 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
-import com.advancedtelematic.deviceregistry.GroupMembership
-import com.advancedtelematic.deviceregistry.common.Errors.Codes.MalformedInput
-import com.advancedtelematic.deviceregistry.data.Codecs.*
-import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
-import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
+import com.advancedtelematic.director.deviceregistry.GroupMembership
+import com.advancedtelematic.director.deviceregistry.common.Errors.Codes.MalformedInput
+import com.advancedtelematic.director.deviceregistry.data.Codecs.*
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import org.scalacheck.Arbitrary.*
@@ -64,7 +64,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     }
   }
 
-  import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
+  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 
   test("DELETE deletes a static group and its members") {
     val groupId = createStaticGroupOk()

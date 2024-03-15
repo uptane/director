@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -22,9 +22,9 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceEventMessage
 }
 import EventJournalSpec.EventPayload
-import com.advancedtelematic.deviceregistry.daemon.DeviceEventListener
-import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.deviceregistry.http.ResourcePropSpec
+import com.advancedtelematic.director.deviceregistry.daemon.DeviceEventListener
+import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.director.deviceregistry.http.ResourcePropSpec
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import io.circe.generic.semiauto.*
 import io.circe.testing.ArbitraryInstances
@@ -63,7 +63,7 @@ class EventJournalSpec
     with Eventually
     with ArbitraryInstances {
 
-  import com.advancedtelematic.deviceregistry.data.GeneratorOps._
+  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps._
   import io.circe.syntax._
 
   implicit override val patienceConfig =

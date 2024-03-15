@@ -1,10 +1,10 @@
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directive1, Route}
-import com.advancedtelematic.deviceregistry.data.Codecs.ObservationPublishResultCodec
-import com.advancedtelematic.deviceregistry.data.DataType.ObservationPublishResult
+import com.advancedtelematic.director.deviceregistry.data.Codecs.ObservationPublishResultCodec
+import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPublishResult
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType

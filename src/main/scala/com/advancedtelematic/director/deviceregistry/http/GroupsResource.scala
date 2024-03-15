@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import akka.http.scaladsl.marshalling.Marshaller.*
 import akka.http.scaladsl.model.StatusCodes
@@ -18,20 +18,20 @@ import akka.stream.scaladsl.Framing.FramingException
 import akka.stream.scaladsl.{Framing, Sink, Source}
 import akka.util.ByteString
 import cats.syntax.either.*
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.data.*
-import com.advancedtelematic.deviceregistry.data.Codecs.*
-import com.advancedtelematic.deviceregistry.data.DataType.UpdateHibernationStatusRequest
-import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.db.{
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.data.*
+import com.advancedtelematic.director.deviceregistry.data.Codecs.*
+import com.advancedtelematic.director.deviceregistry.data.DataType.UpdateHibernationStatusRequest
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.db.{
   DeviceRepository,
   GroupInfoRepository,
   GroupMemberRepository
 }
-import com.advancedtelematic.deviceregistry.{AllowUUIDPath, GroupMembership}
+import com.advancedtelematic.director.deviceregistry.{AllowUUIDPath, GroupMembership}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*

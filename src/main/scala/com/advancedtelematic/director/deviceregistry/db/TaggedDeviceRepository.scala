@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -6,12 +6,12 @@ import com.advancedtelematic.libats.slick.db.SlickAnyVal.stringAnyValSerializer
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.data.DataType.{TagInfo, TaggedDevice}
-import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.deviceregistry.data.{Device, TagId}
-import com.advancedtelematic.deviceregistry.db.DeviceRepository.findByDeviceIdQuery
-import com.advancedtelematic.deviceregistry.db.GroupMemberRepository.{
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.data.DataType.{TagInfo, TaggedDevice}
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.{Device, TagId}
+import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.findByDeviceIdQuery
+import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.{
   addDeviceToDynamicGroups,
   deleteDynamicGroupsForDevice
 }

@@ -1,14 +1,14 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.director.deviceregistry
 
 import akka.http.scaladsl.util.FastFuture
-import com.advancedtelematic.deviceregistry.db.{DeviceRepository, GroupMemberRepository}
+import com.advancedtelematic.director.deviceregistry.db.{DeviceRepository, GroupMemberRepository}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.data.{Group, GroupExpression, GroupName, GroupType}
-import com.advancedtelematic.deviceregistry.db.GroupInfoRepository
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupType}
+import com.advancedtelematic.director.deviceregistry.db.GroupInfoRepository
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}

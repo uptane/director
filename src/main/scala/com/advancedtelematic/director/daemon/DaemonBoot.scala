@@ -29,7 +29,7 @@ import com.typesafe.config.Config
 import com.advancedtelematic.libats.http.VersionDirectives.*
 import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSupport
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
-import com.advancedtelematic.deviceregistry.daemon.{
+import com.advancedtelematic.director.deviceregistry.daemon.{
   DeviceEventListener,
   DeviceSeenListener,
   DeviceUpdateEventListener,

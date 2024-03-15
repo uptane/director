@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry.daemon
+package com.advancedtelematic.director.deviceregistry.daemon
 
 import com.advancedtelematic.libats.http.{BootAppDatabaseConfig, BootAppDefaultConfig}
 import com.advancedtelematic.libats.messaging.MessageBus

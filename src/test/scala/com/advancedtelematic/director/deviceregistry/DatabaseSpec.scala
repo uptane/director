@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.director.deviceregistry
 
 import com.advancedtelematic.libats.test.MysqlDatabaseSpec
 import com.typesafe.config.ConfigFactory

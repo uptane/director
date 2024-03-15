@@ -1,20 +1,20 @@
-package com.advancedtelematic.deviceregistry.daemon
+package com.advancedtelematic.director.deviceregistry.daemon
 
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.advancedtelematic.deviceregistry.DatabaseSpec
+import com.advancedtelematic.director.deviceregistry.DatabaseSpec
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateInFlight}
-import com.advancedtelematic.deviceregistry.data.DataType.{
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceInstallationResult,
   EcuInstallationResult
 }
-import com.advancedtelematic.deviceregistry.data.GeneratorOps._
-import com.advancedtelematic.deviceregistry.data.InstallationReportGenerators
-import com.advancedtelematic.deviceregistry.data.DeviceStatus
-import com.advancedtelematic.deviceregistry.db.InstallationReportRepository
-import com.advancedtelematic.deviceregistry.http.ResourcePropSpec
+import com.advancedtelematic.director.deviceregistry.data.GeneratorOps._
+import com.advancedtelematic.director.deviceregistry.data.InstallationReportGenerators
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.db.InstallationReportRepository
+import com.advancedtelematic.director.deviceregistry.http.ResourcePropSpec
 import io.circe.syntax._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}

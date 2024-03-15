@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.messages
+package com.advancedtelematic.director.deviceregistry.messages
 
 import java.time.Instant
 
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
-import com.advancedtelematic.deviceregistry.data.CredentialsType.CredentialsType
+import com.advancedtelematic.director.deviceregistry.data.CredentialsType.CredentialsType
 
 final case class DevicePublicCredentialsSet(namespace: Namespace,
                                             uuid: DeviceId,
@@ -27,7 +27,7 @@ object DevicePublicCredentialsSet {
   import com.advancedtelematic.libats.codecs.CirceCodecs._
 
   implicit val MessageLikeInstance: com.advancedtelematic.libats.messaging_datatype.MessageLike[
-    com.advancedtelematic.deviceregistry.messages.DevicePublicCredentialsSet
+    com.advancedtelematic.director.deviceregistry.messages.DevicePublicCredentialsSet
   ] = MessageLike.derive[DevicePublicCredentialsSet](_.uuid.show)
 
 }

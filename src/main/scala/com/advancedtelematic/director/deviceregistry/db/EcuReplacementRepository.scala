@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import java.time.Instant
 
@@ -20,7 +20,7 @@ import com.advancedtelematic.libats.slick.db.SlickResultExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.dbMapping
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, ValidHardwareIdentifier}
-import com.advancedtelematic.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.common.Errors
 import eu.timepit.refined.refineV
 import io.circe.Json
 import io.circe.syntax._

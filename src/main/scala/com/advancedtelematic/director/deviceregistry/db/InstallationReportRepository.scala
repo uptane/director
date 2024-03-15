@@ -1,11 +1,11 @@
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import java.time.Instant
 
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, ResultCode}
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuInstallationReport}
-import com.advancedtelematic.deviceregistry.data.DataType.{
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceInstallationResult,
   EcuInstallationResult,
   InstallationStat

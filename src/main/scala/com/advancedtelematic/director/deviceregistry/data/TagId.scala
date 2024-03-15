@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import com.advancedtelematic.libats.codecs.CirceValidatedGeneric.{
   validatedGenericDecoder,
@@ -12,7 +12,7 @@ final case class TagId(value: String) // extends AnyVal
 object TagId {
 
   implicit val validatedTagId: com.advancedtelematic.libats.data.ValidatedGeneric[
-    com.advancedtelematic.deviceregistry.data.TagId,
+    com.advancedtelematic.director.deviceregistry.data.TagId,
     String
   ] = new ValidatedGeneric[TagId, String] {
     override def to(expression: TagId): String = expression.value

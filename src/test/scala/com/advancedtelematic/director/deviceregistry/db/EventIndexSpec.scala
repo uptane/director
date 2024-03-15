@@ -1,12 +1,12 @@
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
 import java.time.Instant
 import cats.syntax.option.*
-import com.advancedtelematic.deviceregistry.DatabaseSpec
+import com.advancedtelematic.director.deviceregistry.DatabaseSpec
 import com.advancedtelematic.libats.data.DataType.{CampaignId, CorrelationId, MultiTargetUpdateId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
-import com.advancedtelematic.deviceregistry.data.DataType.{IndexedEvent, IndexedEventType}
-import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
+import com.advancedtelematic.director.deviceregistry.data.DataType.{IndexedEvent, IndexedEventType}
+import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 import io.circe.Json
 import io.circe.syntax.*
 import org.scalacheck.Gen

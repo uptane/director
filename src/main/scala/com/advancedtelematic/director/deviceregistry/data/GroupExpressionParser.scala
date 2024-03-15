@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import atto.Atto._
 import atto._
@@ -9,11 +9,11 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.data.GroupExpressionAST._
-import com.advancedtelematic.deviceregistry.data.TagId.validatedTagId
-import com.advancedtelematic.deviceregistry.db.DeviceRepository.devices
-import com.advancedtelematic.deviceregistry.db.TaggedDeviceRepository.taggedDevices
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST._
+import com.advancedtelematic.director.deviceregistry.data.TagId.validatedTagId
+import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.devices
+import com.advancedtelematic.director.deviceregistry.db.TaggedDeviceRepository.taggedDevices
 import slick.jdbc.MySQLProfile.api._
 import slick.lifted.Rep
 

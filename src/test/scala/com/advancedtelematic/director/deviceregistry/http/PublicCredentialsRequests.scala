@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
-import com.advancedtelematic.deviceregistry.data.Codecs.*
-import com.advancedtelematic.deviceregistry.data.CredentialsType.CredentialsType
-import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.deviceregistry.data.DeviceName.validatedDeviceType
-import com.advancedtelematic.deviceregistry.http.PublicCredentialsResource.FetchPublicCredentials
+import com.advancedtelematic.director.deviceregistry.data.Codecs.*
+import com.advancedtelematic.director.deviceregistry.data.CredentialsType.CredentialsType
+import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
+import com.advancedtelematic.director.deviceregistry.http.PublicCredentialsResource.FetchPublicCredentials
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 
 import java.util.Base64
@@ -21,7 +21,7 @@ import java.util.Base64
 trait PublicCredentialsRequests { self: ResourceSpec =>
 
   import StatusCodes.*
-  import com.advancedtelematic.deviceregistry.data.Device.*
+  import com.advancedtelematic.director.deviceregistry.data.Device.*
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   private val credentialsApi = "devices"

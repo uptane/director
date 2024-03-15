@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.director.deviceregistry
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher

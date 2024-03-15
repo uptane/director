@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
-import com.advancedtelematic.deviceregistry.data.{
+import com.advancedtelematic.director.deviceregistry.data.{
   Group,
   GroupExpression,
   GroupName,
   GroupType,
   TagId
 }
-import com.advancedtelematic.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.deviceregistry.data.GroupSortBy.GroupSortBy
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 
 import java.time.Instant
 import com.advancedtelematic.libats.data.DataType.Namespace
@@ -24,14 +24,14 @@ import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.deviceregistry.common.Errors
-import com.advancedtelematic.deviceregistry.data
-import com.advancedtelematic.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.deviceregistry.db.DbOps.{
+import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.deviceregistry.data
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.db.DbOps.{
   PaginationResultOps,
   SortBySlickOrderedGroupConversion
 }
-import com.advancedtelematic.deviceregistry.db.SlickMappings.*
+import com.advancedtelematic.director.deviceregistry.db.SlickMappings.*
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}

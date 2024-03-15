@@ -1,14 +1,14 @@
-package com.advancedtelematic.deviceregistry.device_monitoring
+package com.advancedtelematic.director.deviceregistry.device_monitoring
 
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
-import com.advancedtelematic.deviceregistry.data.DeviceGenerators
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
-import com.advancedtelematic.deviceregistry.data.DataType.ObservationPublishResult
-import com.advancedtelematic.deviceregistry.http.{Resource, ResourceSpec}
+import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPublishResult
+import com.advancedtelematic.director.deviceregistry.http.{Resource, ResourceSpec}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalatest.EitherValues.*
 import org.scalatest.OptionValues.*
@@ -136,7 +136,7 @@ class DeviceMonitoringResourceSpec
     with ScalaFutures
     with DeviceGenerators {
 
-  import com.advancedtelematic.deviceregistry.data.GeneratorOps._
+  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps._
 
   override implicit def patienceConfig: PatienceConfig =
     super.patienceConfig.copy(timeout = Span(3, Seconds))
@@ -199,7 +199,7 @@ class DeviceMonitoringResourceSpecBadMsgPub
     with ScalaFutures
     with DeviceGenerators {
 
-  import com.advancedtelematic.deviceregistry.data.GeneratorOps._
+  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps._
 
   override implicit def patienceConfig: PatienceConfig =
     super.patienceConfig.copy(timeout = Span(3, Seconds))
@@ -207,7 +207,7 @@ class DeviceMonitoringResourceSpecBadMsgPub
   override lazy val messageBus: BadMessageBus = new BadMessageBus()
 
   test("Buffered metrics that failed to be published are returned with partial results body") {
-    import com.advancedtelematic.deviceregistry.data.Codecs.ObservationPublishResultCodec
+    import com.advancedtelematic.director.deviceregistry.data.Codecs.ObservationPublishResultCodec
     val uuid = createDeviceOk(genDeviceT.generate)
 
     Post(

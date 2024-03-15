@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.data
+package com.advancedtelematic.director.deviceregistry.data
 
 import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
@@ -14,8 +14,8 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import cats.Show
 import cats.syntax.show.*
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.deviceregistry.data.Device.{DeviceOemId, DeviceType}
-import com.advancedtelematic.deviceregistry.data.DeviceStatus.*
+import com.advancedtelematic.director.deviceregistry.data.Device.{DeviceOemId, DeviceType}
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
 import io.circe.{Decoder, Encoder}
 
 final case class Device(namespace: Namespace,
@@ -65,14 +65,14 @@ object Device {
   }
 
   implicit val EncoderInstance
-    : io.circe.Encoder.AsObject[com.advancedtelematic.deviceregistry.data.Device] = {
+    : io.circe.Encoder.AsObject[com.advancedtelematic.director.deviceregistry.data.Device] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
     import Codecs.deviceOemIdEncoder
     io.circe.generic.semiauto.deriveEncoder[Device]
   }
 
   implicit val DecoderInstance
-    : io.circe.Decoder[com.advancedtelematic.deviceregistry.data.Device] = {
+    : io.circe.Decoder[com.advancedtelematic.director.deviceregistry.data.Device] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
     import Codecs.deviceOemIdDecoder
     io.circe.generic.semiauto.deriveDecoder[Device]
@@ -91,11 +91,11 @@ object Device {
   object ActiveDeviceCount {
 
     implicit val EncoderInstance
-      : io.circe.Encoder[com.advancedtelematic.deviceregistry.data.Device.ActiveDeviceCount] =
+      : io.circe.Encoder[com.advancedtelematic.director.deviceregistry.data.Device.ActiveDeviceCount] =
       Encoder.encodeInt.contramap[ActiveDeviceCount](_.deviceCount)
 
     implicit val DecoderInstance
-      : io.circe.Decoder[com.advancedtelematic.deviceregistry.data.Device.ActiveDeviceCount] =
+      : io.circe.Decoder[com.advancedtelematic.director.deviceregistry.data.Device.ActiveDeviceCount] =
       Decoder.decodeInt.map(ActiveDeviceCount.apply)
 
   }

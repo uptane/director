@@ -6,16 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.db
+package com.advancedtelematic.director.deviceregistry.db
 
-import com.advancedtelematic.deviceregistry.DatabaseSpec
-import com.advancedtelematic.deviceregistry.data.Namespaces
+import com.advancedtelematic.director.deviceregistry.DatabaseSpec
+import com.advancedtelematic.director.deviceregistry.data.Namespaces
 
 import java.time.Instant
 import com.advancedtelematic.libats.test.LongTest
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
-import com.advancedtelematic.deviceregistry.data.DeviceGenerators.{genDeviceId, genDeviceT}
-import com.advancedtelematic.deviceregistry.data.DataType.DeletedDevice
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.{genDeviceId, genDeviceT}
+import com.advancedtelematic.director.deviceregistry.data.DataType.DeletedDevice
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.LoneElement.*

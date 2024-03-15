@@ -1,4 +1,4 @@
-package com.advancedtelematic.deviceregistry
+package com.advancedtelematic.director.deviceregistry
 
 import akka.http.scaladsl.model.ContentType.WithFixedCharset
 import akka.http.scaladsl.model.HttpCharsets.`UTF-8`

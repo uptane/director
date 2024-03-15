@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.deviceregistry.http
+package com.advancedtelematic.director.deviceregistry.http
 
 import akka.Done
 import akka.http.scaladsl.model.StatusCodes
@@ -15,10 +15,10 @@ import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.{Directive1, Route}
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 import cats.syntax.option.*
-import com.advancedtelematic.deviceregistry.SystemInfoUpdatePublisher
-import com.advancedtelematic.deviceregistry.common.Errors.{Codes, MissingSystemInfo}
-import com.advancedtelematic.deviceregistry.db.SystemInfoRepository
-import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.NetworkInfo
+import com.advancedtelematic.director.deviceregistry.SystemInfoUpdatePublisher
+import com.advancedtelematic.director.deviceregistry.common.Errors.{Codes, MissingSystemInfo}
+import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository
+import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.Errors.RawError
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
