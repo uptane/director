@@ -1,20 +1,20 @@
 package com.advancedtelematic.director.deviceregistry.data
 
-import atto.Atto._
-import atto._
+import atto.Atto.*
+import atto.*
 import cats.data.NonEmptyList
-import cats.syntax.either._
+import cats.syntax.either.*
 import com.advancedtelematic.libats.http.Errors.RawError
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.slick.db.SlickExtensions._
-import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
+import com.advancedtelematic.libats.slick.db.SlickExtensions.*
+import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.director.deviceregistry.common.Errors
-import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST._
+import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST.*
 import com.advancedtelematic.director.deviceregistry.data.TagId.validatedTagId
-import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.devices
-import com.advancedtelematic.director.deviceregistry.db.TaggedDeviceRepository.taggedDevices
-import slick.jdbc.MySQLProfile.api._
+import com.advancedtelematic.director.deviceregistry.db.Schema.DeviceTable
+import com.advancedtelematic.director.deviceregistry.db.TaggedDeviceRepository.TaggedDeviceTable
+import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.Rep
 
 object GroupExpressionAST {
@@ -62,8 +62,10 @@ object GroupExpressionAST {
   case class And(cond: NonEmptyList[Expression]) extends Expression
   case class Not(exp: Expression) extends Expression
 
-  def compileToSlick(groupExpression: GroupExpression): DeviceIdsQuery => DeviceIdsQuery =
-    compileString(groupExpression.value, eval)
+  def compileToSlick(groupExpression: GroupExpression)(
+    implicit devices: TableQuery[DeviceTable],
+    taggedDevices: TableQuery[TaggedDeviceTable]): DeviceIdsQuery => DeviceIdsQuery =
+    compileString(groupExpression.value, exp => eval(exp))
 
   def compileToScala(groupExpression: GroupExpression): (Device, Map[TagId, String]) => Boolean =
     compileString(groupExpression.value, evalToScala)
@@ -101,7 +103,9 @@ object GroupExpressionAST {
       (d: Device, tds: Map[TagId, String]) => !evalToScala(e)(d, tds)
   }
 
-  def eval(exp: Expression): DeviceIdsQuery => DeviceIdsQuery = exp match {
+  def eval(exp: Expression)(
+    implicit devices: TableQuery[DeviceTable],
+    taggedDevices: TableQuery[TaggedDeviceTable]): DeviceIdsQuery => DeviceIdsQuery = exp match {
     case DeviceIdContains(word) =>
       (q: DeviceIdsQuery) =>
         val a = devices.filter(_.rawId.toLowerCase.like("%" + word.toLowerCase + "%")).map(_.uuid)
@@ -143,7 +147,7 @@ object GroupExpressionAST {
 
     case Not(e) =>
       (q: DeviceIdsQuery) =>
-        val yes = eval(e)(q)
+        val yes = eval(e)(devices, taggedDevices)(q)
         q.filterNot(_.in(yes))
   }
 

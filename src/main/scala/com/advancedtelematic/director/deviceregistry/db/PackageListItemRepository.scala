@@ -12,7 +12,7 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.{
   PackageListItemCount
 }
 import com.advancedtelematic.director.deviceregistry.data.PackageId
-import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.devices
+import com.advancedtelematic.director.deviceregistry.db.Schema.devices
 import com.advancedtelematic.director.deviceregistry.db.InstalledPackages.installedPackages
 import com.advancedtelematic.director.deviceregistry.db.SlickMappings._
 import slick.jdbc.MySQLProfile.api._

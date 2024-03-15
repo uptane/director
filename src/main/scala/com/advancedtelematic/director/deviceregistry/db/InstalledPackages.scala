@@ -98,7 +98,7 @@ object InstalledPackages {
     for {
       devices <- installedPackages
         .filter(p => p.name === pkg.name && p.version === pkg.version)
-        .join(DeviceRepository.devices)
+        .join(Schema.devices)
         .on(_.device === _.uuid)
         .filter(_._2.namespace === ns)
         .map(_._1.device)
@@ -109,7 +109,7 @@ object InstalledPackages {
         .filter(p => p.name === pkg.name && p.version === pkg.version)
         .join(GroupMemberRepository.groupMembers)
         .on(_.device === _.deviceUuid)
-        .join(DeviceRepository.devices)
+        .join(Schema.devices)
         .on(_._2.deviceUuid === _.uuid)
         .filter(_._2.namespace === ns)
         .map(_._1._2.groupId)
@@ -122,7 +122,7 @@ object InstalledPackages {
     (PackageId.Name, PackageId.Version),
     Seq
   ] =
-    DeviceRepository.devices
+    Schema.devices
       .filter(_.namespace === ns)
       .join(installedPackages)
       .on(_.uuid === _.device)
@@ -159,7 +159,7 @@ object InstalledPackages {
   def allInstalledPackagesById(namespace: Namespace,
                                ids: Set[PackageId]): DBIO[Seq[(DeviceId, PackageId)]] =
     inSetQuery(ids)
-      .join(DeviceRepository.devices)
+      .join(Schema.devices)
       .on(_.device === _.uuid)
       .filter(_._2.namespace === namespace)
       .map(r => (r._1.device, LiftedPackageId(r._1.name, r._1.version)))
@@ -172,7 +172,7 @@ object InstalledPackages {
     implicit ec: ExecutionContext): DBIO[PaginationResult[PackageStat]] = {
     val query = installedPackages
       .filter(_.name === name)
-      .join(DeviceRepository.devices)
+      .join(Schema.devices)
       .on(_.device === _.uuid)
       .filter(_._2.namespace === ns)
       .groupBy(_._1.version)

@@ -45,59 +45,9 @@ import slick.lifted.Rep
 
 import java.sql.Timestamp
 import scala.annotation.unused
+import Schema.*
 
 object DeviceRepository {
-
-  private[this] implicit val DeviceStatusColumnType: BaseColumnType[DeviceStatus.Value] =
-    MappedColumnType.base[DeviceStatus.Value, String](_.toString, DeviceStatus.withName)
-
-  // scalastyle:off
-  class DeviceTable(tag: Tag) extends Table[Device](tag, "Device") {
-    def namespace = column[Namespace]("namespace")
-    def uuid = column[DeviceId]("uuid")
-    def deviceName = column[DeviceName]("device_name")
-    def deviceId = column[DeviceOemId]("device_id")
-    def rawId = column[String]("device_id")
-    def deviceType = column[DeviceType]("device_type")
-    def lastSeen = column[Option[Instant]]("last_seen")(javaInstantMapping.optionType)
-    def createdAt = column[Instant]("created_at")(javaInstantMapping)
-    def activatedAt = column[Option[Instant]]("activated_at")(javaInstantMapping.optionType)
-    def deviceStatus = column[DeviceStatus]("device_status")
-    def notes = column[Option[String]]("notes")
-    def hibernated = column[Boolean]("hibernated")
-
-    def * =
-      (
-        namespace,
-        uuid,
-        deviceName,
-        deviceId,
-        deviceType,
-        lastSeen,
-        createdAt,
-        activatedAt,
-        deviceStatus,
-        notes,
-        hibernated
-      ).shaped <> ((Device.apply _).tupled, Device.unapply)
-
-    def pk = primaryKey("uuid", uuid)
-  }
-
-  // scalastyle:on
-  val devices = TableQuery[DeviceTable]
-
-  class DeletedDeviceTable(tag: Tag) extends Table[DeletedDevice](tag, "DeletedDevice") {
-    def namespace = column[Namespace]("namespace")
-    def uuid = column[DeviceId]("device_uuid")
-    def deviceId = column[DeviceOemId]("device_id")
-
-    def * =
-      (namespace, uuid, deviceId).shaped <>
-        ((DeletedDevice.apply _).tupled, DeletedDevice.unapply)
-
-    def pk = primaryKey("pk_deleted_device", (namespace, uuid, deviceId))
-  }
 
   val deletedDevices = TableQuery[DeletedDeviceTable]
 
@@ -152,7 +102,7 @@ object DeviceRepository {
 
   def devicesForExpressionQuery(ns: Namespace, expression: GroupExpression) = {
     val all = devices.filter(_.namespace === ns).map(_.uuid)
-    GroupExpressionAST.compileToSlick(expression)(all).distinct
+    GroupExpressionAST.compileToSlick(expression)(Schema.devices, TaggedDeviceRepository.taggedDevices)(all).distinct
   }
 
   def searchByExpression(ns: Namespace, expression: GroupExpression): DBIO[Seq[DeviceId]] =

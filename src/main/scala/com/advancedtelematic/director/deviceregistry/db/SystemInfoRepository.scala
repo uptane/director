@@ -151,7 +151,7 @@ object SystemInfoRepository {
   def addUniqueIdNrs(j: Json): Json = addUniqueIdsSIM(j).run(0).value._2
 
   def list(ns: Namespace): DBIO[Seq[SystemInfo]] =
-    DeviceRepository.devices
+    Schema.devices
       .filter(_.namespace === ns)
       .join(systemInfos)
       .on(_.uuid === _.uuid)

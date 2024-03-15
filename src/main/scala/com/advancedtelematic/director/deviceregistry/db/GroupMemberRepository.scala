@@ -157,7 +157,7 @@ object GroupMemberRepository {
     for {
       _ <- GroupInfoRepository.updateSmartGroupExpression(groupId, newExpression)
       _ <- groupMembers.filter(_.groupId === groupId).delete
-      devs <- DeviceRepository.devices.filter(_.namespace === namespace).result
+      devs <- Schema.devices.filter(_.namespace === namespace).result
       _ <- DBIO.sequence(devs.map(GroupMemberRepository.addDeviceToDynamicGroups(namespace, _)))
     } yield ()
 

@@ -5,7 +5,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSor
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.director.deviceregistry.data.{DeviceSortBy, GroupSortBy, SortDirection}
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
-import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.DeviceTable
+import com.advancedtelematic.director.deviceregistry.db.Schema.DeviceTable
 import com.advancedtelematic.director.deviceregistry.db.GroupInfoRepository.GroupInfoTable
 import slick.ast.Ordering
 import slick.jdbc.MySQLProfile.api._
