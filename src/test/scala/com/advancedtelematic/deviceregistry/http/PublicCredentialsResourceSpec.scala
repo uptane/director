@@ -17,6 +17,7 @@ import io.circe.generic.auto.*
 import org.scalacheck.{Arbitrary, Gen}
 
 class PublicCredentialsResourceSpec extends ResourcePropSpec {
+
   import Device.*
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
@@ -29,7 +30,7 @@ class PublicCredentialsResourceSpec extends ResourcePropSpec {
 
   property("GET requests fails on non-existent device") {
     forAll { (uuid: DeviceId) =>
-      fetchPublicCredentials(uuid) ~> route ~> check { status shouldBe NotFound }
+      fetchPublicCredentials(uuid) ~> route ~> check(status shouldBe NotFound)
     }
   }
 
@@ -68,21 +69,27 @@ class PublicCredentialsResourceSpec extends ResourcePropSpec {
   }
 
   property("Type of credentials is set correctly") {
-    forAll { (deviceId: DeviceOemId, mdevT: DeviceT, creds: String, cType: CredentialsType.CredentialsType) =>
-      val devT = mdevT.copy(deviceId = deviceId, credentials = Some(creds), credentialsType = Some(cType))
-      val uuid: DeviceId = createDeviceWithCredentials(devT) ~> route ~> check {
-        status shouldBe OK
-        responseAs[DeviceId]
-      }
+    forAll {
+      (deviceId: DeviceOemId,
+       mdevT: DeviceT,
+       creds: String,
+       cType: CredentialsType.CredentialsType) =>
+        val devT =
+          mdevT.copy(deviceId = deviceId, credentials = Some(creds), credentialsType = Some(cType))
+        val uuid: DeviceId = createDeviceWithCredentials(devT) ~> route ~> check {
+          status shouldBe OK
+          responseAs[DeviceId]
+        }
 
-      fetchPublicCredentials(uuid) ~> route ~> check {
-        status shouldBe OK
-        val dev = responseAs[FetchPublicCredentials]
+        fetchPublicCredentials(uuid) ~> route ~> check {
+          status shouldBe OK
+          val dev = responseAs[FetchPublicCredentials]
 
-        dev.uuid shouldBe uuid
-        dev.credentialsType shouldBe cType
-        dev.credentials shouldBe creds
-      }
+          dev.uuid shouldBe uuid
+          dev.credentialsType shouldBe cType
+          dev.credentials shouldBe creds
+        }
     }
   }
+
 }

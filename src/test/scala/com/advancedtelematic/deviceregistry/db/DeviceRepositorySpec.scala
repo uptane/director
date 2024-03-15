@@ -26,21 +26,25 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-class DeviceRepositorySpec extends AnyFunSuite with DatabaseSpec with ScalaFutures with Matchers with LongTest {
+class DeviceRepositorySpec
+    extends AnyFunSuite
+    with DatabaseSpec
+    with ScalaFutures
+    with Matchers
+    with LongTest {
 
   test("updateLastSeen sets activated_at the first time only") {
 
     val device = genDeviceT.sample.get.copy(deviceId = genDeviceId.sample.get)
     val setTwice = for {
-      uuid   <- DeviceRepository.create(Namespaces.defaultNs, device)
-      first  <- DeviceRepository.updateLastSeen(uuid, Instant.now()).map(_._1)
+      uuid <- DeviceRepository.create(Namespaces.defaultNs, device)
+      first <- DeviceRepository.updateLastSeen(uuid, Instant.now()).map(_._1)
       second <- DeviceRepository.updateLastSeen(uuid, Instant.now()).map(_._1)
     } yield (first, second)
 
-    whenReady(db.run(setTwice), Timeout(Span(10, Seconds))) {
-      case (f, s) =>
-        f shouldBe true
-        s shouldBe false
+    whenReady(db.run(setTwice), Timeout(Span(10, Seconds))) { case (f, s) =>
+      f shouldBe true
+      s shouldBe false
     }
   }
 
@@ -50,8 +54,12 @@ class DeviceRepositorySpec extends AnyFunSuite with DatabaseSpec with ScalaFutur
     val createDevice = for {
       uuid <- DeviceRepository.create(Namespaces.defaultNs, device)
       now = Instant.now()
-      _     <- DeviceRepository.updateLastSeen(uuid, now)
-      count <- DeviceRepository.countActivatedDevices(Namespaces.defaultNs, now.minusMillis(1), now.plusSeconds(100))
+      _ <- DeviceRepository.updateLastSeen(uuid, now)
+      count <- DeviceRepository.countActivatedDevices(
+        Namespaces.defaultNs,
+        now.minusMillis(1),
+        now.plusSeconds(100)
+      )
     } yield count
 
     whenReady(db.run(createDevice), Timeout(Span(10, Seconds))) { count =>
@@ -65,15 +73,19 @@ class DeviceRepositorySpec extends AnyFunSuite with DatabaseSpec with ScalaFutur
 
     db.run(DeviceRepository.delete(Namespaces.defaultNs, deviceUuid)).futureValue
 
-    val deletedDevices = db.run(
-      DeviceRepository.deletedDevices
-        .filter(_.uuid === deviceUuid)
-        .result
-    ).futureValue
+    val deletedDevices = db
+      .run(
+        DeviceRepository.deletedDevices
+          .filter(_.uuid === deviceUuid)
+          .result
+      )
+      .futureValue
 
     deletedDevices.loneElement shouldBe DeletedDevice(
       Namespaces.defaultNs,
       deviceUuid,
-      deviceT.deviceId)
+      deviceT.deviceId
+    )
   }
+
 }

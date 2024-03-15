@@ -18,7 +18,14 @@ import cats.syntax.show.*
 import com.advancedtelematic.deviceregistry.data.*
 import com.advancedtelematic.deviceregistry.data.Codecs.*
 import com.advancedtelematic.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, SetDevice, TagInfo, UpdateDevice, UpdateTagValue}
+import com.advancedtelematic.deviceregistry.data.DataType.{
+  DeviceT,
+  DevicesQuery,
+  SetDevice,
+  TagInfo,
+  UpdateDevice,
+  UpdateTagValue
+}
 import com.advancedtelematic.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
@@ -32,11 +39,10 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import java.time.{Instant, OffsetDateTime}
 
-/**
-  * Generic test resource object
-  * Used in property-based testing
+/** Generic test resource object Used in property-based testing
   */
 object Resource {
+
   def uri(pathSuffixes: String*): Uri = {
     val BasePath = Path("/api") / "v1"
     Uri.Empty.withPath(pathSuffixes.foldLeft(BasePath)(_ / _))
@@ -46,10 +52,10 @@ object Resource {
     val BasePath = Path("/api") / "v2"
     Uri.Empty.withPath(pathSuffixes.foldLeft(BasePath)(_ / _))
   }
+
 }
 
-/**
-  * Testing Trait for building Device requests
+/** Testing Trait for building Device requests
   */
 trait DeviceRequests { self: ResourceSpec =>
 
@@ -73,9 +79,10 @@ trait DeviceRequests { self: ResourceSpec =>
       responseAs[Device]
     }
 
-  def listDevices(sortBy: Option[DeviceSortBy] = None, sortDirection: Option[SortDirection] = None): HttpRequest = {
+  def listDevices(sortBy: Option[DeviceSortBy] = None,
+                  sortDirection: Option[SortDirection] = None): HttpRequest = {
     val m = (sortBy, sortDirection) match {
-      case (None, _) => Map.empty[String, String]
+      case (None, _)          => Map.empty[String, String]
       case (Some(sort), None) => Map("sortBy" -> sort.toString)
       case (Some(sort), Some(sortDir)) =>
         Map("sortBy" -> sort.toString, "sortDirection" -> sortDir.toString)
@@ -83,7 +90,8 @@ trait DeviceRequests { self: ResourceSpec =>
     Get(Resource.uri(api).withQuery(Query(m)))
   }
 
-  def listDevicesByUuids(deviceUuids: Seq[DeviceId], sortBy: Option[DeviceSortBy] = None): HttpRequest = {
+  def listDevicesByUuids(deviceUuids: Seq[DeviceId],
+                         sortBy: Option[DeviceSortBy] = None): HttpRequest = {
     val m = sortBy.fold(Map.empty[String, String])(s => Map("sortBy" -> s.toString))
     Get(Resource.uri(api).withQuery(Query(m)), DevicesQuery(None, Some(deviceUuids.toList)))
   }
@@ -103,8 +111,7 @@ trait DeviceRequests { self: ResourceSpec =>
                     lastSeenEnd: Option[Instant] = None,
                     createdAtStart: Option[Instant] = None,
                     createdAtEnd: Option[Instant] = None,
-                    namespace: Namespace = defaultNs
-                   ): HttpRequest = {
+                    namespace: Namespace = defaultNs): HttpRequest = {
     val m = Seq(
       status.map("status" -> _.toString),
       hibernated.map("hibernated" -> _.toString),
@@ -121,13 +128,12 @@ trait DeviceRequests { self: ResourceSpec =>
   def fetchByDeviceId(deviceId: DeviceOemId,
                       nameContains: Option[String] = None,
                       groupId: Option[GroupId] = None,
-                      notSeenSinceHours: Option[Int] = None,
-                     ): HttpRequest = {
+                      notSeenSinceHours: Option[Int] = None): HttpRequest = {
     val m = Seq(
       deviceId.some.map("deviceId" -> _.show),
       nameContains.map("nameContains" -> _.show),
       groupId.map("groupId" -> _.show),
-      notSeenSinceHours.map("notSeenSinceHours" -> _.show),
+      notSeenSinceHours.map("notSeenSinceHours" -> _.show)
     ).collect { case Some(a) => a }
     Get(Resource.uri(api).withQuery(Query(m.toMap)))
   }
@@ -151,12 +157,18 @@ trait DeviceRequests { self: ResourceSpec =>
     )
 
   def fetchNotSeenSince(hours: Int): HttpRequest =
-    Get(Resource.uri(api).withQuery(Query("notSeenSinceHours" -> hours.toString, "limit" -> 1000.toString)))
+    Get(
+      Resource
+        .uri(api)
+        .withQuery(Query("notSeenSinceHours" -> hours.toString, "limit" -> 1000.toString))
+    )
 
   def setDevice(uuid: DeviceId, newName: DeviceName, notes: Option[String] = None): HttpRequest =
     Put(Resource.uri(api, uuid.show), SetDevice(newName, notes))
 
-  def updateDevice(uuid: DeviceId, newName: Option[DeviceName], notes: Option[String] = None): HttpRequest =
+  def updateDevice(uuid: DeviceId,
+                   newName: Option[DeviceName],
+                   notes: Option[String] = None): HttpRequest =
     Patch(Resource.uri(api, uuid.show), UpdateDevice(newName, notes))
 
   def createDevice(device: DeviceT): HttpRequest =
@@ -166,7 +178,7 @@ trait DeviceRequests { self: ResourceSpec =>
     createDevice(device) ~> route ~> check {
       status shouldBe Created
       responseAs[DeviceId]
-  }
+    }
 
   def createDeviceInNamespaceOk(device: DeviceT, ns: Namespace): DeviceId =
     Post(Resource.uri(api), device).withNs(ns) ~> route ~> check {
@@ -203,7 +215,8 @@ trait DeviceRequests { self: ResourceSpec =>
   }
 
   def uploadSystemConfig(uuid: DeviceId, config: String): HttpRequest =
-    Post(Resource.uri(api, uuid.show, "system_info", "config")).withEntity(`application/toml`, config)
+    Post(Resource.uri(api, uuid.show, "system_info", "config"))
+      .withEntity(`application/toml`, config)
 
   def listGroupsForDevice(device: DeviceId): HttpRequest =
     Get(Resource.uri(api, device.show, "groups"))
@@ -219,7 +232,7 @@ trait DeviceRequests { self: ResourceSpec =>
   def listPackages(device: DeviceId, nameContains: Option[String] = None): HttpRequest = {
     val uri = Resource.uri("devices", device.show, "packages")
     nameContains match {
-      case None => Get(uri)
+      case None    => Get(uri)
       case Some(s) => Get(uri.withQuery(Query("nameContains" -> s)))
     }
   }
@@ -258,17 +271,27 @@ trait DeviceRequests { self: ResourceSpec =>
     Get(Resource.uriV2(api, deviceUuid.show, "events").withQuery(query))
   }
 
-  def getGroupsOfDevice(deviceUuid: DeviceId): HttpRequest = Get(Resource.uri(api, deviceUuid.show, "groups"))
+  def getGroupsOfDevice(deviceUuid: DeviceId): HttpRequest = Get(
+    Resource.uri(api, deviceUuid.show, "groups")
+  )
 
-  def getDevicesByGrouping(grouped: Boolean, groupType: Option[GroupType],
-                           nameContains: Option[String] = None, limit: Long = 2000): HttpRequest = {
+  def getDevicesByGrouping(grouped: Boolean,
+                           groupType: Option[GroupType],
+                           nameContains: Option[String] = None,
+                           limit: Long = 2000): HttpRequest = {
     val m = Map("grouped" -> grouped, "limit" -> limit) ++
-      List("groupType" -> groupType, "nameContains" -> nameContains).collect { case (k, Some(v)) => k -> v }.toMap
+      List("groupType" -> groupType, "nameContains" -> nameContains).collect { case (k, Some(v)) =>
+        k -> v
+      }.toMap
     Get(Resource.uri(api).withQuery(Query(m.view.mapValues(_.toString).toMap)))
   }
 
   def getStats(correlationId: CorrelationId, level: InstallationStatsLevel): HttpRequest =
-    Get(Resource.uri(api, "stats").withQuery(Query("correlationId" -> correlationId.toString, "level" -> level.toString)))
+    Get(
+      Resource
+        .uri(api, "stats")
+        .withQuery(Query("correlationId" -> correlationId.toString, "level" -> level.toString))
+    )
 
   def getFailedExport(correlationId: CorrelationId, failureCode: Option[String]): HttpRequest = {
     val m = Map("correlationId" -> correlationId.toString)
@@ -282,7 +305,8 @@ trait DeviceRequests { self: ResourceSpec =>
   def getInstallationReports(deviceId: DeviceId): HttpRequest =
     Get(Resource.uri(api, deviceId.show, "installation_reports"))
 
-  def postDeviceTags(tags: Seq[Seq[String]], headers: Seq[String] = Seq("DeviceID", "market", "trim")): HttpRequest = {
+  def postDeviceTags(tags: Seq[Seq[String]],
+                     headers: Seq[String] = Seq("DeviceID", "market", "trim")): HttpRequest = {
     require(tags.map(_.length == headers.length).reduce(_ && _))
 
     val csv = (headers +: tags).map(_.mkString(";")).mkString("\n")
@@ -290,7 +314,8 @@ trait DeviceRequests { self: ResourceSpec =>
       Multipart.FormData.BodyPart.Strict(
         "custom-device-fields",
         HttpEntity(ContentTypes.`text/csv(UTF-8)`, csv),
-        Map("filename" -> "test-custom-fields.csv"))
+        Map("filename" -> "test-custom-fields.csv")
+      )
     )
     Post(Resource.uri("device_tags"), multipartForm)
   }
@@ -308,7 +333,10 @@ trait DeviceRequests { self: ResourceSpec =>
     }
 
   def updateDeviceTagOk(deviceId: DeviceId, tagId: TagId, tagValue: String): Seq[(String, String)] =
-    Patch(Resource.uri(api, deviceId.show, "device_tags"), UpdateTagValue(tagId, tagValue)) ~> route ~> check {
+    Patch(
+      Resource.uri(api, deviceId.show, "device_tags"),
+      UpdateTagValue(tagId, tagValue)
+    ) ~> route ~> check {
       status shouldBe OK
       responseAs[Seq[(String, String)]]
     }
@@ -318,4 +346,5 @@ trait DeviceRequests { self: ResourceSpec =>
       status shouldBe OK
       ()
     }
+
 }

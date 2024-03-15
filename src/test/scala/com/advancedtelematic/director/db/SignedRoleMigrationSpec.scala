@@ -29,4 +29,5 @@ class SignedRoleMigrationSpec extends DirectorSpec with MysqlDatabaseSpec {
       assert(signedRole.device == deviceId)
     }
   }
+
 }

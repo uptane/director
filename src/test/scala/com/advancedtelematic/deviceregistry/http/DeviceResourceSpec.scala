@@ -17,7 +17,13 @@ import com.advancedtelematic.deviceregistry.common.Errors.Codes
 import com.advancedtelematic.deviceregistry.common.{Errors, PackageStat}
 import com.advancedtelematic.deviceregistry.daemon.DeviceSeenListener
 import com.advancedtelematic.deviceregistry.data.Codecs.*
-import com.advancedtelematic.deviceregistry.data.DataType.{DeviceT, DevicesQuery, RenameTagId, TagInfo, UpdateHibernationStatusRequest}
+import com.advancedtelematic.deviceregistry.data.DataType.{
+  DeviceT,
+  DevicesQuery,
+  RenameTagId,
+  TagInfo,
+  UpdateHibernationStatusRequest
+}
 import com.advancedtelematic.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.deviceregistry.data.*
@@ -42,8 +48,7 @@ import java.time.temporal.ChronoUnit
 import java.time.{Duration, Instant, OffsetDateTime}
 import java.util.UUID
 
-/**
-  * Spec for DeviceRepository REST actions
+/** Spec for DeviceRepository REST actions
   */
 class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventually {
 
@@ -52,7 +57,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   private implicit val exec: scala.concurrent.ExecutionContextExecutor = system.dispatcher
-  private val publisher     = new DeviceSeenListener(MessageBusPublisher.ignore)
+  private val publisher = new DeviceSeenListener(MessageBusPublisher.ignore)
 
   implicit override val patienceConfig =
     PatienceConfig(timeout = Span(30, Seconds), interval = Span(100, Millis))
@@ -64,27 +69,37 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     case None    => false
   }
 
-  private def sendDeviceSeen(uuid: DeviceId, lastSeen: Instant = Instant.now(), namespace: Namespace = defaultNs): Unit =
+  private def sendDeviceSeen(uuid: DeviceId,
+                             lastSeen: Instant = Instant.now(),
+                             namespace: Namespace = defaultNs): Unit =
     publisher(DeviceSeen(namespace, uuid, lastSeen)).futureValue
 
   private def createGroupedAndUngroupedDevices(): Map[String, Seq[DeviceId]] = {
     val deviceTs = genConflictFreeDeviceTs(12).sample.get
-    val deviceIds    = deviceTs.map(createDeviceOk)
+    val deviceIds = deviceTs.map(createDeviceOk)
     val staticGroup = createStaticGroupOk()
 
     deviceIds.take(4).foreach(addDeviceToGroupOk(staticGroup, _))
-    val expr = deviceTs.slice(4, 8).map(_.deviceId.underlying.take(6)).map(n => s"deviceid contains $n").reduce(_ + " or " + _)
+    val expr = deviceTs
+      .slice(4, 8)
+      .map(_.deviceId.underlying.take(6))
+      .map(n => s"deviceid contains $n")
+      .reduce(_ + " or " + _)
     createDynamicGroupOk(GroupExpression.from(expr).toOption.get)
 
-    Map("all" -> deviceIds, "groupedStatic" -> deviceIds.take(4),
-      "groupedDynamic" -> deviceIds.slice(4, 8), "ungrouped" -> deviceIds.drop(8))
+    Map(
+      "all" -> deviceIds,
+      "groupedStatic" -> deviceIds.take(4),
+      "groupedDynamic" -> deviceIds.slice(4, 8),
+      "ungrouped" -> deviceIds.drop(8)
+    )
   }
 
   property("GET, PUT, DELETE, and POST '/ping' request fails on non-existent device") {
     forAll { (uuid: DeviceId, device: DeviceT) =>
-      fetchDevice(uuid) ~> route ~> check { status shouldBe NotFound }
-      setDevice(uuid, device.deviceName) ~> route ~> check { status shouldBe NotFound }
-      deleteDevice(uuid) ~> route ~> check { status shouldBe NotFound }
+      fetchDevice(uuid) ~> route ~> check(status shouldBe NotFound)
+      setDevice(uuid, device.deviceName) ~> route ~> check(status shouldBe NotFound)
+      deleteDevice(uuid) ~> route ~> check(status shouldBe NotFound)
     }
   }
 
@@ -141,7 +156,6 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     }
   }
 
-
   property("GET request (for Id) after POST yields same device") {
     forAll { (devicePre: DeviceT) =>
       val uuid: DeviceId = createDeviceOk(devicePre)
@@ -173,44 +187,46 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("GET devices not seen for the last hours") {
-    forAll(sizeRange(20)) { (neverSeen: Seq[DeviceT], notSeenLately: Seq[DeviceT], seenLately: Seq[DeviceT]) =>
-      val neverSeenIds = neverSeen.map(createDeviceOk(_))
-      val notSeenLatelyIds = notSeenLately.map(createDeviceOk(_))
-      val seenLatelyIds = seenLately.map(createDeviceOk(_))
+    forAll(sizeRange(20)) {
+      (neverSeen: Seq[DeviceT], notSeenLately: Seq[DeviceT], seenLately: Seq[DeviceT]) =>
+        val neverSeenIds = neverSeen.map(createDeviceOk(_))
+        val notSeenLatelyIds = notSeenLately.map(createDeviceOk(_))
+        val seenLatelyIds = seenLately.map(createDeviceOk(_))
 
-      seenLatelyIds.foreach(sendDeviceSeen(_))
-      val hours = Gen.chooseNum(1, 100000).sample.get
-      notSeenLatelyIds.foreach { did =>
-        val i = Instant.now.minus(hours, ChronoUnit.HOURS).minusSeconds(600)
-        sendDeviceSeen(did, i)
-      }
+        seenLatelyIds.foreach(sendDeviceSeen(_))
+        val hours = Gen.chooseNum(1, 100000).sample.get
+        notSeenLatelyIds.foreach { did =>
+          val i = Instant.now.minus(hours, ChronoUnit.HOURS).minusSeconds(600)
+          sendDeviceSeen(did, i)
+        }
 
-      fetchNotSeenSince(hours) ~> route ~> check {
-        status shouldBe OK
-        val notSeenSinceHours = responseAs[PaginationResult[Device]].values
-        notSeenSinceHours.map(_.uuid) should contain allElementsOf neverSeenIds ++ notSeenLatelyIds
-        notSeenSinceHours.map(_.uuid) should contain noElementsOf seenLatelyIds
-      }
+        fetchNotSeenSince(hours) ~> route ~> check {
+          status shouldBe OK
+          val notSeenSinceHours = responseAs[PaginationResult[Device]].values
+          notSeenSinceHours.map(
+            _.uuid
+          ) should contain allElementsOf neverSeenIds ++ notSeenLatelyIds
+          notSeenSinceHours.map(_.uuid) should contain noElementsOf seenLatelyIds
+        }
     }
   }
 
   property("PUT request after POST succeeds with updated device.") {
-    forAll(genConflictFreeDeviceTs(2)) {
-      case Seq(d1, d2) =>
-        val uuid: DeviceId = createDeviceOk(d1)
+    forAll(genConflictFreeDeviceTs(2)) { case Seq(d1, d2) =>
+      val uuid: DeviceId = createDeviceOk(d1)
 
-        setDevice(uuid, d2.deviceName) ~> route ~> check {
+      setDevice(uuid, d2.deviceName) ~> route ~> check {
+        status shouldBe OK
+        fetchDevice(uuid) ~> route ~> check {
           status shouldBe OK
-          fetchDevice(uuid) ~> route ~> check {
-            status shouldBe OK
-            val devicePost: Device = responseAs[Device]
-            devicePost.uuid shouldBe uuid
-            devicePost.deviceId shouldBe d1.deviceId
-            devicePost.deviceType shouldBe d1.deviceType
-            devicePost.lastSeen shouldBe None
-            devicePost.deviceName shouldBe d2.deviceName
-          }
+          val devicePost: Device = responseAs[Device]
+          devicePost.uuid shouldBe uuid
+          devicePost.deviceId shouldBe d1.deviceId
+          devicePost.deviceType shouldBe d1.deviceType
+          devicePost.lastSeen shouldBe None
+          devicePost.deviceName shouldBe d2.deviceName
         }
+      }
     }
   }
 
@@ -245,24 +261,22 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("POST request with same deviceName fails with conflict.") {
-    forAll(genConflictFreeDeviceTs(2)) {
-      case Seq(d1, d2) =>
-        val name       = arbitrary[DeviceName].sample.get
-        createDeviceOk(d1.copy(deviceName = name))
+    forAll(genConflictFreeDeviceTs(2)) { case Seq(d1, d2) =>
+      val name = arbitrary[DeviceName].sample.get
+      createDeviceOk(d1.copy(deviceName = name))
 
-        createDevice(d2.copy(deviceName = name)) ~> route ~> check {
-          status shouldBe Conflict
-        }
+      createDevice(d2.copy(deviceName = name)) ~> route ~> check {
+        status shouldBe Conflict
+      }
     }
   }
 
   property("POST request with same deviceId fails with conflict.") {
-    forAll(genConflictFreeDeviceTs(2)) {
-      case Seq(d1, d2) =>
-        createDeviceOk(d1)
-        createDevice(d2.copy(deviceId = d1.deviceId)) ~> route ~> check {
-          status shouldBe Conflict
-        }
+    forAll(genConflictFreeDeviceTs(2)) { case Seq(d1, d2) =>
+      createDeviceOk(d1)
+      createDevice(d2.copy(deviceId = d1.deviceId)) ~> route ~> check {
+        status shouldBe Conflict
+      }
     }
   }
 
@@ -290,9 +304,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
   property("POST request on ping gets counted") {
     forAll { (devicePre: DeviceT) =>
-      val start      = OffsetDateTime.now()
+      val start = OffsetDateTime.now()
       val uuid = createDeviceOk(devicePre)
-      val end        = start.plusHours(1)
+      val end = start.plusHours(1)
 
       sendDeviceSeen(uuid)
 
@@ -303,21 +317,20 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("PUT request updates device.") {
-    forAll(genConflictFreeDeviceTs(2)) {
-      case Seq(d1: DeviceT, d2: DeviceT) =>
-        val uuid = createDeviceOk(d1)
+    forAll(genConflictFreeDeviceTs(2)) { case Seq(d1: DeviceT, d2: DeviceT) =>
+      val uuid = createDeviceOk(d1)
 
-        setDevice(uuid, d2.deviceName, "my notes".some) ~> route ~> check {
+      setDevice(uuid, d2.deviceName, "my notes".some) ~> route ~> check {
+        status shouldBe OK
+        fetchDevice(uuid) ~> route ~> check {
           status shouldBe OK
-          fetchDevice(uuid) ~> route ~> check {
-            status shouldBe OK
-            val updatedDevice: Device = responseAs[Device]
-            updatedDevice.deviceId shouldBe d1.deviceId
-            updatedDevice.deviceType shouldBe d1.deviceType
-            updatedDevice.lastSeen shouldBe None
-            updatedDevice.notes should contain("my notes")
-          }
+          val updatedDevice: Device = responseAs[Device]
+          updatedDevice.deviceId shouldBe d1.deviceId
+          updatedDevice.deviceType shouldBe d1.deviceType
+          updatedDevice.lastSeen shouldBe None
+          updatedDevice.notes should contain("my notes")
         }
+      }
     }
   }
 
@@ -373,7 +386,11 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       }
     }
 
-    updateDevice(uuid, newName = DeviceName.from("New name").toOption, notes = None) ~> route ~> check {
+    updateDevice(
+      uuid,
+      newName = DeviceName.from("New name").toOption,
+      notes = None
+    ) ~> route ~> check {
       status shouldBe OK
       fetchDevice(uuid) ~> route ~> check {
         status shouldBe OK
@@ -388,7 +405,11 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val deviceT = genDeviceT.generate
     val uuid = createDeviceOk(deviceT)
 
-    updateDevice(uuid, newName = DeviceName.from("myname").toOption, notes = "some \uD83D\uDD25 notes".some) ~> route ~> check {
+    updateDevice(
+      uuid,
+      newName = DeviceName.from("myname").toOption,
+      notes = "some \uD83D\uDD25 notes".some
+    ) ~> route ~> check {
       status shouldBe OK
       fetchDevice(uuid) ~> route ~> check {
         status shouldBe OK
@@ -400,36 +421,36 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("PUT request does not update last seen") {
-    forAll(genConflictFreeDeviceTs(2)) {
-      case Seq(d1: DeviceT, d2: DeviceT) =>
-        val uuid = createDeviceOk(d1)
+    forAll(genConflictFreeDeviceTs(2)) { case Seq(d1: DeviceT, d2: DeviceT) =>
+      val uuid = createDeviceOk(d1)
 
-        sendDeviceSeen(uuid)
+      sendDeviceSeen(uuid)
 
-        setDevice(uuid, d2.deviceName) ~> route ~> check {
+      setDevice(uuid, d2.deviceName) ~> route ~> check {
+        status shouldBe OK
+        fetchDevice(uuid) ~> route ~> check {
           status shouldBe OK
-          fetchDevice(uuid) ~> route ~> check {
-            status shouldBe OK
-            val updatedDevice: Device = responseAs[Device]
-            updatedDevice.lastSeen shouldBe defined
-          }
+          val updatedDevice: Device = responseAs[Device]
+          updatedDevice.lastSeen shouldBe defined
         }
+      }
     }
   }
 
   property("PUT request with same deviceName fails with conflict.") {
-    forAll(genConflictFreeDeviceTs(2)) {
-      case Seq(d1, d2) =>
-        val uuid1 = createDeviceOk(d1)
-        val _ = createDeviceOk(d2)
+    forAll(genConflictFreeDeviceTs(2)) { case Seq(d1, d2) =>
+      val uuid1 = createDeviceOk(d1)
+      val _ = createDeviceOk(d2)
 
-        setDevice(uuid1, d2.deviceName) ~> route ~> check {
-          status shouldBe Conflict
-        }
+      setDevice(uuid1, d2.deviceName) ~> route ~> check {
+        status shouldBe Conflict
+      }
     }
   }
 
-  private[this] implicit val InstalledPackageDecoderInstance: io.circe.Decoder[com.advancedtelematic.deviceregistry.db.InstalledPackages.InstalledPackage] = {
+  private[this] implicit val InstalledPackageDecoderInstance: io.circe.Decoder[
+    com.advancedtelematic.deviceregistry.db.InstalledPackages.InstalledPackage
+  ] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs.*
     io.circe.generic.semiauto.deriveDecoder[InstalledPackage]
   }
@@ -471,10 +492,10 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
   property("Can get stats for a package") {
     val deviceNumber = 20
-    val groupNumber  = 5
-    val deviceTs     = genConflictFreeDeviceTs(deviceNumber).sample.get
-    val groups       = Gen.listOfN(groupNumber, genGroupName()).sample.get
-    val pkg          = genPackageId.sample.get
+    val groupNumber = 5
+    val deviceTs = genConflictFreeDeviceTs(deviceNumber).sample.get
+    val groups = Gen.listOfN(groupNumber, genGroupName()).sample.get
+    val pkg = genPackageId.sample.get
 
     val deviceIds = deviceTs.map(createDeviceOk)
     val groupIds = groups.map(createStaticGroupOk)
@@ -488,14 +509,14 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       status shouldBe OK
       val resp = responseAs[DevicesCount]
       resp.deviceCount shouldBe deviceNumber
-      //convert to sets as order isn't important
+      // convert to sets as order isn't important
       resp.groupIds shouldBe groupIds.toSet
     }
   }
 
   property("can list devices with custom pagination limit") {
-    val limit                = 30
-    val deviceTs             = genConflictFreeDeviceTs(limit * 2).sample.get
+    val limit = 30
+    val deviceTs = genConflictFreeDeviceTs(limit * 2).sample.get
     deviceTs.foreach(createDeviceOk)
 
     searchDevice("", limit = limit) ~> route ~> check {
@@ -506,18 +527,17 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("can list devices with custom pagination limit and offset") {
-    val limit                = 30
-    val offset               = 10
-    val deviceTs             = genConflictFreeDeviceTs(limit * 2).sample.get
+    val limit = 30
+    val offset = 10
+    val deviceTs = genConflictFreeDeviceTs(limit * 2).sample.get
     deviceTs.foreach(createDeviceOk)
 
     searchDevice("", offset = offset, limit = limit) ~> route ~> check {
       status shouldBe OK
       val devices = responseAs[PaginationResult[Device]].values
       devices.length shouldBe limit
-      devices.zip(devices.tail).foreach {
-        case (device1, device2) =>
-          device1.deviceName.value.compareTo(device2.deviceName.value) should be <= 0
+      devices.zip(devices.tail).foreach { case (device1, device2) =>
+        device1.deviceName.value.compareTo(device2.deviceName.value) should be <= 0
       }
     }
   }
@@ -546,7 +566,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     fetchByDeviceId(deviceT.deviceId, Some(""), None) ~> route ~> check {
       status shouldBe BadRequest
-      responseAs[ErrorRepresentation].description should include ("nameContains must be empty when searching by deviceId")
+      responseAs[ErrorRepresentation].description should include(
+        "nameContains must be empty when searching by deviceId"
+      )
     }
   }
 
@@ -556,7 +578,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     fetchByDeviceId(deviceT.deviceId, None, Some(genStaticGroup.sample.get.id)) ~> route ~> check {
       status shouldBe BadRequest
-      responseAs[ErrorRepresentation].description should include ("groupId must be empty when searching by deviceId")
+      responseAs[ErrorRepresentation].description should include(
+        "groupId must be empty when searching by deviceId"
+      )
     }
   }
 
@@ -567,17 +591,19 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     fetchByDeviceId(deviceT.deviceId, notSeenSinceHours = h) ~> route ~> check {
       status shouldBe BadRequest
-      responseAs[ErrorRepresentation].description should include ("notSeenSinceHours must be empty when searching by deviceId")
+      responseAs[ErrorRepresentation].description should include(
+        "notSeenSinceHours must be empty when searching by deviceId"
+      )
     }
   }
 
   property("can list devices by group ID") {
-    val limit                = 30
-    val offset               = 10
-    val deviceNumber         = 50
-    val deviceTs             = genConflictFreeDeviceTs(deviceNumber).sample.get
+    val limit = 30
+    val offset = 10
+    val deviceNumber = 50
+    val deviceTs = genConflictFreeDeviceTs(deviceNumber).sample.get
     val deviceIds = deviceTs.map(createDeviceOk)
-    val groupId              = createStaticGroupOk()
+    val groupId = createStaticGroupOk()
 
     deviceIds.foreach { id =>
       addDeviceToGroupOk(groupId, id)
@@ -600,8 +626,8 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("can list ungrouped devices") {
-    val deviceNumber         = 50
-    val deviceTs             = genConflictFreeDeviceTs(deviceNumber).sample.get
+    val deviceNumber = 50
+    val deviceTs = genConflictFreeDeviceTs(deviceNumber).sample.get
     val deviceIds = deviceTs.map(createDeviceOk)
 
     val beforeGrouping = fetchUngrouped(offset = 0, limit = deviceNumber) ~> route ~> check {
@@ -645,7 +671,8 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val deviceT = genDeviceT.sample.get
     val uuid = createDeviceInNamespaceOk(deviceT, ns)
 
-    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true)).withNs(ns) ~> route ~> check {
+    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true))
+      .withNs(ns) ~> route ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -664,7 +691,6 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       result shouldBe empty
     }
   }
-
 
   property("can search devices by status") {
     val ns = Namespace("status_tests")
@@ -739,7 +765,11 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       result should contain allElementsOf Seq(uuid2, uuid3)
     }
 
-    filterDevices(activatedAfter = afterDate.some, activatedBefore = beforeDate.some, namespace = ns) ~> route ~> check {
+    filterDevices(
+      activatedAfter = afterDate.some,
+      activatedBefore = beforeDate.some,
+      namespace = ns
+    ) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result.length shouldBe 1
@@ -793,7 +823,11 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       result should contain allElementsOf Seq(uuid2, uuid3)
     }
 
-    filterDevices(lastSeenStart = startDate.some, activatedBefore = endDate.some, namespace = ns) ~> route ~> check {
+    filterDevices(
+      lastSeenStart = startDate.some,
+      activatedBefore = endDate.some,
+      namespace = ns
+    ) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result.length shouldBe 1
@@ -831,7 +865,11 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       result.length shouldBe 0
     }
 
-    filterDevices(createdAtStart = oneHourAgo.some, createdAtEnd = oneHourAfter.some, namespace = ns) ~> route ~> check {
+    filterDevices(
+      createdAtStart = oneHourAgo.some,
+      createdAtEnd = oneHourAfter.some,
+      namespace = ns
+    ) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result.length shouldBe 1
@@ -847,15 +885,19 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("can search static group devices") {
-    val deviceT     = genDeviceT.generate
+    val deviceT = genDeviceT.generate
     val deviceUuid1 = createDeviceOk(deviceT)
     val deviceUuid2 = createDeviceOk(genDeviceT.generate)
-    val group       = createStaticGroupOk()
+    val group = createStaticGroupOk()
     addDeviceToGroupOk(group, deviceUuid1)
     addDeviceToGroupOk(group, deviceUuid2)
 
     val nameContains = deviceT.deviceName.value.substring(0, 10)
-    getDevicesByGrouping(grouped = true, GroupType.static.some, nameContains.some) ~> route ~> check {
+    getDevicesByGrouping(
+      grouped = true,
+      GroupType.static.some,
+      nameContains.some
+    ) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result should contain(deviceUuid1)
@@ -864,14 +906,24 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("can search dynamic group devices") {
-    val deviceT1    = genDeviceTWith(Gen.const(validatedDeviceType.from("d1-xxyy-1234").toOption.get), Gen.const(DeviceOemId("d1-xxyy-1234"))).generate
-    val deviceT2    = genDeviceTWith(Gen.const(validatedDeviceType.from("d2-xxyy-5678").toOption.get), Gen.const(DeviceOemId("d2-xxyy-5678"))).generate
+    val deviceT1 = genDeviceTWith(
+      Gen.const(validatedDeviceType.from("d1-xxyy-1234").toOption.get),
+      Gen.const(DeviceOemId("d1-xxyy-1234"))
+    ).generate
+    val deviceT2 = genDeviceTWith(
+      Gen.const(validatedDeviceType.from("d2-xxyy-5678").toOption.get),
+      Gen.const(DeviceOemId("d2-xxyy-5678"))
+    ).generate
     val deviceUuid1 = createDeviceOk(deviceT1)
     val deviceUuid2 = createDeviceOk(deviceT2)
     createDynamicGroupOk(GroupExpression.from("deviceid contains xxyy").toOption.get)
 
     val nameContains = "1234"
-    getDevicesByGrouping(grouped = true, GroupType.dynamic.some, nameContains.some) ~> route ~> check {
+    getDevicesByGrouping(
+      grouped = true,
+      GroupType.dynamic.some,
+      nameContains.some
+    ) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result should contain(deviceUuid1)
@@ -881,10 +933,10 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
   property("can list installed packages for all devices with custom pagination limit and offset") {
 
-    val limit  = 30
+    val limit = 30
     val offset = 10
 
-    val deviceTs             = genConflictFreeDeviceTs(limit * 2).generate
+    val deviceTs = genConflictFreeDeviceTs(limit * 2).generate
     val deviceIds = deviceTs.map(createDeviceOk)
 
     // the database is case-insensitive so when we need to take that in to account when sorting in scala
@@ -896,7 +948,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     // get packages directly through the DB without pagination
     val beforePkgsAction = InstalledPackages.getInstalledForAllDevices(defaultNs)
-    val beforePkgs       = db.run(beforePkgsAction).futureValue.map(canonPkg)
+    val beforePkgs = db.run(beforePkgsAction).futureValue.map(canonPkg)
 
     val allDevicesPackages = deviceIds.map { device =>
       val pkgs = Gen.listOfN(2, genPackageId).generate.toSet + commonPkg
@@ -952,18 +1004,17 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("Package stats correct reports number of installed instances") {
-    val devices    = genConflictFreeDeviceTs(10).sample.get
-    val pkgName    = genPackageIdName.sample.get
+    val devices = genConflictFreeDeviceTs(10).sample.get
+    val pkgName = genPackageIdName.sample.get
     val pkgVersion = genConflictFreePackageIdVersion(2)
 
     val uuids = devices.map(createDeviceOk(_))
-    uuids.zipWithIndex.foreach {
-      case (uuid, i) =>
-        if (i % 2 == 0) {
-          installSoftwareOk(uuid, Set(PackageId(pkgName, pkgVersion.head)))
-        } else {
-          installSoftwareOk(uuid, Set(PackageId(pkgName, pkgVersion(1))))
-        }
+    uuids.zipWithIndex.foreach { case (uuid, i) =>
+      if (i % 2 == 0) {
+        installSoftwareOk(uuid, Set(PackageId(pkgName, pkgVersion.head)))
+      } else {
+        installSoftwareOk(uuid, Set(PackageId(pkgName, pkgVersion(1))))
+      }
     }
     getPackageStats(pkgName) ~> route ~> check {
       status shouldBe OK
@@ -989,7 +1040,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   property("DELETE device removes it from its group") {
     forAll { (devicePre: DeviceT, groupName: GroupName) =>
       val uuid = createDeviceOk(devicePre)
-      val groupId    = createStaticGroupOk(groupName)
+      val groupId = createStaticGroupOk(groupName)
 
       addDeviceToGroupOk(groupId, uuid)
       listDevicesInGroup(groupId) ~> route ~> check {
@@ -1017,12 +1068,12 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("DELETE device removes it from all groups") {
-    val deviceNumber         = 50
-    val deviceTs             = genConflictFreeDeviceTs(deviceNumber).sample.get
+    val deviceNumber = 50
+    val deviceTs = genConflictFreeDeviceTs(deviceNumber).sample.get
     val deviceIds = deviceTs.map(createDeviceOk)
 
-    val groupNumber            = 10
-    val groups                 = Gen.listOfN(groupNumber, genGroupName()).sample.get
+    val groupNumber = 10
+    val groups = Gen.listOfN(groupNumber, genGroupName()).sample.get
     val groupIds = groups.map(createStaticGroupOk)
 
     (0 until deviceNumber).foreach { i =>
@@ -1045,27 +1096,26 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("DELETE device does not cause error on subsequent DeviceSeen events") {
-    forAll(genConflictFreeDeviceTs(2)) {
-      case Seq(d1, d2) =>
-        val uuid1 = createDeviceOk(d1)
-        val uuid2 = createDeviceOk(d2)
+    forAll(genConflictFreeDeviceTs(2)) { case Seq(d1, d2) =>
+      val uuid1 = createDeviceOk(d1)
+      val uuid2 = createDeviceOk(d2)
 
-        listener.apply(new DeleteDeviceRequest(defaultNs, uuid1))
+      listener.apply(new DeleteDeviceRequest(defaultNs, uuid1))
 
-        sendDeviceSeen(uuid1)
-        sendDeviceSeen(uuid2)
-        fetchDevice(uuid2) ~> route ~> check {
-          val devicePost: Device = responseAs[Device]
-          devicePost.lastSeen should not be None
-          isRecent(devicePost.lastSeen) shouldBe true
-          devicePost.deviceStatus should not be DeviceStatus.NotSeen
-        }
+      sendDeviceSeen(uuid1)
+      sendDeviceSeen(uuid2)
+      fetchDevice(uuid2) ~> route ~> check {
+        val devicePost: Device = responseAs[Device]
+        devicePost.lastSeen should not be None
+        isRecent(devicePost.lastSeen) shouldBe true
+        devicePost.deviceStatus should not be DeviceStatus.NotSeen
+      }
     }
   }
 
   property("getting the groups of a device returns the correct static groups") {
-    val groupId1   = createStaticGroupOk()
-    val groupId2   = createStaticGroupOk()
+    val groupId1 = createStaticGroupOk()
+    val groupId2 = createStaticGroupOk()
     val deviceUuid = createDeviceOk(genDeviceT.sample.get)
 
     addDeviceToGroup(groupId1, deviceUuid) ~> route ~> check {
@@ -1096,14 +1146,19 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       .map(_.sample.get)
       .map(createDeviceOk)
 
-    val expression: GroupExpression = GroupExpression.from("deviceid contains abc and deviceid position(5) is b and deviceid position(9) is 6").toOption.get
+    val expression: GroupExpression = GroupExpression
+      .from("deviceid contains abc and deviceid position(5) is b and deviceid position(9) is 6")
+      .toOption
+      .get
     countDevicesForExpression(expression.some) ~> route ~> check {
       status shouldBe OK
       responseAs[Int] shouldBe 1
     }
   }
 
-  property("counting devices that satisfy a dynamic group expression fails if no expression is given") {
+  property(
+    "counting devices that satisfy a dynamic group expression fails if no expression is given"
+  ) {
     countDevicesForExpression(None) ~> route ~> check {
       status shouldBe BadRequest
       responseAs[ErrorRepresentation].code shouldBe Errors.Codes.InvalidGroupExpression
@@ -1312,17 +1367,23 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val duid2 = createDeviceOk(device2)
     val csvRows = Seq(
       Seq(device1.deviceId.underlying, "Germany", "Premium"),
-      Seq(genDeviceId.generate.underlying , "France", "Standard"),
+      Seq(genDeviceId.generate.underlying, "France", "Standard"),
       Seq(device2.deviceId.underlying, "China", "Deluxe"),
-      Seq(genDeviceId.generate.underlying , "Spain", "Standard"),
+      Seq(genDeviceId.generate.underlying, "Spain", "Standard")
     )
 
     postDeviceTags(csvRows) ~> route ~> check {
       status shouldBe NoContent
-      db.run(TaggedDeviceRepository.fetchForDevice(duid1)).futureValue
-        .map { case (k, v) => k.value -> v } should contain only ("market" -> "Germany", "trim" -> "Premium")
-      db.run(TaggedDeviceRepository.fetchForDevice(duid2)).futureValue
-        .map { case (k, v) => k.value -> v } should contain only ("market" -> "China", "trim" -> "Deluxe")
+      db.run(TaggedDeviceRepository.fetchForDevice(duid1))
+        .futureValue
+        .map { case (k, v) =>
+          k.value -> v
+        } should contain only ("market" -> "Germany", "trim" -> "Premium")
+      db.run(TaggedDeviceRepository.fetchForDevice(duid2))
+        .futureValue
+        .map { case (k, v) =>
+          k.value -> v
+        } should contain only ("market" -> "China", "trim" -> "Deluxe")
     }
 
     getDeviceTagsOk.map(_.value) should contain theSameElementsAs Seq("market", "trim")
@@ -1333,25 +1394,31 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val duid = createDeviceOk(deviceT)
     val csvRows = Seq(
       Seq(deviceT.deviceId.underlying, "Germany", "Premium"),
-      Seq(genDeviceId.generate.underlying , "France", "Standard"),
+      Seq(genDeviceId.generate.underlying, "France", "Standard")
     )
 
     postDeviceTags(csvRows) ~> route ~> check {
       status shouldBe NoContent
-      db.run(TaggedDeviceRepository.fetchForDevice(duid)).futureValue
-        .map { case (k, v) => k.value -> v } should contain only ("market" -> "Germany", "trim" -> "Premium")
+      db.run(TaggedDeviceRepository.fetchForDevice(duid))
+        .futureValue
+        .map { case (k, v) =>
+          k.value -> v
+        } should contain only ("market" -> "Germany", "trim" -> "Premium")
     }
 
     val newRows = Seq(Seq(deviceT.deviceId.underlying, "China", "Deluxe"))
     postDeviceTags(newRows) ~> route ~> check {
       status shouldBe NoContent
-      db.run(TaggedDeviceRepository.fetchForDevice(duid)).futureValue
-        .map { case (k, v) => k.value -> v } should contain only ("market" -> "China", "trim" -> "Deluxe")
+      db.run(TaggedDeviceRepository.fetchForDevice(duid))
+        .futureValue
+        .map { case (k, v) =>
+          k.value -> v
+        } should contain only ("market" -> "China", "trim" -> "Deluxe")
     }
   }
 
   property("fails if the csv file contains no 'DeviceID' column") {
-    val csvRows = Seq(Seq(genDeviceId.generate.underlying , "France", "Standard"))
+    val csvRows = Seq(Seq(genDeviceId.generate.underlying, "France", "Standard"))
 
     postDeviceTags(csvRows, Seq("did", "market", "trim")) ~> route ~> check {
       status shouldBe BadRequest
@@ -1360,7 +1427,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   property("fails if the csv file headers contains invalid characters") {
-    val csvRows = Seq(Seq(genDeviceId.generate.underlying , "France", "Standard"))
+    val csvRows = Seq(Seq(genDeviceId.generate.underlying, "France", "Standard"))
 
     postDeviceTags(csvRows, Seq("DeviceID", "mar*ket", "trim")) ~> route ~> check {
       status shouldBe BadRequest
@@ -1376,7 +1443,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     val csvRows = Seq(
       Seq(deviceT.deviceId.underlying, "Spain", "Premium"),
-      Seq(genDeviceId.generate.underlying , "France", "Standard"),
+      Seq(genDeviceId.generate.underlying, "France", "Standard")
     )
 
     postDeviceTags(csvRows) ~> route ~> check {
@@ -1399,7 +1466,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     val csvRows = Seq(
       Seq(deviceT1.deviceId.underlying, "France", "Premium"),
-      Seq(deviceT2.deviceId.underlying , "France", "Standard"),
+      Seq(deviceT2.deviceId.underlying, "France", "Standard")
     )
 
     postDeviceTagsOk(csvRows)
@@ -1410,7 +1477,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     val newCsvRows = Seq(
       Seq(deviceT1.deviceId.underlying, "France", "Premium"),
-      Seq(deviceT2.deviceId.underlying , "", "Standard"),
+      Seq(deviceT2.deviceId.underlying, "", "Standard")
     )
 
     postDeviceTagsOk(newCsvRows)
@@ -1428,7 +1495,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     val csvRows = Seq(
       Seq(deviceT.deviceId.underlying, "Italy", "Premium"),
-      Seq(genDeviceId.generate.underlying , "France", "Standard"),
+      Seq(genDeviceId.generate.underlying, "France", "Standard")
     )
 
     postDeviceTags(csvRows) ~> route ~> check {
@@ -1461,20 +1528,20 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
         postDeviceTags(csvRows, Seq("DeviceID", tagId.value)) ~> route ~> check {
           status shouldBe NoContent
         }
-        getDeviceTagsOk should contain (tagId)
+        getDeviceTagsOk should contain(tagId)
 
         Put(Resource.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> route ~> check {
           status shouldBe OK
         }
         getDeviceTagsOk should not contain tagId
-        getDeviceTagsOk should contain (newTagId)
+        getDeviceTagsOk should contain(newTagId)
 
         // Idempotence
         Put(Resource.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> route ~> check {
           status shouldBe OK
         }
         getDeviceTagsOk should not contain tagId
-        getDeviceTagsOk should contain (newTagId)
+        getDeviceTagsOk should contain(newTagId)
       }
     }
   }
@@ -1509,7 +1576,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     getGroupDetails(groupId) ~> route ~> check {
       status shouldBe OK
-      responseAs[Group].expression shouldBe GroupExpression.from(s"tag(${newTagId.value}) contains ue").toOption
+      responseAs[Group].expression shouldBe GroupExpression
+        .from(s"tag(${newTagId.value}) contains ue")
+        .toOption
     }
   }
 
@@ -1532,14 +1601,14 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val tagId = TagId.from("market").valueOr(throw _)
 
     postDeviceTagsOk(csvRows)
-    getDeviceTagsOk should contain (tagId)
+    getDeviceTagsOk should contain(tagId)
 
     val newTagId = io.circe.parser.parse("""{ "tagId" : "in*valid*" }""").valueOr(throw _)
     Put(Resource.uri("device_tags", tagId.value), newTagId) ~> route ~> check {
       status shouldBe BadRequest
       responseAs[ErrorRepresentation].code shouldBe ErrorCodes.InvalidEntity
     }
-    getDeviceTagsOk should contain (tagId)
+    getDeviceTagsOk should contain(tagId)
   }
 
   property("fails to rename a device tag id to an existing value") {
@@ -1550,13 +1619,13 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val newTagId = TagId.from("trim").valueOr(throw _)
 
     postDeviceTagsOk(csvRows)
-    getDeviceTagsOk should contain (tagId)
+    getDeviceTagsOk should contain(tagId)
 
     Put(Resource.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> route ~> check {
       status shouldBe Conflict
       responseAs[ErrorRepresentation].code shouldBe ErrorCodes.ConflictingEntity
     }
-    getDeviceTagsOk should contain (tagId)
+    getDeviceTagsOk should contain(tagId)
   }
 
   property("updates a device tag value and updates the corresponding smart groups") {
@@ -1571,7 +1640,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val csvRows = Seq(
       Seq(deviceT1.deviceId.underlying, "Italy"),
       Seq(deviceT2.deviceId.underlying, "Spain"),
-      Seq(genDeviceId.generate.underlying , "France"),
+      Seq(genDeviceId.generate.underlying, "France")
     )
     postDeviceTags(csvRows, Seq("DeviceID", tagId.value)) ~> route ~> check {
       status shouldBe NoContent
@@ -1621,7 +1690,8 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   property("deleting a device tag updates the groups' expression and members") {
     val deviceT = genDeviceT.generate
     val duid = createDeviceOk(deviceT)
-    val expression = GroupExpression.from("tag(pais) contains Ita or deviceid contains nonsense").valueOr(throw _)
+    val expression =
+      GroupExpression.from("tag(pais) contains Ita or deviceid contains nonsense").valueOr(throw _)
     val groupId = createDynamicGroupOk(expression = expression)
     val tagId = TagId.from("pais").valueOr(throw _)
 
@@ -1636,7 +1706,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
     getGroupDetails(groupId) ~> route ~> check {
       status shouldBe OK
-      responseAs[Group].expression shouldBe GroupExpression.from("deviceid contains nonsense").toOption
+      responseAs[Group].expression shouldBe GroupExpression
+        .from("deviceid contains nonsense")
+        .toOption
     }
 
     listDevicesInGroup(groupId) ~> route ~> check {
@@ -1645,7 +1717,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     }
   }
 
-  property("fails to delete a device tag if there is at least one smart group that uses only that tag in the expression") {
+  property(
+    "fails to delete a device tag if there is at least one smart group that uses only that tag in the expression"
+  ) {
     val deviceT = genDeviceT.generate
     val duid = createDeviceOk(deviceT)
     val expression = GroupExpression.from("tag(paese) contains Ita").valueOr(throw _)
@@ -1684,21 +1758,31 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     // Delible expressions
     Seq(
       GroupExpression.from("tag(1) contains ha-ha or deviceid contains abc").valueOr(throw _),
-      GroupExpression.from("tag(2) contains ha-ha or (deviceid contains abc and tag(2) position(4) is h)").valueOr(throw _),
+      GroupExpression
+        .from("tag(2) contains ha-ha or (deviceid contains abc and tag(2) position(4) is h)")
+        .valueOr(throw _),
       GroupExpression.from("tag(3) contains ha-ha and tag(4) position(1) is h").valueOr(throw _),
-      GroupExpression.from("tag(3) contains ha-ha and tag(4) position(4) is h or tag(3) contains ha-ha and tag(4) position(4) is h").valueOr(throw _),
+      GroupExpression
+        .from(
+          "tag(3) contains ha-ha and tag(4) position(4) is h or tag(3) contains ha-ha and tag(4) position(4) is h"
+        )
+        .valueOr(throw _)
     ).map(createDynamicGroupOk(_))
     // Indelible expressions
     Seq(
       GroupExpression.from("tag(5) contains ha-ha").valueOr(throw _),
       GroupExpression.from("tag(6) position(4) is h").valueOr(throw _),
       GroupExpression.from("tag(7) contains ha-ha and tag(7) position(4) is h").valueOr(throw _),
-      GroupExpression.from("tag(8) contains ha-ha or (tag(8) contains ha-ha and tag(8) position(4) is h)").valueOr(throw _),
+      GroupExpression
+        .from("tag(8) contains ha-ha or (tag(8) contains ha-ha and tag(8) position(4) is h)")
+        .valueOr(throw _)
     ).map(createDynamicGroupOk(_))
 
     Get(Resource.uri("device_tags")) ~> route ~> check {
       status shouldBe OK
-      val (delibles, indelibles) = responseAs[Seq[TagInfo]].filter(ti => tagIds.contains(ti.tagId.value)).partition(_.isDelible)
+      val (delibles, indelibles) = responseAs[Seq[TagInfo]]
+        .filter(ti => tagIds.contains(ti.tagId.value))
+        .partition(_.isDelible)
       delibles.map(_.tagId.value) should contain only ("1", "2", "3", "4")
       indelibles.map(_.tagId.value) should contain only ("5", "6", "7", "8")
     }
@@ -1712,13 +1796,14 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       status shouldBe NoContent
     }
 
-    val expression = GroupExpression.from("tag(10) position(2) is h and tag(11) contains ha-ha").valueOr(throw _)
+    val expression =
+      GroupExpression.from("tag(10) position(2) is h and tag(11) contains ha-ha").valueOr(throw _)
     createDynamicGroupOk(expression)
 
     Get(Resource.uri("device_tags")) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[Seq[TagInfo]].map(ti => ti.tagId.value -> ti.isDelible)
-      result should contain allOf ("10" -> true, "11" -> true)
+      (result should contain).allOf("10" -> true, "11" -> true)
     }
 
     deleteDeviceTagOk(TagId.from("10").valueOr(throw _))
@@ -1726,7 +1811,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     Get(Resource.uri("device_tags")) ~> route ~> check {
       status shouldBe OK
       val result = responseAs[Seq[TagInfo]].map(ti => ti.tagId.value -> ti.isDelible)
-      result should contain ("11" -> false)
+      result should contain("11" -> false)
     }
   }
 
@@ -1755,6 +1840,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       }
     }
   }
+
   property("can query devices using DeviceOemIds") {
     forAll(genConflictFreeDeviceTs(10)) { devices =>
       val uuids = devices.map(createDeviceOk(_))
@@ -1790,7 +1876,10 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
         // query the first 5 as deviceOemIds, and the last 5 as deviceUuids
         val deviceOemIds = devicesResponse.slice(0, 5).map(_.deviceId)
         val deviceUuids = devicesResponse.slice(5, devicesResponse.length).map(_.uuid)
-        Get(Resource.uri("devices"), DevicesQuery(Some(deviceOemIds), Some(deviceUuids))) ~> route ~> check {
+        Get(
+          Resource.uri("devices"),
+          DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
+        ) ~> route ~> check {
           status shouldBe OK
           val responseDevices = responseAs[List[Device]]
           responseDevices.length shouldBe devices.length
@@ -1800,7 +1889,9 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     }
   }
 
-  property("querying devices with duplicate devices specified are not duplicated in response (response should be a set)") {
+  property(
+    "querying devices with duplicate devices specified are not duplicated in response (response should be a set)"
+  ) {
     forAll(genConflictFreeDeviceTs(10)) { devices =>
       val uuids = devices.map(createDeviceOk(_))
 
@@ -1812,7 +1903,10 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
         val deviceOemIds = devicesResponse.map(_.deviceId)
         val deviceUuids = devicesResponse.map(_.uuid)
-        Get(Resource.uri("devices"), DevicesQuery(Some(deviceOemIds), Some(deviceUuids))) ~> route ~> check {
+        Get(
+          Resource.uri("devices"),
+          DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
+        ) ~> route ~> check {
           status shouldBe OK
           val responseDevices = responseAs[List[Device]]
           responseDevices.length shouldBe devices.length
@@ -1838,8 +1932,11 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
           status shouldBe NotFound
           val errResponse = responseAs[ErrorRepresentation]
           errResponse.code shouldBe Codes.MissingDevice
-          errResponse.cause  shouldBe defined
-          val errMap = errResponse.cause.getOrElse(Json.fromString("{}")).as[Map[String, String]].getOrElse(Map.empty[String, String])
+          errResponse.cause shouldBe defined
+          val errMap = errResponse.cause
+            .getOrElse(Json.fromString("{}"))
+            .as[Map[String, String]]
+            .getOrElse(Map.empty[String, String])
           errMap.keys should contain("missingDeviceUuids")
           errMap.keys should contain("missingOemIds")
           errMap("missingOemIds") should not be empty
@@ -1865,7 +1962,10 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
           val errResponse = responseAs[ErrorRepresentation]
           errResponse.code shouldBe Codes.MissingDevice
           errResponse.cause shouldBe defined
-          val errMap = errResponse.cause.getOrElse(Json.fromString("{}")).as[Map[String, String]].getOrElse(Map.empty[String, String])
+          val errMap = errResponse.cause
+            .getOrElse(Json.fromString("{}"))
+            .as[Map[String, String]]
+            .getOrElse(Map.empty[String, String])
           errMap.keys should contain("missingDeviceUuids")
           errMap.keys should contain("missingOemIds")
           errMap("missingOemIds") shouldBe empty
@@ -1887,13 +1987,19 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
 
         val deviceUuids = devicesResponse.map(_.uuid) :+ DeviceId(UUID.randomUUID())
         val deviceOemIds = devicesResponse.map(_.deviceId) :+ DeviceOemId("not-real-deviceId")
-        Get(Resource.uri("devices"), DevicesQuery(Some(deviceOemIds), Some(deviceUuids))) ~> route ~> check {
+        Get(
+          Resource.uri("devices"),
+          DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
+        ) ~> route ~> check {
           status shouldBe NotFound
           val errResponse = responseAs[ErrorRepresentation]
           errResponse.code shouldBe Codes.MissingDevice
           errResponse.cause shouldBe defined
 
-          val errMap = errResponse.cause.getOrElse(Json.fromString("{}")).as[Map[String, String]].getOrElse(Map.empty[String, String])
+          val errMap = errResponse.cause
+            .getOrElse(Json.fromString("{}"))
+            .as[Map[String, String]]
+            .getOrElse(Map.empty[String, String])
           errMap.keys should contain("missingDeviceUuids")
           errMap.keys should contain("missingOemIds")
           errMap("missingOemIds") should not be empty
@@ -1907,7 +2013,10 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val deviceT = genDeviceT.generate
     val uuid = createDeviceOk(deviceT)
 
-    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true)) ~> route ~> check {
+    Post(
+      Resource.uri(api, uuid.show, "hibernation"),
+      UpdateHibernationStatusRequest(true)
+    ) ~> route ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -1919,7 +2028,10 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     val deviceT = genDeviceT.generate
     val uuid = createDeviceOk(deviceT)
 
-    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true)) ~> route ~> check {
+    Post(
+      Resource.uri(api, uuid.show, "hibernation"),
+      UpdateHibernationStatusRequest(true)
+    ) ~> route ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -1927,11 +2039,15 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
     device.hibernated shouldBe true
     messageBus.reset()
 
-    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(false)) ~> route ~> check {
+    Post(
+      Resource.uri(api, uuid.show, "hibernation"),
+      UpdateHibernationStatusRequest(false)
+    ) ~> route ~> check {
       status shouldBe StatusCodes.OK
     }
 
     device = fetchDeviceOk(uuid)
     device.hibernated shouldBe false
   }
+
 }

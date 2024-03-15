@@ -17,7 +17,10 @@ import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.DataType.{CampaignId, CorrelationId, MultiTargetUpdateId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeleteDeviceRequest,
+  DeviceEventMessage
+}
 import EventJournalSpec.EventPayload
 import com.advancedtelematic.deviceregistry.daemon.DeviceEventListener
 import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
@@ -33,25 +36,33 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalatest.time.{Millis, Seconds, Span}
 
 object EventJournalSpec {
+
   private[EventJournalSpec] final case class EventPayload(id: UUID,
                                                           deviceTime: Instant,
                                                           eventType: EventType,
                                                           event: Json)
 
-  private[EventJournalSpec] implicit val EventPayloadEncoder: io.circe.Encoder.AsObject[EventJournalSpec.EventPayload] = deriveEncoder[EventPayload]
+  private[EventJournalSpec] implicit val EventPayloadEncoder
+    : io.circe.Encoder.AsObject[EventJournalSpec.EventPayload] = deriveEncoder[EventPayload]
 
   private[EventJournalSpec] implicit val EventPayloadFromResponse: Decoder[EventPayload] =
     Decoder.instance { c =>
       for {
-        id         <- c.get[String]("eventId").map(UUID.fromString)
+        id <- c.get[String]("eventId").map(UUID.fromString)
         deviceTime <- c.get[Instant]("deviceTime")
-        eventType  <- c.get[EventType]("eventType")
-        payload    <- c.get[Json]("payload")
+        eventType <- c.get[EventType]("eventType")
+        payload <- c.get[Json]("payload")
       } yield EventPayload(id, deviceTime, eventType, payload)
     }
+
 }
 
-class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventually with ArbitraryInstances {
+class EventJournalSpec
+    extends ResourcePropSpec
+    with ScalaFutures
+    with Eventually
+    with ArbitraryInstances {
+
   import com.advancedtelematic.deviceregistry.data.GeneratorOps._
   import io.circe.syntax._
 
@@ -64,7 +75,7 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
 
   private[this] val EventTypeGen: Gen[EventType] =
     for {
-      id  <- Gen.oneOf("DownloadComplete", "InstallationComplete")
+      id <- Gen.oneOf("DownloadComplete", "InstallationComplete")
       ver <- Gen.chooseNum(1, 10)
     } yield EventType(id, ver)
 
@@ -72,10 +83,10 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
     Gen.uuid.flatMap(uuid => Gen.oneOf(CampaignId(uuid), MultiTargetUpdateId(uuid)))
 
   implicit val EventGen: org.scalacheck.Gen[EventJournalSpec.EventPayload] = for {
-    id        <- Gen.uuid
+    id <- Gen.uuid
     timestamp <- InstantGen
     eventType <- EventTypeGen
-    json      <- arbitraryJsonObject.arbitrary
+    json <- arbitraryJsonObject.arbitrary
   } yield EventPayload(id, timestamp, eventType, json.asJson)
 
   implicit val EventsGen: Gen[List[EventPayload]] =
@@ -85,9 +96,13 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
     event <- EventGen
     correlationId <- genCorrelationId
     json = Json.obj("correlationId" -> correlationId.asJson)
-  } yield event.copy(event = json, eventType = EventType("InstallationComplete", 0)) -> correlationId
+  } yield event.copy(
+    event = json,
+    eventType = EventType("InstallationComplete", 0)
+  ) -> correlationId
 
-  implicit val ArbitraryEvents: org.scalacheck.Arbitrary[List[EventJournalSpec.EventPayload]] = Arbitrary(EventsGen)
+  implicit val ArbitraryEvents: org.scalacheck.Arbitrary[List[EventJournalSpec.EventPayload]] =
+    Arbitrary(EventsGen)
 
   val listener = new DeviceEventListener()
 
@@ -98,10 +113,11 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
       val deviceUuid = createDeviceOk(device)
 
       events
-        .map(ep => Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, ep.event))
+        .map(ep =>
+          Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, ep.event)
+        )
         .map(DeviceEventMessage(defaultNs, _))
         .map(listener.apply)
-
 
       eventually(timeout(5.seconds), interval(100.millis)) {
         getEvents(deviceUuid) ~> route ~> check {
@@ -121,7 +137,9 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
     val event1 = EventGen.retryUntil(_.eventType.id != "InstallationComplete").generate
 
     List(event0, event1)
-      .map(ep => Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, ep.event))
+      .map(ep =>
+        Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, ep.event)
+      )
       .map(DeviceEventMessage(defaultNs, _))
       .map(listener.apply)
 
@@ -143,7 +161,9 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
     val event1 = EventGen.retryUntil(_.eventType.id != "InstallationComplete").generate
 
     List(event0, event1)
-      .map(ep => Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, ep.event))
+      .map(ep =>
+        Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, ep.event)
+      )
       .map(DeviceEventMessage(defaultNs, _))
       .map(listener.apply)
 
@@ -171,4 +191,5 @@ class EventJournalSpec extends ResourcePropSpec with ScalaFutures with Eventuall
       journal.getArchivedIndexedEvents(uuid).futureValue.map(_.eventID) shouldBe Seq(event.eventId)
     }
   }
+
 }

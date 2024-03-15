@@ -20,7 +20,7 @@ trait GroupGenerators {
 
   def genGroupName(charGen: Gen[Char] = Arbitrary.arbChar.arbitrary): Gen[GroupName] = for {
     strLen <- Gen.choose(2, 100)
-    name   <- Gen.listOfN[Char](strLen, charGen)
+    name <- Gen.listOfN[Char](strLen, charGen)
   } yield GroupName.from(name.mkString).toOption.get
 
   def genStaticGroup: Gen[Group] = for {

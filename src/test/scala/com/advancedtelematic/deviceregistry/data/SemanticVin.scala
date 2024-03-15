@@ -14,34 +14,33 @@ import org.scalacheck.Gen
 
 // https://en.wikipedia.org/wiki/VIN
 
-case class SemanticVin(
-    wmi: SemanticVin.WMI,
-    vehicleAttributes: SemanticVin.VehicleAttributes,
-    checkDigit: SemanticVin.CheckDigit,
-    modelYear: SemanticVin.ModelYear,
-    plantCode: SemanticVin.PlantCode,
-    sequentialNumber: SemanticVin.SequentialNumber
-)
+case class SemanticVin(wmi: SemanticVin.WMI,
+                       vehicleAttributes: SemanticVin.VehicleAttributes,
+                       checkDigit: SemanticVin.CheckDigit,
+                       modelYear: SemanticVin.ModelYear,
+                       plantCode: SemanticVin.PlantCode,
+                       sequentialNumber: SemanticVin.SequentialNumber)
+
 object SemanticVin {
 
   implicit val showSemanticVin: Show[SemanticVin] =
     Show.show { sv =>
       sv.wmi.show +
-      sv.vehicleAttributes.show +
-      sv.checkDigit.show +
-      sv.modelYear.show +
-      sv.plantCode.show +
-      sv.sequentialNumber.toString
+        sv.vehicleAttributes.show +
+        sv.checkDigit.show +
+        sv.modelYear.show +
+        sv.plantCode.show +
+        sv.sequentialNumber.toString
     }
 
   def genSemanticVin: Gen[SemanticVin] =
     for {
-      wmi       <- genWMI
-      vehAttr   <- genVehicleAttributes
-      checkDig  <- Gen.const(D9)
-      modelYr   <- genModelYear
+      wmi <- genWMI
+      vehAttr <- genVehicleAttributes
+      checkDig <- Gen.const(D9)
+      modelYr <- genModelYear
       plantCode <- genPlantCode
-      seqNum    <- Gen.choose(100000, 999999)
+      seqNum <- Gen.choose(100000, 999999)
     } yield SemanticVin(wmi, vehAttr, checkDig, modelYr, plantCode, seqNum)
 
   // World manufacturer identifier (3 characters).
@@ -50,8 +49,8 @@ object SemanticVin {
   final case object VolvoCars extends WMI
 
   implicit val showWMI: Show[WMI] =
-    Show.show {
-      case VolvoCars => "YV1"
+    Show.show { case VolvoCars =>
+      "YV1"
     }
 
   def genWMI: Gen[WMI] =
@@ -81,8 +80,8 @@ object SemanticVin {
   final case object D9 extends CheckDigit
 
   implicit val showCheckDigit: Show[CheckDigit] =
-    Show.show {
-      case D9 => "9"
+    Show.show { case D9 =>
+      "9"
     }
 
   // Model year (1 character).

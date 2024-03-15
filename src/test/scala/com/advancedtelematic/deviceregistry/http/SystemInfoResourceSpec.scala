@@ -11,10 +11,13 @@ package com.advancedtelematic.deviceregistry.http
 import com.advancedtelematic.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.{NetworkInfo, removeIdNrs}
+import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.{removeIdNrs, NetworkInfo}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  AktualizrConfigChanged,
+  DeviceSystemInfoChanged
+}
 import io.circe.Json
 import org.scalacheck.Shrink
 import org.scalatest.OptionValues.*
@@ -31,15 +34,15 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
 
   property("GET /system_info request fails on non-existent device") {
     forAll { (uuid: DeviceId, json: Json) =>
-      fetchSystemInfo(uuid) ~> route ~> check { status shouldBe NotFound }
-      createSystemInfo(uuid, json) ~> route ~> check { status shouldBe NotFound }
-      updateSystemInfo(uuid, json) ~> route ~> check { status shouldBe NotFound }
+      fetchSystemInfo(uuid) ~> route ~> check(status shouldBe NotFound)
+      createSystemInfo(uuid, json) ~> route ~> check(status shouldBe NotFound)
+      updateSystemInfo(uuid, json) ~> route ~> check(status shouldBe NotFound)
     }
   }
 
   property("GET /system_info/network returns 404 NotFound on non-existent device") {
     forAll { (uuid: DeviceId) =>
-      fetchNetworkInfo(uuid) ~> route ~> check { status shouldBe NotFound }
+      fetchNetworkInfo(uuid) ~> route ~> check(status shouldBe NotFound)
     }
   }
 
@@ -69,21 +72,25 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   // necessary because the networkInfoEncoder used in NetworkInfo is different in order to
   // encode from device messages
 
-  property("POST /devices/list-network-info returns empty strings if network info was not reported") {
+  property(
+    "POST /devices/list-network-info returns empty strings if network info was not reported"
+  ) {
     import com.advancedtelematic.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
     import io.circe.Json
     forAll { (devices: Seq[DeviceT], json: Option[Json]) =>
       val uuids = devices.map(d => createDeviceOk(d))
 
       json.foreach { sysinfo =>
-        uuids.map(uuid => createSystemInfo(uuid, removeIdNrs(sysinfo)) ~> route ~> check {
-          status shouldBe Created
-        } )
+        uuids.map(uuid =>
+          createSystemInfo(uuid, removeIdNrs(sysinfo)) ~> route ~> check {
+            status shouldBe Created
+          }
+        )
       }
       postListNetworkInfos(uuids) ~> route ~> check {
         status shouldBe OK
         val res = responseAs[Seq[NetworkInfo]]
-        res.map{ networkInfo =>
+        res.map { networkInfo =>
           uuids should contain(networkInfo.deviceUuid)
           networkInfo.hostname should equal(None)
           networkInfo.localIpV4 should equal(None)
@@ -103,18 +110,25 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
     }
     """.stripMargin
     forAll { (devices: Seq[DeviceT]) =>
-      whenever (devices.length > 0) {
+      whenever(devices.length > 0) {
         val uuids = devices.map(d => createDeviceOk(d))
         val sysinfoParseResult = parse(jsonStr)
-        val sysInfoJson = sysinfoParseResult.getOrElse(throw new IllegalArgumentException("Failed to parse json string"))
+        val sysInfoJson = sysinfoParseResult.getOrElse(
+          throw new IllegalArgumentException("Failed to parse json string")
+        )
         val sysInfo = sysInfoJson.as[DeviceId => NetworkInfo] match {
           case Right(ninfo) => ninfo
-          case Left(e) => throw new IllegalArgumentException("Failed to parse json string. Error: " + e.toString())
+          case Left(e) =>
+            throw new IllegalArgumentException(
+              "Failed to parse json string. Error: " + e.toString()
+            )
         }
 
-        uuids.map(uuid => createNetworkInfo(uuid, sysInfo(uuid)) ~> route ~> check {
-          status shouldBe NoContent
-        })
+        uuids.map(uuid =>
+          createNetworkInfo(uuid, sysInfo(uuid)) ~> route ~> check {
+            status shouldBe NoContent
+          }
+        )
 
         postListNetworkInfos(uuids) ~> route ~> check {
           status shouldBe OK
@@ -205,17 +219,19 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
     )
 
     def getField(field: String)(json: Json): Seq[Json] =
-      json.arrayOrObject(List(),
-                         _.flatMap(getField(field)),
-                         x =>
-                           x.toList.flatMap {
-                             case (i, v) if i == field => List(v)
-                             case (_, v)               => getField(field)(v)
-                         })
+      json.arrayOrObject(
+        List(),
+        _.flatMap(getField(field)),
+        x =>
+          x.toList.flatMap {
+            case (i, v) if i == field => List(v)
+            case (_, v)               => getField(field)(v)
+          }
+      )
 
     forAll { (device: DeviceT, json0: Json) =>
       val uuid = createDeviceOk(device)
-      val json       = removeIdNrs(json0)
+      val json = removeIdNrs(json0)
 
       updateSystemInfo(uuid, json) ~> route ~> check {
         status shouldBe OK
@@ -227,10 +243,10 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         json shouldBe removeIdNrs(retJson)
 
         val idNrs = getField("id-nr")(retJson)
-        //unique
+        // unique
         idNrs.size shouldBe idNrs.toSet.size
 
-        //same count
+        // same count
         countObjects(json) shouldBe idNrs.size
       }
     }
@@ -240,13 +256,14 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
     val device: DeviceT = genDeviceT.generate
     val uuid = createDeviceOk(device)
 
-    val json = io.circe.parser.parse(
-      """
+    val json = io.circe.parser
+      .parse("""
         |{
         |    "product": "test-product"
         |}
-        |""".stripMargin
-    ).toOption.get
+        |""".stripMargin)
+      .toOption
+      .get
 
     createSystemInfo(uuid, json) ~> route ~> check {
       status shouldBe Created
@@ -258,17 +275,20 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
     }
   }
 
-  property("DeviceSystemInfoChanged is published with empty system info if server could not parse json") {
+  property(
+    "DeviceSystemInfoChanged is published with empty system info if server could not parse json"
+  ) {
     val device: DeviceT = genDeviceT.generate
     val uuid = createDeviceOk(device)
 
-    val json = io.circe.parser.parse(
-      """
+    val json = io.circe.parser
+      .parse("""
         |{
         |    "not-product": "somethingelse"
         |}
-        |""".stripMargin
-    ).toOption.get
+        |""".stripMargin)
+      .toOption
+      .get
 
     createSystemInfo(uuid, json) ~> route ~> check {
       status shouldBe Created
@@ -312,7 +332,9 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         |
         |""".stripMargin
 
-    SystemInfoResource.parseAktualizrConfigToml(content).failed.get.getMessage should include("cannot be cast to")
+    SystemInfoResource.parseAktualizrConfigToml(content).failed.get.getMessage should include(
+      "cannot be cast to"
+    )
   }
 
   property("missing section leads to error") {
@@ -323,7 +345,11 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         secondary_preinstall_wait_sec = 60
         force_install_completion = true""".stripMargin
 
-    SystemInfoResource.parseAktualizrConfigToml(content).failed.get.getMessage shouldBe "key not found: pacman"
+    SystemInfoResource
+      .parseAktualizrConfigToml(content)
+      .failed
+      .get
+      .getMessage shouldBe "key not found: pacman"
   }
 
   property("additional root key is allowed") {
@@ -378,7 +404,11 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
         polling_sec = 91
         force_install_completion = true"""
 
-    SystemInfoResource.parseAktualizrConfigToml(content).failed.get.getMessage shouldBe "End:4:9 ...\"kind\\n\\n    \""
+    SystemInfoResource
+      .parseAktualizrConfigToml(content)
+      .failed
+      .get
+      .getMessage shouldBe "End:4:9 ...\"kind\\n\\n    \""
   }
 
   property("system config can be uploaded") {
@@ -411,7 +441,8 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   property("system config without 'secondary_preinstall_wait_sec' can be uploaded") {
     import akka.http.scaladsl.unmarshalling.Unmarshaller.*
 
-    val deviceUuid = createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd-1234-legacy")))
+    val deviceUuid =
+      createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd-1234-legacy")))
     val config = """
 
         [pacman]
@@ -437,7 +468,8 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   property("system config TOML parsing error handling") {
     import akka.http.scaladsl.unmarshalling.Unmarshaller.*
 
-    val deviceUuid = createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd-1234-error")))
+    val deviceUuid =
+      createDeviceOk(genDeviceT.generate.copy(deviceId = DeviceOemId("abcd-1234-error")))
     val config =
       """
         |error
@@ -451,4 +483,5 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
       res should include("error")
     }
   }
+
 }

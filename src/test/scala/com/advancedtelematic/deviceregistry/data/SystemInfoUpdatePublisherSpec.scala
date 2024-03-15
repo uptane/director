@@ -11,10 +11,7 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-
-class SystemInfoUpdatePublisherSpec extends AnyFunSuite
-  with Matchers
-  with ScalaFutures {
+class SystemInfoUpdatePublisherSpec extends AnyFunSuite with Matchers with ScalaFutures {
 
   implicit val ec: scala.concurrent.ExecutionContextExecutor = ExecutionContexts.global()
 
@@ -35,4 +32,5 @@ class SystemInfoUpdatePublisherSpec extends AnyFunSuite
     val out = subject.parse(Map("id" -> "otherid").asJson)
     out.product shouldBe None
   }
+
 }

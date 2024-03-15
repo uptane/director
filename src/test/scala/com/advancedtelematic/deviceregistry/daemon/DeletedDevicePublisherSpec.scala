@@ -13,8 +13,11 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.funsuite.AnyFunSuite
 
-
-class DeletedDevicePublisherSpec extends AnyFunSuite with ResourceSpec with DeviceRequests with ScalaFutures {
+class DeletedDevicePublisherSpec
+    extends AnyFunSuite
+    with ResourceSpec
+    with DeviceRequests
+    with ScalaFutures {
 
   implicit override val patienceConfig =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(15, Millis))
@@ -47,4 +50,5 @@ class DeletedDevicePublisherSpec extends AnyFunSuite with ResourceSpec with Devi
       msg.value.uuid shouldBe deviceId
     }
   }
+
 }

@@ -18,7 +18,6 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 
-
 trait DeviceResources {
   self: DirectorSpec with ResourceSpec with RouteResourceSpec =>
 
@@ -36,34 +35,40 @@ trait DeviceResources {
     deviceId
   }
 
-  def getDeviceRole[T](deviceId: DeviceId, version: Option[Int] = None)
-                                          (implicit namespace: Namespace, tufRole: TufRole[T]): RouteTestResult = {
+  def getDeviceRole[T](deviceId: DeviceId, version: Option[Int] = None)(
+    implicit namespace: Namespace,
+    tufRole: TufRole[T]): RouteTestResult = {
     val versionStr = version.map(v => s"$v.").getOrElse("")
-    Get(apiUri(s"device/${deviceId.show}/$versionStr${tufRole.metaPath.value}")).namespaced ~> routes
+    Get(
+      apiUri(s"device/${deviceId.show}/$versionStr${tufRole.metaPath.value}")
+    ).namespaced ~> routes
   }
 
-  def getDeviceRoleOk[T : Codec](deviceId: DeviceId, version: Option[Int] = None)(implicit namespace: Namespace, pos: Position, tufRole: TufRole[T]): SignedPayload[T] = {
+  def getDeviceRoleOk[T: Codec](deviceId: DeviceId, version: Option[Int] = None)(
+    implicit namespace: Namespace,
+    pos: Position,
+    tufRole: TufRole[T]): SignedPayload[T] =
     getDeviceRole[T](deviceId, version) ~> check {
       status shouldBe StatusCodes.OK
       responseAs[SignedPayload[T]]
     }
-  }
 
-  def putManifest[T](deviceId: DeviceId, manifest: SignedPayload[DeviceManifest])(fn: => T)(implicit ns: Namespace): T = {
+  def putManifest[T](deviceId: DeviceId, manifest: SignedPayload[DeviceManifest])(fn: => T)(
+    implicit ns: Namespace): T =
     Put(apiUri(s"device/${deviceId.show}/manifest"), manifest).namespaced ~> routes ~> check(fn)
-  }
 
-  def putManifestOk(deviceId: DeviceId, manifest: SignedPayload[DeviceManifest])(implicit ns: Namespace, pos: Position): Unit = {
+  def putManifestOk(deviceId: DeviceId, manifest: SignedPayload[DeviceManifest])(
+    implicit ns: Namespace,
+    pos: Position): Unit =
     putManifest(deviceId, manifest) {
       status shouldBe StatusCodes.OK
     }
-  }
 
-  def fetchRoleOk[T : Codec](deviceId: DeviceId)(implicit ns: Namespace, tufRole: TufRole[T]): SignedPayload[T] = {
+  def fetchRoleOk[T: Codec](
+    deviceId: DeviceId)(implicit ns: Namespace, tufRole: TufRole[T]): SignedPayload[T] =
     Get(apiUri(s"device/${deviceId.show}/${tufRole.metaPath}")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       responseAs[SignedPayload[T]]
     }
-  }
 
 }

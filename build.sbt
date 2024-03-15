@@ -2,10 +2,21 @@ name := "director-v2"
 organization := "io.github.uptane"
 scalaVersion := "2.13.12"
 
-scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature", "-Xlog-reflective-calls", "-Xasync", "-Xsource:3", "-Ywarn-unused", "-Wconf:cat=other-match-analysis:error")
+scalacOptions := Seq(
+  "-unchecked",
+  "-deprecation",
+  "-encoding",
+  "utf8",
+  "-feature",
+  "-Xlog-reflective-calls",
+  "-Xasync",
+  "-Xsource:3",
+  "-Ywarn-unused",
+  "-Wconf:cat=other-match-analysis:error"
+)
 
-resolvers += "sonatype-snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots"
-resolvers += "sonatype-releases" at "https://s01.oss.sonatype.org/content/repositories/releases"
+resolvers += "sonatype-snapshots".at("https://s01.oss.sonatype.org/content/repositories/snapshots")
+resolvers += "sonatype-releases".at("https://s01.oss.sonatype.org/content/repositories/releases")
 
 Global / bloopAggregateSourceDependencies := true
 
@@ -24,9 +35,8 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpV,
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
-    "org.scalatest"     %% "scalatest" % scalaTestV % Test,
+    "org.scalatest" %% "scalatest" % scalaTestV % Test,
     "org.scalacheck" %% "scalacheck" % "1.17.0" % Test,
-
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
     "io.github.uptane" %% "libats-messaging-datatype" % libatsV,
@@ -37,15 +47,11 @@ libraryDependencies ++= {
     "io.github.uptane" %% "libats-logging" % libatsV,
     "io.github.uptane" %% "libtuf" % tufV,
     "io.github.uptane" %% "libtuf-server" % tufV,
-
     "org.bouncycastle" % "bcprov-jdk18on" % bouncyCastleV,
     "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleV,
-
     "org.scala-lang.modules" %% "scala-async" % "1.0.1",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
-
     "org.mariadb.jdbc" % "mariadb-java-client" % "3.2.0",
-
     "com.beachape" %% "enumeratum" % "1.7.3",
     "com.beachape" %% "enumeratum-circe" % "1.7.3",
 
@@ -54,7 +60,7 @@ libraryDependencies ++= {
     "io.circe" %% "circe-testing" % "0.14.1",
     "tech.sparse" %% "toml-scala" % "0.2.2",
     "org.tpolecat" %% "atto-core" % "0.9.5",
-    "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test,
+    "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test
   )
 }
 
