@@ -6,11 +6,11 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.Errors
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import GeneratorOps.*
+import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, SearchDBIO}
 import com.advancedtelematic.director.deviceregistry.DatabaseSpec
 import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST.*
-import com.advancedtelematic.director.deviceregistry.db.{DeviceRepository, SearchDBIO}
-import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.*
-import com.advancedtelematic.director.deviceregistry.db.TaggedDeviceRepository.tagDeviceByOemId
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository.*
+import com.advancedtelematic.director.db.deviceregistry.TaggedDeviceRepository.tagDeviceByOemId
 import org.scalatest.EitherValues.*
 import org.scalatest.OptionValues.*
 import org.scalatest.concurrent.ScalaFutures

@@ -31,7 +31,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceSta
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
-import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.NetworkInfo
+import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.http.HttpOps.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -205,7 +205,7 @@ trait DeviceRequests { self: ResourceSpec =>
 
   def createNetworkInfo(uuid: DeviceId, networkInfo: NetworkInfo): HttpRequest = {
     val uri = Resource.uri(api, uuid.show, "system_info", "network")
-    import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdEncoder
+    import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.networkInfoWithDeviceIdEncoder
     Put(uri, networkInfo)
   }
 

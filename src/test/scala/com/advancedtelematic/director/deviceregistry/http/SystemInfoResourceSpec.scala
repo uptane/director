@@ -11,7 +11,7 @@ package com.advancedtelematic.director.deviceregistry.http
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.{
+import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.{
   removeIdNrs,
   NetworkInfo
 }
@@ -79,7 +79,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
   property(
     "POST /devices/list-network-info returns empty strings if network info was not reported"
   ) {
-    import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
+    import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.networkInfoWithDeviceIdDecoder
     import io.circe.Json
     forAll { (devices: Seq[DeviceT], json: Option[Json]) =>
       val uuids = devices.map(d => createDeviceOk(d))
@@ -136,7 +136,7 @@ class SystemInfoResourceSpec extends ResourcePropSpec {
 
         postListNetworkInfos(uuids) ~> route ~> check {
           status shouldBe OK
-          import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.networkInfoWithDeviceIdDecoder
+          import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.networkInfoWithDeviceIdDecoder
           val res = responseAs[List[NetworkInfo]]
           res.map { networkInfo =>
             uuids should contain(networkInfo.deviceUuid)

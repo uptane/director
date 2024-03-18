@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.deviceregistry.daemon
 
 import cats.syntax.show.*
-import com.advancedtelematic.director.deviceregistry.db.{DeviceRepository, EcuReplacementRepository}
+import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuReplacementRepository}
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   EcuReplacement,

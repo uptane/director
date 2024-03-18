@@ -19,9 +19,9 @@ import com.advancedtelematic.director.deviceregistry.data.{
   GroupName
 }
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.GroupMember
-import com.advancedtelematic.director.deviceregistry.db.PublicCredentialsRepository.DevicePublicCredentials
-import com.advancedtelematic.director.deviceregistry.db.SystemInfoRepository.SystemInfo
+import com.advancedtelematic.director.db.deviceregistry.GroupMemberRepository.GroupMember
+import com.advancedtelematic.director.db.deviceregistry.PublicCredentialsRepository.DevicePublicCredentials
+import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.SystemInfo
 
 object Errors {
   import akka.http.scaladsl.model.StatusCodes

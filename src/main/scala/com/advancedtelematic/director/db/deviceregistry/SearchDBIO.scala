@@ -5,7 +5,7 @@ import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.SearchParams
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.deviceregistry.db.DbOps.{PaginationResultOps, deviceTableToSlickOrder}
+import com.advancedtelematic.director.db.deviceregistry.DbOps.{PaginationResultOps, deviceTableToSlickOrder}
 import GroupInfoRepository.groupInfos
 import GroupMemberRepository.groupMembers
 import Schema.*

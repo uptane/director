@@ -9,9 +9,9 @@
 package com.advancedtelematic.director.deviceregistry.daemon
 
 import akka.Done
+import com.advancedtelematic.director.db.deviceregistry.EventJournal
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceEventMessage
-import com.advancedtelematic.director.deviceregistry.db.EventJournal
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
 

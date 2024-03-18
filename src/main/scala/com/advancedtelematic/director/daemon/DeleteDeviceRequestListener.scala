@@ -3,6 +3,7 @@ package com.advancedtelematic.director.daemon
 import akka.Done
 import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.db.ProvisionedDeviceRepositorySupport
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 import com.advancedtelematic.libats.http.Errors.MissingEntity
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
@@ -20,7 +21,7 @@ class DeleteDeviceRequestListener()(implicit val db: Database, val ec: Execution
   override def apply(message: DeleteDeviceRequest): Future[Done] = {
     val f0 = db
       .run(
-        com.advancedtelematic.director.deviceregistry.db.DeviceRepository
+        DeviceRepository
           .delete(message.namespace, message.uuid)
       )
       .recover { case ex @ Errors.MissingDevice =>

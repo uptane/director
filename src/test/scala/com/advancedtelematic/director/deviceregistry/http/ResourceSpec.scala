@@ -10,13 +10,13 @@ package com.advancedtelematic.director.deviceregistry.http
 
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 import com.advancedtelematic.director.deviceregistry.data.{
   DeviceGenerators,
   GroupGenerators,
   PackageIdGenerators,
   SimpleJsonGenerator
 }
-import com.advancedtelematic.director.deviceregistry.db.DeviceRepository
 import com.advancedtelematic.director.deviceregistry.{AllowUUIDPath, DatabaseSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.tracing.NullServerRequestTracing

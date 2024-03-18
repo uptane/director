@@ -51,18 +51,7 @@ import com.advancedtelematic.director.deviceregistry.data.{
   SortDirection,
   TagId
 }
-import com.advancedtelematic.director.deviceregistry.db.DbOps.PaginationResultOps
-import com.advancedtelematic.director.deviceregistry.db.{
-  DeviceRepository,
-  EcuReplacementRepository,
-  EventJournal,
-  GroupInfoRepository,
-  GroupMemberRepository,
-  InstallationReportRepository,
-  InstalledPackages,
-  SearchDBIO,
-  TaggedDeviceRepository
-}
+import com.advancedtelematic.director.db.deviceregistry.DbOps.PaginationResultOps
 import com.advancedtelematic.director.deviceregistry.messages.DeviceCreated
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
 import com.advancedtelematic.libats.http.Errors.JsonError
@@ -86,6 +75,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
 import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
+import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuReplacementRepository, EventJournal, GroupInfoRepository, GroupMemberRepository, InstallationReportRepository, InstalledPackages, SearchDBIO, TaggedDeviceRepository}
 
 object DevicesResource {
   import akka.http.scaladsl.server.PathMatchers.Segment

@@ -17,22 +17,13 @@ import com.advancedtelematic.director.deviceregistry.common.Errors.Codes
 import com.advancedtelematic.director.deviceregistry.common.{Errors, PackageStat}
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceSeenListener
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceT,
-  DevicesQuery,
-  RenameTagId,
-  TagInfo,
-  UpdateHibernationStatusRequest
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, DevicesQuery, RenameTagId, TagInfo, UpdateHibernationStatusRequest}
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.*
-import com.advancedtelematic.director.deviceregistry.db.InstalledPackages.{
-  DevicesCount,
-  InstalledPackage
-}
-import com.advancedtelematic.director.deviceregistry.db.{InstalledPackages, TaggedDeviceRepository}
+import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{DevicesCount, InstalledPackage}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
+import com.advancedtelematic.director.db.deviceregistry.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
@@ -452,7 +443,7 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
   }
 
   private[this] implicit val InstalledPackageDecoderInstance: io.circe.Decoder[
-    com.advancedtelematic.director.deviceregistry.db.InstalledPackages.InstalledPackage
+    InstalledPackages.InstalledPackage
   ] = {
     import com.advancedtelematic.libats.codecs.CirceCodecs.*
     io.circe.generic.semiauto.deriveDecoder[InstalledPackage]

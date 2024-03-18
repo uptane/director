@@ -2,6 +2,7 @@ package com.advancedtelematic.director.deviceregistry.daemon
 
 import java.time.Instant
 import akka.http.scaladsl.util.FastFuture
+import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, InstallationReportRepository}
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
@@ -19,10 +20,6 @@ import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceUpdateStatus._
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.director.deviceregistry.db.{
-  DeviceRepository,
-  InstallationReportRepository
-}
 import io.circe.syntax._
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._
