@@ -8,7 +8,7 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
 import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPublishResult
-import com.advancedtelematic.director.deviceregistry.http.{Resource, ResourceSpec}
+import com.advancedtelematic.director.http.deviceregistry.{Resource, ResourceSpec}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalatest.EitherValues.*
 import org.scalatest.OptionValues.*

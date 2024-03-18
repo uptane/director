@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.CredentialsType.CredentialsType
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
-import com.advancedtelematic.director.deviceregistry.http.PublicCredentialsResource.FetchPublicCredentials
+import com.advancedtelematic.director.http.deviceregistry.PublicCredentialsResource.FetchPublicCredentials
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 
 import java.util.Base64

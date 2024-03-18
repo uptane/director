@@ -1,4 +1,4 @@
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
@@ -8,10 +8,7 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPu
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  deviceMetricsObservationMessageLike,
-  DeviceMetricsObservation
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceMetricsObservation, deviceMetricsObservationMessageLike}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.{Decoder, Json}
 import org.slf4j.LoggerFactory

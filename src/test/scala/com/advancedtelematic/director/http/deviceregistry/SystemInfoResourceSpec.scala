@@ -6,22 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
+
+
+import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.{NetworkInfo, removeIdNrs}
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.{
-  removeIdNrs,
-  NetworkInfo
-}
-import com.advancedtelematic.director.deviceregistry.http.ResourcePropSpec
+import com.advancedtelematic.director.http.deviceregistry.ResourcePropSpec
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  AktualizrConfigChanged,
-  DeviceSystemInfoChanged
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
 import io.circe.Json
 import org.scalacheck.Shrink
 import org.scalatest.OptionValues.*

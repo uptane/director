@@ -14,7 +14,7 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.{
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps._
 import com.advancedtelematic.director.deviceregistry.data.InstallationReportGenerators
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
-import com.advancedtelematic.director.deviceregistry.http.ResourcePropSpec
+import com.advancedtelematic.director.http.deviceregistry.ResourcePropSpec
 import io.circe.syntax._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}

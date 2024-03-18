@@ -24,8 +24,8 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{
 import EventJournalSpec.EventPayload
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceEventListener
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.director.deviceregistry.http.ResourcePropSpec
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
+import com.advancedtelematic.director.http.deviceregistry.ResourcePropSpec
 import io.circe.generic.semiauto.*
 import io.circe.testing.ArbitraryInstances
 import io.circe.{Decoder, Json}

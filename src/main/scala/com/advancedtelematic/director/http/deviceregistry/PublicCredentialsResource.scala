@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.marshalling.Marshaller.*
 import akka.http.scaladsl.server.Directives.*
@@ -17,11 +17,7 @@ import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.CredentialsType
 import com.advancedtelematic.director.deviceregistry.data.CredentialsType.CredentialsType
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.director.deviceregistry.messages.{
-  DeviceCreated,
-  DevicePublicCredentialsSet
-}
-import com.advancedtelematic.director.http.deviceregistry.Errors
+import com.advancedtelematic.director.deviceregistry.messages.{DeviceCreated, DevicePublicCredentialsSet}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId

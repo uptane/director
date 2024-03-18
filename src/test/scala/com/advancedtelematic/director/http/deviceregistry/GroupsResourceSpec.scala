@@ -6,27 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
-import com.advancedtelematic.director.http.deviceregistry.Errors.Codes.MalformedInput
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceT,
-  UpdateHibernationStatusRequest
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.{
-  Group,
-  GroupExpression,
-  GroupName,
-  GroupSortBy
-}
+import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
+import com.advancedtelematic.director.http.deviceregistry.Errors.Codes.MalformedInput
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import org.scalacheck.Arbitrary.*

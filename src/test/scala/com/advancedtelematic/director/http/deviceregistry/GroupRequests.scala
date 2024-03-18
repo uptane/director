@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query

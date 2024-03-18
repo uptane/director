@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.marshalling.Marshaller.*
 import akka.http.scaladsl.model.StatusCodes
@@ -27,7 +27,6 @@ import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.{AllowUUIDPath, GroupMembership}
-import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -35,6 +34,7 @@ import io.circe.{Decoder, Encoder}
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}
+import Unmarshallers.nonNegativeLong
 
 class GroupsResource(namespaceExtractor: Directive1[Namespace],
                      deviceNamespaceAuthorizer: Directive1[DeviceId])(

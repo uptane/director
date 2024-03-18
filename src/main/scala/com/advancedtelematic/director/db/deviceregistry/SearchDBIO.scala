@@ -1,11 +1,16 @@
 package com.advancedtelematic.director.db.deviceregistry
 
+import com.advancedtelematic.director.db
+import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import com.advancedtelematic.director.db.deviceregistry.Schema.DeviceTable
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.SearchParams
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.db.deviceregistry.DbOps.{PaginationResultOps, deviceTableToSlickOrder}
+import com.advancedtelematic.director.db.deviceregistry.DbOps.{
+  deviceTableToSlickOrder,
+  PaginationResultOps
+}
 import GroupInfoRepository.groupInfos
 import GroupMemberRepository.groupMembers
 import Schema.*
@@ -91,7 +96,7 @@ object SearchDBIO {
 
   def search(ns: Namespace, params: SearchParams)(
     implicit ec: ExecutionContext): DBIO[PaginationResult[Device]] = {
-    val query = params match {
+    val deviceTableQuery = params match {
 
       case SearchParams(
             Some(oemId),
@@ -209,7 +214,18 @@ object SearchDBIO {
       dt.lastSeen.map(i => i < lastSeen).getOrElse(false.bind)
     }
 
-    query
+    val hardwareIdFilter: DeviceTable => Rep[Boolean] = params.hardwareId match {
+      case x :: xs =>
+        dt => {
+          val hardwareIdsQuery =
+            db.Schema.activeEcus.filter(_.hardwareId.inSet(x :: xs)).map(_.deviceId)
+          dt.uuid.in(hardwareIdsQuery)
+        }
+      case _ =>
+        _ => true.bind
+    }
+
+    deviceTableQuery
       .maybeFilter(_.deviceStatus === params.status)
       .maybeFilter(_.hibernated === params.hibernated)
       .maybeFilter(_.createdAt > params.createdAtStart)
@@ -218,6 +234,7 @@ object SearchDBIO {
       .filter(activatedBeforeFilter)
       .filter(lastSeenStartFilter)
       .filter(lastSeenEndFilter)
+      .filter(hardwareIdFilter)
       .sortBy(devices => devices.ordered(sortBy, sortDirection))
       .paginateResult(params.offset.orDefaultOffset, params.limit.orDefaultLimit)
   }

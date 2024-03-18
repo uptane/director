@@ -6,17 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
-import com.advancedtelematic.director.deviceregistry.data.{
-  DeviceGenerators,
-  GroupGenerators,
-  PackageIdGenerators,
-  SimpleJsonGenerator
-}
+import com.advancedtelematic.director.deviceregistry.data.{DeviceGenerators, GroupGenerators, PackageIdGenerators, SimpleJsonGenerator}
 import com.advancedtelematic.director.deviceregistry.{AllowUUIDPath, DatabaseSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.tracing.NullServerRequestTracing

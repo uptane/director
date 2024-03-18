@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.Done
 import akka.http.scaladsl.model.StatusCodes
@@ -16,18 +16,15 @@ import akka.http.scaladsl.server.{Directive1, Route}
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 import cats.syntax.option.*
 import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository
+import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.director.deviceregistry.SystemInfoUpdatePublisher
 import com.advancedtelematic.director.http.deviceregistry.Errors.{Codes, MissingSystemInfo}
-import SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.Errors.RawError
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  AktualizrConfigChanged,
-  DeviceSystemInfoChanged
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
 import io.circe.Json
 import io.circe.generic.auto.*
 import slick.jdbc.MySQLProfile.api.*
@@ -37,6 +34,7 @@ import toml.Value.{Bool, Num, Str, Tbl}
 import java.time.Instant
 import scala.concurrent.ExecutionContext
 import scala.util.Try
+import com.advancedtelematic.director.http.deviceregistry.TomlSupport.`application/toml`
 
 case class AktualizrConfig(uptane: Uptane, pacman: Pacman)
 

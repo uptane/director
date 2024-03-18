@@ -5,8 +5,8 @@ import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.GenSample
 import cats.syntax.show.*
-import com.advancedtelematic.director.deviceregistry.http.{DeviceRequests, ResourceSpec}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
+import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourceSpec}
 import org.scalatest.OptionValues.*
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures

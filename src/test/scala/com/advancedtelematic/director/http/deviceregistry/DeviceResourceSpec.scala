@@ -6,25 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes.*
 import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
-import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
+import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
+import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{DevicesCount, InstalledPackage}
+import com.advancedtelematic.director.db.deviceregistry.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceSeenListener
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, DevicesQuery, RenameTagId, TagInfo, UpdateHibernationStatusRequest}
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
-import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.{PackageStat, *}
-import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{DevicesCount, InstalledPackage}
-import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.director.db.deviceregistry.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
-import com.advancedtelematic.director.http.deviceregistry.Errors
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.deviceregistry.data.Namespaces.NamespaceGen
+import com.advancedtelematic.director.deviceregistry.data.{PackageStat, *}
+import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
@@ -877,6 +877,53 @@ class DeviceResourceSpec extends ResourcePropSpec with ScalaFutures with Eventua
       result should contain allElementsOf Seq(uuid1)
     }
   }
+
+  // testWi
+
+  property("can search devices by creation time") {
+    val ns = NamespaceGen.generate
+
+    val device1 = genDeviceT.sample.get
+    val uuid1 = createDeviceInNamespaceOk(device1, ns)
+
+    val now = Instant.now
+    val oneHourAgo = now.minus(Duration.ofHours(1))
+    val oneHourAfter = now.plus(Duration.ofHours(1))
+
+    filterDevices(createdAtStart = oneHourAgo.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 1
+      result should contain allElementsOf Seq(uuid1)
+    }
+
+    filterDevices(createdAtEnd = oneHourAgo.some, namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 0
+    }
+
+    filterDevices(
+      createdAtStart = oneHourAgo.some,
+      createdAtEnd = oneHourAfter.some,
+      namespace = ns
+    ) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 1
+      result should contain allElementsOf Seq(uuid1)
+    }
+
+    filterDevices(namespace = ns) ~> route ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
+      result.length shouldBe 1
+      result should contain allElementsOf Seq(uuid1)
+    }
+
+    fail("should fail")
+  }
+
 
   property("can search static group devices") {
     val deviceT = genDeviceT.generate

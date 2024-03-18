@@ -1,4 +1,4 @@
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes.*
 import cats.syntax.either.*

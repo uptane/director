@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
-import com.advancedtelematic.libats.http.ValidatedGenericMarshalling.validatedStringUnmarshaller
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.model.headers.*
 import akka.http.scaladsl.server.*
+import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
 import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
 import akka.stream.Materializer
 import akka.stream.alpakka.csv.scaladsl.{CsvParsing, CsvToMap}
@@ -19,20 +19,12 @@ import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import cats.syntax.either.*
 import cats.syntax.show.*
-import com.advancedtelematic.director.http.deviceregistry.Errors.{Codes, MissingDevice}
+import com.advancedtelematic.director.db.deviceregistry.*
+import com.advancedtelematic.director.db.deviceregistry.DbOps.PaginationResultOps
+import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceT,
-  DevicesQuery,
-  InstallationStatsLevel,
-  RenameTagId,
-  SearchParams,
-  SetDevice,
-  UpdateDevice,
-  UpdateHibernationStatusRequest,
-  UpdateTagValue
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
 import com.advancedtelematic.director.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
@@ -41,41 +33,27 @@ import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortB
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.director.deviceregistry.data.TagId.validatedTagId
-import com.advancedtelematic.director.deviceregistry.data.{
-  Device,
-  DeviceSortBy,
-  GroupExpression,
-  GroupSortBy,
-  PackageId,
-  SortDirection,
-  TagId
-}
-import com.advancedtelematic.director.db.deviceregistry.DbOps.PaginationResultOps
 import com.advancedtelematic.director.deviceregistry.messages.DeviceCreated
+import com.advancedtelematic.director.http.deviceregistry.Errors.{Codes, MissingDevice}
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
 import com.advancedtelematic.libats.http.Errors.JsonError
+import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+import com.advancedtelematic.libats.http.ValidatedGenericMarshalling.validatedStringUnmarshaller
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeleteDeviceRequest,
-  DeviceEventMessage
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 import slick.jdbc.MySQLProfile.api.*
-
+import Unmarshallers.nonNegativeLong
 import java.time.{Instant, OffsetDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
-import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
-import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
-import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuReplacementRepository, EventJournal, GroupInfoRepository, GroupMemberRepository, InstallationReportRepository, InstalledPackages, SearchDBIO, TaggedDeviceRepository}
-import com.advancedtelematic.director.http.deviceregistry.Errors
 
 object DevicesResource {
   import akka.http.scaladsl.server.PathMatchers.Segment

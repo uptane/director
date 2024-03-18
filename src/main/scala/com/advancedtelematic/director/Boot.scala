@@ -1,5 +1,6 @@
 package com.advancedtelematic.director
 
+import com.advancedtelematic.director.http.deviceregistry.TomlSupport.`application/toml`
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
@@ -7,8 +8,8 @@ import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.settings.{ParserSettings, ServerSettings}
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 import com.advancedtelematic.director.deviceregistry.AllowUUIDPath
-import com.advancedtelematic.director.deviceregistry.http.{`application/toml`, DeviceRegistryRoutes}
 import com.advancedtelematic.director.http.DirectorRoutes
+import com.advancedtelematic.director.http.deviceregistry.DeviceRegistryRoutes
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.DefaultRejectionHandler.rejectionHandler
 import com.advancedtelematic.libats.http.LogDirectives.logResponseMetrics

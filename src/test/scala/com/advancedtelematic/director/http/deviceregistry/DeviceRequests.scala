@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.http
+package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.model.Uri.{Path, Query}
@@ -15,29 +15,24 @@ import cats.instances.int.*
 import cats.instances.string.*
 import cats.syntax.option.*
 import cats.syntax.show.*
+import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceT,
-  DevicesQuery,
-  SetDevice,
-  TagInfo,
-  UpdateDevice,
-  UpdateTagValue
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, DevicesQuery, SetDevice, TagInfo, UpdateDevice, UpdateTagValue}
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
-import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.http.HttpOps.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
+
 import java.time.{Instant, OffsetDateTime}
+import com.advancedtelematic.director.http.deviceregistry.TomlSupport.`application/toml`
 
 /** Generic test resource object Used in property-based testing
   */
