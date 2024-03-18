@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import java.time.Instant
 import cats.syntax.show.*
@@ -18,7 +18,7 @@ import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickUrnMapper.correlationIdMapper
 import com.advancedtelematic.director.deviceregistry.data.DataType.IndexedEventType.IndexedEventType
 import com.advancedtelematic.director.deviceregistry.data.DataType.{IndexedEvent, *}
-import com.advancedtelematic.director.deviceregistry.db.SlickMappings.*
+import SlickMappings.*
 import io.circe.Json
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*

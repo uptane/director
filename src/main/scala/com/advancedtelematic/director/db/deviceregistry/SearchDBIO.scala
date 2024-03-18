@@ -1,17 +1,15 @@
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
+import com.advancedtelematic.director.db.deviceregistry.Schema.DeviceTable
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.SearchParams
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.deviceregistry.db.DbOps.{
-  deviceTableToSlickOrder,
-  PaginationResultOps
-}
-import com.advancedtelematic.director.deviceregistry.db.GroupInfoRepository.groupInfos
-import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.groupMembers
-import com.advancedtelematic.director.deviceregistry.db.Schema.*
-import com.advancedtelematic.director.deviceregistry.db.SlickMappings.*
+import com.advancedtelematic.director.deviceregistry.db.DbOps.{PaginationResultOps, deviceTableToSlickOrder}
+import GroupInfoRepository.groupInfos
+import GroupMemberRepository.groupMembers
+import Schema.*
+import SlickMappings.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId

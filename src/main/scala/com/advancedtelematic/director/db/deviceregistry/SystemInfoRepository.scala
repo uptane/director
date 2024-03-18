@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import akka.Done
 import cats.data.State

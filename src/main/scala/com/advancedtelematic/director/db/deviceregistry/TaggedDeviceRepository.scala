@@ -1,4 +1,4 @@
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -10,8 +10,8 @@ import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.data.DataType.{TagInfo, TaggedDevice}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.{Device, TagId}
-import com.advancedtelematic.director.deviceregistry.db.DeviceRepository.findByDeviceIdQuery
-import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.{
+import DeviceRepository.findByDeviceIdQuery
+import GroupMemberRepository.{
   addDeviceToDynamicGroups,
   deleteDynamicGroupsForDevice
 }

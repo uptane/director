@@ -1,14 +1,15 @@
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
+import com.advancedtelematic.director.db.deviceregistry.Schema.DeviceTable
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.director.deviceregistry.data.{DeviceSortBy, GroupSortBy, SortDirection}
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
-import com.advancedtelematic.director.deviceregistry.db.Schema.DeviceTable
-import com.advancedtelematic.director.deviceregistry.db.GroupInfoRepository.GroupInfoTable
+import Schema.DeviceTable
+import GroupInfoRepository.GroupInfoTable
 import slick.ast.Ordering
-import slick.jdbc.MySQLProfile.api._
+import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.ColumnOrdered
 
 object DbOps {

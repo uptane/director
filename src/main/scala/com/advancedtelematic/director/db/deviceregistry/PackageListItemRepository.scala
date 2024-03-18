@@ -1,4 +1,4 @@
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
@@ -12,9 +12,9 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.{
   PackageListItemCount
 }
 import com.advancedtelematic.director.deviceregistry.data.PackageId
-import com.advancedtelematic.director.deviceregistry.db.Schema.devices
-import com.advancedtelematic.director.deviceregistry.db.InstalledPackages.installedPackages
-import com.advancedtelematic.director.deviceregistry.db.SlickMappings._
+import Schema.devices
+import InstalledPackages.installedPackages
+import SlickMappings._
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.director.deviceregistry.data.{
   Group,
@@ -27,11 +27,11 @@ import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStri
 import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.data
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.deviceregistry.db.DbOps.{
+import DbOps.{
   PaginationResultOps,
   SortBySlickOrderedGroupConversion
 }
-import com.advancedtelematic.director.deviceregistry.db.SlickMappings.*
+import SlickMappings.*
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}

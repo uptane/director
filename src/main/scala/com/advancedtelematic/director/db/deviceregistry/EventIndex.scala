@@ -1,4 +1,4 @@
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import cats.syntax.either._
 import cats.syntax.option._

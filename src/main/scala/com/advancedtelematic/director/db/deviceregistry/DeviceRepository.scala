@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -26,13 +26,13 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceSta
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.*
-import com.advancedtelematic.director.deviceregistry.db.DbOps.{
+import DbOps.{
   deviceTableToSlickOrder,
   PaginationResultOps
 }
-import com.advancedtelematic.director.deviceregistry.db.GroupInfoRepository.groupInfos
-import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.groupMembers
-import com.advancedtelematic.director.deviceregistry.db.SlickMappings.*
+import GroupInfoRepository.groupInfos
+import GroupMemberRepository.groupMembers
+import SlickMappings.*
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*

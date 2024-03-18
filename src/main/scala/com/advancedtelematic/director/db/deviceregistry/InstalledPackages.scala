@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import java.time.Instant
 
@@ -20,7 +20,7 @@ import com.advancedtelematic.director.deviceregistry.common.PackageStat
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.PackageId
 import com.advancedtelematic.director.deviceregistry.data.PackageId.Name
-import com.advancedtelematic.director.deviceregistry.db.DbOps.PaginationResultOps
+import DbOps.PaginationResultOps
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext
@@ -35,7 +35,7 @@ object InstalledPackages {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
 
     implicit val EncoderInstance: io.circe.Encoder.AsObject[
-      com.advancedtelematic.director.deviceregistry.db.InstalledPackages.InstalledPackage
+      InstalledPackages.InstalledPackage
     ] = io.circe.generic.semiauto.deriveEncoder[InstalledPackage]
 
   }
@@ -45,7 +45,7 @@ object InstalledPackages {
   object DevicesCount {
 
     implicit val EncoderInstance: io.circe.Encoder.AsObject[
-      com.advancedtelematic.director.deviceregistry.db.InstalledPackages.DevicesCount
+      InstalledPackages.DevicesCount
     ] = io.circe.generic.semiauto.deriveEncoder[DevicesCount]
 
   }

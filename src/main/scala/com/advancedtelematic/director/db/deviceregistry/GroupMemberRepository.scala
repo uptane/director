@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.data.DataType.Namespace
@@ -25,7 +25,7 @@ import com.advancedtelematic.director.deviceregistry.data.{
   GroupType,
   TagId
 }
-import com.advancedtelematic.director.deviceregistry.db.DbOps.PaginationResultOps
+import DbOps.PaginationResultOps
 import slick.jdbc.{PositionedParameters, SetParameter}
 import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.Tag

@@ -1,10 +1,10 @@
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeletedDevice
 import com.advancedtelematic.director.deviceregistry.data.Device.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.director.deviceregistry.db.SlickMappings.*
+import SlickMappings.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*

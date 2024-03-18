@@ -1,4 +1,4 @@
-package com.advancedtelematic.director.deviceregistry.db
+package com.advancedtelematic.director.db.deviceregistry
 
 import java.time.Instant
 import cats.syntax.option.*
