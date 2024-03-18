@@ -15,7 +15,6 @@ import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant
 
-
 object Schema {
 
   protected[db] implicit val DeviceStatusColumnType: BaseColumnType[DeviceStatus.Value] =
@@ -55,7 +54,7 @@ object Schema {
   }
 
   // scalastyle:on
-  protected [db] val devices = TableQuery[DeviceTable]
+  protected[db] val devices = TableQuery[DeviceTable]
 
   class DeletedDeviceTable(tag: Tag) extends Table[DeletedDevice](tag, "DeletedDevice") {
     def namespace = column[Namespace]("namespace")

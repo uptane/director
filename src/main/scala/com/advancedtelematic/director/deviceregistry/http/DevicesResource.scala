@@ -23,7 +23,17 @@ import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.common.Errors.{Codes, MissingDevice}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceT,
+  DevicesQuery,
+  InstallationStatsLevel,
+  RenameTagId,
+  SearchParams,
+  SetDevice,
+  UpdateDevice,
+  UpdateHibernationStatusRequest,
+  UpdateTagValue
+}
 import com.advancedtelematic.director.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
@@ -32,9 +42,27 @@ import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortB
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.director.deviceregistry.data.TagId.validatedTagId
-import com.advancedtelematic.director.deviceregistry.data.{Device, DeviceSortBy, GroupExpression, GroupSortBy, PackageId, SortDirection, TagId}
+import com.advancedtelematic.director.deviceregistry.data.{
+  Device,
+  DeviceSortBy,
+  GroupExpression,
+  GroupSortBy,
+  PackageId,
+  SortDirection,
+  TagId
+}
 import com.advancedtelematic.director.deviceregistry.db.DbOps.PaginationResultOps
-import com.advancedtelematic.director.deviceregistry.db.{DeviceRepository, EcuReplacementRepository, EventJournal, GroupInfoRepository, GroupMemberRepository, InstallationReportRepository, InstalledPackages, SearchDBIO, TaggedDeviceRepository}
+import com.advancedtelematic.director.deviceregistry.db.{
+  DeviceRepository,
+  EcuReplacementRepository,
+  EventJournal,
+  GroupInfoRepository,
+  GroupMemberRepository,
+  InstallationReportRepository,
+  InstalledPackages,
+  SearchDBIO,
+  TaggedDeviceRepository
+}
 import com.advancedtelematic.director.deviceregistry.messages.DeviceCreated
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
 import com.advancedtelematic.libats.http.Errors.JsonError
@@ -43,8 +71,12 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeleteDeviceRequest,
+  DeviceEventMessage
+}
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
+import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 import slick.jdbc.MySQLProfile.api.*
@@ -52,6 +84,8 @@ import slick.jdbc.MySQLProfile.api.*
 import java.time.{Instant, OffsetDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
+import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
+import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
 
 object DevicesResource {
   import akka.http.scaladsl.server.PathMatchers.Segment
@@ -158,11 +192,53 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
       Symbol("lastSeenEnd").as[Instant].?,
       Symbol("createdAtStart").as[Instant].?,
       Symbol("createdAtEnd").as[Instant].?,
+      Symbol("hardwareIds").as(CsvSeq[HardwareIdentifier]),
       Symbol("sortBy").as[DeviceSortBy].?,
       Symbol("sortDirection").as[SortDirection].?,
       Symbol("offset").as(nonNegativeLong).?,
       Symbol("limit").as(nonNegativeLong).?
-    ).as(SearchParams.apply _) { params =>
+    ).as(
+      (oemId,
+       grouped,
+       groupType,
+       groupId,
+       nameContains,
+       notSeenSinceHours,
+       hibernated,
+       status,
+       activatedAfter,
+       activatedBefore,
+       lastSeenStart,
+       lastSeenEnd,
+       createdAtStart,
+       createdAtEnd,
+       hardwareId,
+       sortBy,
+       sortDirection,
+       offset,
+       limit) =>
+        SearchParams.apply(
+          oemId,
+          grouped,
+          groupType,
+          groupId,
+          nameContains,
+          notSeenSinceHours,
+          hibernated,
+          status,
+          activatedAfter,
+          activatedBefore,
+          lastSeenStart,
+          lastSeenEnd,
+          createdAtStart,
+          createdAtEnd,
+          hardwareId,
+          sortBy,
+          sortDirection,
+          offset,
+          limit
+        )
+    ) { params =>
       complete(db.run(SearchDBIO.search(ns, params)))
     }
 

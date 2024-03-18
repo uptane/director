@@ -14,6 +14,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceSta
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
+import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
 
 object DataType {
@@ -97,6 +98,7 @@ object DataType {
       None,
       None,
       None,
+      List.empty,
       Some(DeviceSortBy.CreatedAt),
       Some(SortDirection.Asc),
       offset,
@@ -106,12 +108,12 @@ object DataType {
   }
 
   final case class SearchParams(oemId: Option[DeviceOemId],
-                                grouped: Option[Boolean],
+                                grouped: Option[HibernationStatus],
                                 groupType: Option[GroupType],
                                 groupId: Option[GroupId],
                                 nameContains: Option[String],
                                 notSeenSinceHours: Option[Int],
-                                hibernated: Option[Boolean],
+                                hibernated: Option[HibernationStatus],
                                 status: Option[DeviceStatus],
                                 activatedAfter: Option[Instant],
                                 activatedBefore: Option[Instant],
@@ -119,6 +121,7 @@ object DataType {
                                 lastSeenEnd: Option[Instant],
                                 createdAtStart: Option[Instant],
                                 createdAtEnd: Option[Instant],
+                                hardwareId: Seq[HardwareIdentifier],
                                 sortBy: Option[DeviceSortBy],
                                 sortDirection: Option[SortDirection],
                                 offset: Option[Long],

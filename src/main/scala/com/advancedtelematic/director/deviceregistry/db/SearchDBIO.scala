@@ -4,7 +4,10 @@ import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.SearchParams
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.deviceregistry.db.DbOps.{PaginationResultOps, deviceTableToSlickOrder}
+import com.advancedtelematic.director.deviceregistry.db.DbOps.{
+  deviceTableToSlickOrder,
+  PaginationResultOps
+}
 import com.advancedtelematic.director.deviceregistry.db.GroupInfoRepository.groupInfos
 import com.advancedtelematic.director.deviceregistry.db.GroupMemberRepository.groupMembers
 import com.advancedtelematic.director.deviceregistry.db.Schema.*
@@ -26,7 +29,9 @@ object SearchDBIO {
 
   private def devicesForExpressionQuery(ns: Namespace, expression: GroupExpression) = {
     val all = devices.filter(_.namespace === ns).map(_.uuid)
-    GroupExpressionAST.compileToSlick(expression)(Schema.devices, TaggedDeviceRepository.taggedDevices)(all).distinct
+    GroupExpressionAST
+      .compileToSlick(expression)(Schema.devices, TaggedDeviceRepository.taggedDevices)(all)
+      .distinct
   }
 
   def searchByExpression(ns: Namespace, expression: GroupExpression): DBIO[Seq[DeviceId]] =
@@ -39,7 +44,7 @@ object SearchDBIO {
     fn: (DeviceTable, T) => Rep[Boolean]): DeviceTable => Rep[Boolean] =
     dt =>
       o match {
-        case None => true.bind
+        case None    => true.bind
         case Some(t) => fn(dt, t)
       }
 
@@ -75,7 +80,7 @@ object SearchDBIO {
   }
 
   private val groupedDevicesQuery
-  : (Namespace, Option[GroupType]) => Query[DeviceTable, Device, Seq] = (ns, groupType) =>
+    : (Namespace, Option[GroupType]) => Query[DeviceTable, Device, Seq] = (ns, groupType) =>
     groupInfos
       .maybeFilter(_.groupType === groupType)
       .filter(_.namespace === ns)
@@ -90,75 +95,98 @@ object SearchDBIO {
     implicit ec: ExecutionContext): DBIO[PaginationResult[Device]] = {
     val query = params match {
 
-      case SearchParams(Some(oemId), _, _, None, None, None, _, _, _, _, _, _, _, _, _, _, _, _) =>
+      case SearchParams(
+            Some(oemId),
+            _,
+            _,
+            None,
+            None,
+            None,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
         DeviceRepository.findByDeviceIdQuery(ns, oemId)
 
       case SearchParams(
-      None,
-      Some(true),
-      gt,
-      None,
-      nameContains,
-      None,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _
-      ) =>
+            None,
+            Some(true),
+            gt,
+            None,
+            nameContains,
+            None,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
         runQueryFilteringByName(ns, groupedDevicesQuery(ns, gt), nameContains)
 
       case SearchParams(
-      None,
-      Some(false),
-      gt,
-      None,
-      nameContains,
-      None,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _
-      ) =>
+            None,
+            Some(false),
+            gt,
+            None,
+            nameContains,
+            None,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
         val ungroupedDevicesQuery =
           devices.filterNot(_.uuid.in(groupedDevicesQuery(ns, gt).map(_.uuid)))
         runQueryFilteringByName(ns, ungroupedDevicesQuery, nameContains)
 
       case SearchParams(
-      None,
-      _,
-      _,
-      gid,
-      nameContains,
-      notSeenSinceHours,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _,
-      _
-      ) =>
+            None,
+            _,
+            _,
+            gid,
+            nameContains,
+            notSeenSinceHours,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
         searchQuery(ns, nameContains, gid, notSeenSinceHours)
 
       case _ => throw new IllegalArgumentException("Invalid parameter combination.")
@@ -195,4 +223,5 @@ object SearchDBIO {
       .sortBy(devices => devices.ordered(sortBy, sortDirection))
       .paginateResult(params.offset.orDefaultOffset, params.limit.orDefaultLimit)
   }
+
 }
