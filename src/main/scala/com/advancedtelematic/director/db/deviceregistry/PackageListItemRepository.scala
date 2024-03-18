@@ -3,7 +3,7 @@ package com.advancedtelematic.director.db.deviceregistry
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.director.deviceregistry.common.Errors.{
+import com.advancedtelematic.director.http.deviceregistry.Errors.{
   ConflictingPackageListItem,
   MissingPackageListItem
 }

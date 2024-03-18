@@ -6,7 +6,6 @@ import com.advancedtelematic.libats.slick.db.SlickAnyVal.stringAnyValSerializer
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.data.DataType.{TagInfo, TaggedDevice}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.{Device, TagId}
@@ -15,6 +14,7 @@ import GroupMemberRepository.{
   addDeviceToDynamicGroups,
   deleteDynamicGroupsForDevice
 }
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext

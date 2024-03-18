@@ -9,11 +9,11 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST.*
 import com.advancedtelematic.director.deviceregistry.data.TagId.validatedTagId
 import com.advancedtelematic.director.db.deviceregistry.Schema.DeviceTable
 import com.advancedtelematic.director.db.deviceregistry.TaggedDeviceRepository.TaggedDeviceTable
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.Rep
 

@@ -17,7 +17,7 @@ import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 import cats.syntax.option.*
 import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository
 import com.advancedtelematic.director.deviceregistry.SystemInfoUpdatePublisher
-import com.advancedtelematic.director.deviceregistry.common.Errors.{Codes, MissingSystemInfo}
+import com.advancedtelematic.director.http.deviceregistry.Errors.{Codes, MissingSystemInfo}
 import SystemInfoRepository.NetworkInfo
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.Errors.RawError

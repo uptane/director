@@ -5,6 +5,7 @@ import java.time.Instant
 import cats.instances.option._
 import cats.syntax.apply._
 import cats.syntax.option._
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.ecuReplacementCodec
@@ -20,7 +21,6 @@ import com.advancedtelematic.libats.slick.db.SlickResultExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.dbMapping
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, ValidHardwareIdentifier}
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import eu.timepit.refined.refineV
 import io.circe.Json
 import io.circe.syntax._

@@ -13,7 +13,7 @@ import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
-import com.advancedtelematic.director.deviceregistry.common.Errors.Codes.MalformedInput
+import com.advancedtelematic.director.http.deviceregistry.Errors.Codes.MalformedInput
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceT,

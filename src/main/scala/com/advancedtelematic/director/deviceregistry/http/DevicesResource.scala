@@ -19,8 +19,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import cats.syntax.either.*
 import cats.syntax.show.*
-import com.advancedtelematic.director.deviceregistry.common.Errors
-import com.advancedtelematic.director.deviceregistry.common.Errors.{Codes, MissingDevice}
+import com.advancedtelematic.director.http.deviceregistry.Errors.{Codes, MissingDevice}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
@@ -76,6 +75,7 @@ import scala.util.Failure
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
 import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
 import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuReplacementRepository, EventJournal, GroupInfoRepository, GroupMemberRepository, InstallationReportRepository, InstalledPackages, SearchDBIO, TaggedDeviceRepository}
+import com.advancedtelematic.director.http.deviceregistry.Errors
 
 object DevicesResource {
   import akka.http.scaladsl.server.PathMatchers.Segment

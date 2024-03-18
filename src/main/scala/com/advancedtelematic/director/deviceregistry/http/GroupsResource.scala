@@ -19,7 +19,6 @@ import akka.stream.scaladsl.{Framing, Sink, Source}
 import akka.util.ByteString
 import cats.syntax.either.*
 import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, GroupInfoRepository, GroupMemberRepository}
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.UpdateHibernationStatusRequest
@@ -28,6 +27,7 @@ import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.{AllowUUIDPath, GroupMembership}
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*

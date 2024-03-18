@@ -6,22 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.common
+package com.advancedtelematic.director.http.deviceregistry
 
-import com.advancedtelematic.libats.data.ErrorCode
-import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, RawError}
-import com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem
-import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.director.deviceregistry.data.{
-  DeviceName,
-  Group,
-  GroupExpression,
-  GroupName
-}
-import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.db.deviceregistry.GroupMemberRepository.GroupMember
 import com.advancedtelematic.director.db.deviceregistry.PublicCredentialsRepository.DevicePublicCredentials
 import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.SystemInfo
+import com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
+import com.advancedtelematic.director.deviceregistry.data.{DeviceName, Group, GroupExpression, GroupName}
+import com.advancedtelematic.libats.data.ErrorCode
+import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, RawError}
 
 object Errors {
   import akka.http.scaladsl.model.StatusCodes

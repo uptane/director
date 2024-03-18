@@ -7,7 +7,7 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{
   EcuReplacement,
   EcuReplacementFailed
 }
-import com.advancedtelematic.director.deviceregistry.common.Errors.MissingDevice
+import com.advancedtelematic.director.http.deviceregistry.Errors.MissingDevice
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*

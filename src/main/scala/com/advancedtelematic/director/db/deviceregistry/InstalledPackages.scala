@@ -16,9 +16,8 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import SlickMappings._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.director.deviceregistry.common.PackageStat
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.PackageId
+import com.advancedtelematic.director.deviceregistry.data.{PackageId, PackageStat}
 import com.advancedtelematic.director.deviceregistry.data.PackageId.Name
 import DbOps.PaginationResultOps
 import slick.jdbc.MySQLProfile.api._

@@ -13,18 +13,18 @@ import akka.http.scaladsl.model.StatusCodes.*
 import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
-import com.advancedtelematic.director.deviceregistry.common.Errors.Codes
-import com.advancedtelematic.director.deviceregistry.common.{Errors, PackageStat}
+import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceSeenListener
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, DevicesQuery, RenameTagId, TagInfo, UpdateHibernationStatusRequest}
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.*
+import com.advancedtelematic.director.deviceregistry.data.{PackageStat, *}
 import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{DevicesCount, InstalledPackage}
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.director.db.deviceregistry.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps

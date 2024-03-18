@@ -10,12 +10,12 @@ package com.advancedtelematic.director.deviceregistry.daemon
 
 import akka.Done
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceSeen
 import com.advancedtelematic.director.deviceregistry.messages.DeviceActivated
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}

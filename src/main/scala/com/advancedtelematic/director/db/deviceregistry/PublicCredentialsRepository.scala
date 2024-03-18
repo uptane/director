@@ -11,9 +11,9 @@ package com.advancedtelematic.director.db.deviceregistry
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.data.CredentialsType.CredentialsType
 import SlickMappings._
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import slick.jdbc.MySQLProfile.api._
 
 import scala.concurrent.ExecutionContext

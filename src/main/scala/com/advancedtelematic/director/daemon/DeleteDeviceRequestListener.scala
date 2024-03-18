@@ -1,9 +1,9 @@
 package com.advancedtelematic.director.daemon
 
 import akka.Done
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.db.ProvisionedDeviceRepositorySupport
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.http.Errors.MissingEntity
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest

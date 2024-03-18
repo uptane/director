@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package com.advancedtelematic.director.deviceregistry.common
+package com.advancedtelematic.director.deviceregistry.data
 
 case class PackageStat(packageVersion: String, installedCount: Int)
 
 object PackageStat {
 
   import io.circe.Encoder
-  import io.circe.generic.semiauto._
+  import io.circe.generic.semiauto.*
 
   implicit val encoder: Encoder[PackageStat] = deriveEncoder[PackageStat]
 }

@@ -14,8 +14,7 @@ import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
-import com.advancedtelematic.director.deviceregistry.common.Errors
-import com.advancedtelematic.director.deviceregistry.common.Errors.MemberAlreadyExists
+import com.advancedtelematic.director.http.deviceregistry.Errors.MemberAlreadyExists
 import com.advancedtelematic.director.deviceregistry.data.DataType.HibernationStatus
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.{
@@ -26,6 +25,7 @@ import com.advancedtelematic.director.deviceregistry.data.{
   TagId
 }
 import DbOps.PaginationResultOps
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import slick.jdbc.{PositionedParameters, SetParameter}
 import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.Tag

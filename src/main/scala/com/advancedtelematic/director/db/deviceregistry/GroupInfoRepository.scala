@@ -24,7 +24,6 @@ import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.data
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import DbOps.{
@@ -32,6 +31,7 @@ import DbOps.{
   SortBySlickOrderedGroupConversion
 }
 import SlickMappings.*
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}

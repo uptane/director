@@ -16,10 +16,10 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceUpdateEvent,
   DeviceUpdateInFlight
 }
-import com.advancedtelematic.director.deviceregistry.common.Errors
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceUpdateStatus._
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import io.circe.syntax._
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api._

@@ -14,7 +14,7 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.director.deviceregistry.common.Errors
+import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeletedDevice,
   DeviceT,
