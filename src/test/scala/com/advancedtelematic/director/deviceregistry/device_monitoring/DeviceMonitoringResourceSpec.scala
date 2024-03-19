@@ -2,18 +2,17 @@ package com.advancedtelematic.director.deviceregistry.device_monitoring
 
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
+import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPublishResult
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators
+import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, Resource}
+import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
-import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPublishResult
-import com.advancedtelematic.director.http.deviceregistry.{Resource, ResourceSpec}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalatest.EitherValues.*
 import org.scalatest.OptionValues.*
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Seconds, Span}
 
 import java.io.IOException
@@ -131,17 +130,15 @@ object TestPayloads {
 }
 
 class DeviceMonitoringResourceSpec
-    extends AnyFunSuite
-    with ResourceSpec
-    with ScalaFutures
+    extends DirectorSpec
+    with RouteResourceSpec
+    with DeviceRequests
     with DeviceGenerators {
 
-  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps._
+  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 
   override implicit def patienceConfig: PatienceConfig =
     super.patienceConfig.copy(timeout = Span(3, Seconds))
-
-  override lazy val messageBus = new MockMessageBus()
 
   test("accepts metrics from device") {
     val uuid = createDeviceOk(genDeviceT.generate)
@@ -149,11 +146,11 @@ class DeviceMonitoringResourceSpec
     Post(
       Resource.uri("devices", uuid.show, "monitoring"),
       TestPayloads.jsonPayload
-    ) ~> route ~> check {
+    ) ~> routes ~> check {
       status shouldBe StatusCodes.NoContent
     }
 
-    val msg = messageBus.findReceived[DeviceMetricsObservation]((msg: DeviceMetricsObservation) =>
+    val msg = msgPub.findReceived[DeviceMetricsObservation]((msg: DeviceMetricsObservation) =>
       msg.uuid == uuid
     )
 
@@ -167,12 +164,12 @@ class DeviceMonitoringResourceSpec
     Post(
       Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"),
       TestPayloads.jsonPayloadBufferedList
-    ) ~> route ~> check {
+    ) ~> routes ~> check {
       status shouldBe StatusCodes.NoContent
     }
 
     val msgs =
-      messageBus.findReceivedAll[DeviceMetricsObservation]((msg: DeviceMetricsObservation) =>
+      msgPub.findReceivedAll[DeviceMetricsObservation]((msg: DeviceMetricsObservation) =>
         msg.uuid == uuid
       )
     TestPayloads.jsonPayloadBufferedList.asArray.map(_.map { j =>
@@ -194,17 +191,17 @@ class BadMessageBus extends MockMessageBus {
 }
 
 class DeviceMonitoringResourceSpecBadMsgPub
-    extends AnyFunSuite
-    with ResourceSpec
-    with ScalaFutures
+    extends DirectorSpec
+    with RouteResourceSpec
+    with DeviceRequests
     with DeviceGenerators {
 
-  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps._
+  import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 
   override implicit def patienceConfig: PatienceConfig =
     super.patienceConfig.copy(timeout = Span(3, Seconds))
 
-  override lazy val messageBus: BadMessageBus = new BadMessageBus()
+  override val msgPub: MockMessageBus = new BadMessageBus()
 
   test("Buffered metrics that failed to be published are returned with partial results body") {
     import com.advancedtelematic.director.deviceregistry.data.Codecs.ObservationPublishResultCodec
@@ -213,11 +210,9 @@ class DeviceMonitoringResourceSpecBadMsgPub
     Post(
       Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"),
       TestPayloads.jsonPayloadBufferedList
-    ) ~> route ~> check {
+    ) ~> routes ~> check {
       status shouldBe StatusCodes.RangeNotSatisfiable
-      responseAs[List[ObservationPublishResult]]
-        .filter(_.publishedSuccessfully == false)
-        .length shouldBe 2
+      responseAs[List[ObservationPublishResult]].count(_.publishedSuccessfully == false) shouldBe 2
     }
   }
 

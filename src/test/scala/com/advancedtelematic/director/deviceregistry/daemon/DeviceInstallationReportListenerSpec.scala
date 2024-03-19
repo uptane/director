@@ -1,44 +1,38 @@
 package com.advancedtelematic.director.deviceregistry.daemon
 
-import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.advancedtelematic.director.db.deviceregistry.InstallationReportRepository
-import com.advancedtelematic.director.deviceregistry.DatabaseSpec
-import com.advancedtelematic.libats.data.DataType.ResultCode
-import com.advancedtelematic.libats.messaging.MessageBusPublisher
-import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateInFlight}
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceInstallationResult,
   EcuInstallationResult
 }
-import com.advancedtelematic.director.deviceregistry.data.GeneratorOps._
-import com.advancedtelematic.director.deviceregistry.data.InstallationReportGenerators
-import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
-import com.advancedtelematic.director.http.deviceregistry.ResourcePropSpec
-import io.circe.syntax._
-import org.scalatest.concurrent.ScalaFutures
+import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
+import com.advancedtelematic.director.deviceregistry.data.{
+  DeviceStatus,
+  InstallationReportGenerators
+}
+import com.advancedtelematic.director.http.deviceregistry.{DeviceRegistryRequests, ResourcePropSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.libats.data.DataType.ResultCode
+import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateInFlight}
+import io.circe.syntax.*
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
 
-class DeviceUpdateEventListenerSpec
-    extends ResourcePropSpec
-    with ScalatestRouteTest
-    with DatabaseSpec
-    with ScalaFutures
-    with Matchers
+class DeviceInstallationReportListenerSpec
+    extends DirectorSpec
+    with ResourcePropSpec
+    with RouteResourceSpec
+    with DeviceRegistryRequests
     with InstallationReportGenerators {
 
   implicit override val patienceConfig: PatienceConfig =
     PatienceConfig(Span(10, Seconds), Span(50, Millis))
 
-  implicit val msgPub: com.advancedtelematic.libats.messaging.MessageBusPublisher =
-    MessageBusPublisher.ignore
-
   val listener = new DeviceUpdateEventListener(msgPub)
 
-  property("should parse and save DeviceUpdateReport messages and is idempotent") {
+  test("should parse and save DeviceUpdateReport messages and is idempotent") {
     val deviceUuid = createDeviceOk(genDeviceT.generate)
     val correlationId = genCorrelationId.generate
     val message = genDeviceUpdateCompleted(correlationId, ResultCode("0"), deviceUuid).generate
@@ -84,7 +78,7 @@ class DeviceUpdateEventListenerSpec
 
   }
 
-  property("should save success result after failed one") {
+  test("should save success result after failed one") {
     val deviceUuid = createDeviceOk(genDeviceT.generate)
     val correlationId = genCorrelationId.generate
     val messageFailed =
@@ -129,12 +123,12 @@ class DeviceUpdateEventListenerSpec
 
   }
 
-  property("should process DeviceUpdateInFlight") {
+  test("should process DeviceUpdateInFlight") {
     val deviceId = createDeviceOk(genDeviceT.generate)
     val correlationId = genCorrelationId.generate
     val updateInFlight = DeviceUpdateInFlight(defaultNs, Instant.now(), correlationId, deviceId)
 
-    val deviceSeenListener = new DeviceSeenListener(messageBus)
+    val deviceSeenListener = new DeviceSeenListener(msgPub)
     deviceSeenListener.apply(DeviceSeen(defaultNs, deviceId, Instant.now())).futureValue
 
     listener.apply(updateInFlight).futureValue

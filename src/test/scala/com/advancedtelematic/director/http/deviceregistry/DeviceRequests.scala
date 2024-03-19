@@ -33,26 +33,25 @@ import io.circe.Json
 
 import java.time.{Instant, OffsetDateTime}
 import com.advancedtelematic.director.http.deviceregistry.TomlSupport.`application/toml`
+import com.advancedtelematic.director.util.{DefaultPatience, DirectorSpec, ResourceSpec, RouteResourceSpec}
+import org.scalatest.matchers.should.Matchers
 
-/** Generic test resource object Used in property-based testing
-  */
 object Resource {
 
   def uri(pathSuffixes: String*): Uri = {
-    val BasePath = Path("/api") / "v1"
+    val BasePath = Path("/device-registry/api") / "v1"
     Uri.Empty.withPath(pathSuffixes.foldLeft(BasePath)(_ / _))
   }
 
   def uriV2(pathSuffixes: String*): Uri = {
-    val BasePath = Path("/api") / "v2"
+    val BasePath = Path("/device-registry/api") / "v2"
     Uri.Empty.withPath(pathSuffixes.foldLeft(BasePath)(_ / _))
   }
 
 }
 
-/** Testing Trait for building Device requests
-  */
-trait DeviceRequests { self: ResourceSpec =>
+// TODO: DefaultPatience out of nowhere here is shit
+trait DeviceRequests { self: DefaultPatience & RouteResourceSpec & Matchers =>
 
   import StatusCodes.*
   import com.advancedtelematic.director.deviceregistry.data.Device.*
@@ -63,13 +62,13 @@ trait DeviceRequests { self: ResourceSpec =>
     Get(Resource.uri(api, uuid.show))
 
   def fetchDeviceOk(uuid: DeviceId): Device =
-    Get(Resource.uri(api, uuid.show)) ~> route ~> check {
+    Get(Resource.uri(api, uuid.show)) ~> routes ~> check {
       status shouldBe OK
       responseAs[Device]
     }
 
   def fetchDeviceInNamespaceOk(uuid: DeviceId, namespace: Namespace): Device =
-    Get(Resource.uri(api, uuid.show)).withNs(namespace) ~> route ~> check {
+    Get(Resource.uri(api, uuid.show)).withNs(namespace) ~> routes ~> check {
       status shouldBe OK
       responseAs[Device]
     }
@@ -170,13 +169,13 @@ trait DeviceRequests { self: ResourceSpec =>
     Post(Resource.uri(api), device)
 
   def createDeviceOk(device: DeviceT): DeviceId =
-    createDevice(device) ~> route ~> check {
+    createDevice(device) ~> routes ~> check {
       status shouldBe Created
       responseAs[DeviceId]
     }
 
   def createDeviceInNamespaceOk(device: DeviceT, ns: Namespace): DeviceId =
-    Post(Resource.uri(api), device).withNs(ns) ~> route ~> check {
+    Post(Resource.uri(api), device).withNs(ns) ~> routes ~> check {
       status shouldBe Created
       responseAs[DeviceId]
     }
@@ -316,13 +315,13 @@ trait DeviceRequests { self: ResourceSpec =>
   }
 
   def postDeviceTagsOk(tags: Seq[Seq[String]]): Unit =
-    postDeviceTags(tags) ~> route ~> check {
+    postDeviceTags(tags) ~> routes ~> check {
       status shouldBe NoContent
       ()
     }
 
   def getDeviceTagsOk: Seq[TagId] =
-    Get(Resource.uri("device_tags")) ~> route ~> check {
+    Get(Resource.uri("device_tags")) ~> routes ~> check {
       status shouldBe OK
       responseAs[Seq[TagInfo]].map(_.tagId)
     }
@@ -331,13 +330,13 @@ trait DeviceRequests { self: ResourceSpec =>
     Patch(
       Resource.uri(api, deviceId.show, "device_tags"),
       UpdateTagValue(tagId, tagValue)
-    ) ~> route ~> check {
+    ) ~> routes ~> check {
       status shouldBe OK
       responseAs[Seq[(String, String)]]
     }
 
   def deleteDeviceTagOk(tagId: TagId): Unit =
-    Delete(Resource.uri("device_tags", tagId.value)) ~> route ~> check {
+    Delete(Resource.uri("device_tags", tagId.value)) ~> routes ~> check {
       status shouldBe OK
       ()
     }

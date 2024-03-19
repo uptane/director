@@ -25,7 +25,8 @@ import EventJournalSpec.EventPayload
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceEventListener
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.director.http.deviceregistry.ResourcePropSpec
+import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourcePropSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
 import io.circe.generic.semiauto.*
 import io.circe.testing.ArbitraryInstances
 import io.circe.{Decoder, Json}
@@ -34,6 +35,7 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.SpanSugar.*
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalatest.time.{Millis, Seconds, Span}
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 
 object EventJournalSpec {
 
@@ -58,7 +60,10 @@ object EventJournalSpec {
 }
 
 class EventJournalSpec
-    extends ResourcePropSpec
+    extends DirectorSpec
+    with ResourcePropSpec
+    with RouteResourceSpec
+    with DeviceRequests
     with ScalaFutures
     with Eventually
     with ArbitraryInstances {
@@ -108,7 +113,7 @@ class EventJournalSpec
 
   implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
-  property("events can be recorded in journal and retrieved") {
+  test("events can be recorded in journal and retrieved") {
     forAll { (device: DeviceT, events: List[EventPayload]) =>
       val deviceUuid = createDeviceOk(device)
 
@@ -120,7 +125,7 @@ class EventJournalSpec
         .map(listener.apply)
 
       eventually(timeout(5.seconds), interval(100.millis)) {
-        getEvents(deviceUuid) ~> route ~> check {
+        getEvents(deviceUuid) ~> routes ~> check {
           status should equal(StatusCodes.OK)
           val messages = responseAs[List[EventPayload]]
 
@@ -131,7 +136,7 @@ class EventJournalSpec
     }
   }
 
-  property("indexes an event by type") {
+  test("indexes an event by type") {
     val deviceUuid = createDeviceOk(genDeviceT.generate)
     val (event0, correlationId0) = installCompleteEventGen.generate
     val event1 = EventGen.retryUntil(_.eventType.id != "InstallationComplete").generate
@@ -144,7 +149,7 @@ class EventJournalSpec
       .map(listener.apply)
 
     eventually(timeout(3.seconds), interval(100.millis)) {
-      getEvents(deviceUuid, correlationId0.some) ~> route ~> check {
+      getEvents(deviceUuid, correlationId0.some) ~> routes ~> check {
         status should equal(StatusCodes.OK)
 
         val events = responseAs[List[EventPayload]].map(_.id)
@@ -155,7 +160,7 @@ class EventJournalSpec
     }
   }
 
-  property("does not return events that do not match on correlation id") {
+  test("does not return events that do not match on correlation id") {
     val deviceUuid = createDeviceOk(genDeviceT.generate)
     val (event0, _) = installCompleteEventGen.generate
     val event1 = EventGen.retryUntil(_.eventType.id != "InstallationComplete").generate
@@ -168,7 +173,7 @@ class EventJournalSpec
       .map(listener.apply)
 
     eventually(timeout(3.seconds), interval(100.millis)) {
-      getEvents(deviceUuid, CampaignId(UUID.randomUUID()).some) ~> route ~> check {
+      getEvents(deviceUuid, CampaignId(UUID.randomUUID()).some) ~> routes ~> check {
         status should equal(StatusCodes.OK)
         val events = responseAs[List[EventPayload]]
         events shouldBe empty
@@ -176,7 +181,7 @@ class EventJournalSpec
     }
   }
 
-  property("DELETE device archives its indexed events") {
+  test("DELETE device archives its indexed events") {
     val uuid = createDeviceOk(genDeviceT.generate)
     val (e, _) = installCompleteEventGen.generate
     val event = Event(uuid, e.id.toString, e.eventType, e.deviceTime, Instant.now, e.event)

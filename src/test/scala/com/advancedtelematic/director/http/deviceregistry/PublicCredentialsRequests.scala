@@ -14,11 +14,14 @@ import com.advancedtelematic.director.deviceregistry.data.CredentialsType.Creden
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.http.deviceregistry.PublicCredentialsResource.FetchPublicCredentials
+import com.advancedtelematic.director.util.RouteResourceSpec
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import org.scalatest.matchers.should.Matchers
 
 import java.util.Base64
 
-trait PublicCredentialsRequests { self: ResourceSpec =>
+// TODO: Matchers should not be explicit
+trait PublicCredentialsRequests { self: RouteResourceSpec & Matchers =>
 
   import StatusCodes.*
   import com.advancedtelematic.director.deviceregistry.data.Device.*
@@ -35,7 +38,7 @@ trait PublicCredentialsRequests { self: ResourceSpec =>
   }
 
   def fetchPublicCredentialsOk(device: DeviceId): Array[Byte] =
-    fetchPublicCredentials(device) ~> route ~> check {
+    fetchPublicCredentials(device) ~> routes ~> check {
       implicit val CredentialsDecoder =
         io.circe.generic.semiauto.deriveDecoder[FetchPublicCredentials]
       status shouldBe OK
@@ -60,7 +63,7 @@ trait PublicCredentialsRequests { self: ResourceSpec =>
   def updatePublicCredentialsOk(device: DeviceOemId,
                                 creds: Array[Byte],
                                 cType: Option[CredentialsType] = None): DeviceId =
-    updatePublicCredentials(device, creds, cType) ~> route ~> check {
+    updatePublicCredentials(device, creds, cType) ~> routes ~> check {
       status shouldBe OK
       responseAs[DeviceId]
     }

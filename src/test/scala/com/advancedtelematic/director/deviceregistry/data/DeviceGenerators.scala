@@ -16,6 +16,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDe
 import Namespaces.defaultNs
 import org.scalacheck.{Arbitrary, Gen}
 
+// TODO: Make this not a trait
 trait DeviceGenerators {
 
   import Arbitrary._

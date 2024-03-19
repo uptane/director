@@ -2,16 +2,35 @@ package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes.*
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.director.deviceregistry.daemon.{DeviceUpdateEventListener, EcuReplacementListener}
+import com.advancedtelematic.director.deviceregistry.daemon.{
+  DeviceUpdateEventListener,
+  EcuReplacementListener
+}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.installationStatDecoder
-import com.advancedtelematic.director.deviceregistry.data.DataType.{InstallationStat, InstallationStatsLevel}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  InstallationStat,
+  InstallationStatsLevel
+}
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
+import com.advancedtelematic.director.deviceregistry.data.{
+  DeviceStatus,
+  InstallationReportGenerators
+}
+import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{deviceUpdateCompletedCodec, ecuReplacementCodec}
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceUpdateCompleted, EcuReplaced, EcuReplacement, EcuReplacementFailed}
+import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{
+  deviceUpdateCompletedCodec,
+  ecuReplacementCodec
+}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeleteDeviceRequest,
+  DeviceUpdateCompleted,
+  EcuReplaced,
+  EcuReplacement,
+  EcuReplacementFailed
+}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalacheck.Gen
@@ -24,7 +43,10 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class InstallationReportSpec
-    extends ResourcePropSpec
+    extends DirectorSpec
+    with ResourcePropSpec
+    with DeviceRequests
+    with RouteResourceSpec
     with ScalaFutures
     with Eventually
     with InstallationReportGenerators {
@@ -32,14 +54,11 @@ class InstallationReportSpec
   implicit override val patienceConfig: PatienceConfig =
     PatienceConfig(Span(5, Seconds), Span(50, Millis))
 
-  implicit val msgPub: com.advancedtelematic.libats.messaging.test.MockMessageBus =
-    new MockMessageBus
-
   val updateListener = new DeviceUpdateEventListener(msgPub)
   val ecuReplacementListener = new EcuReplacementListener
   val deleteDeviceListener = new DeleteDeviceRequestListener()
 
-  property("should save device reports and retrieve failed stats per devices") {
+  test("should save device reports and retrieve failed stats per devices") {
     val correlationId = genCorrelationId.generate
     val resultCodes = Seq("0", "1", "2", "2", "3", "3", "3").map(ResultCode)
     val updatesCompleted =
@@ -48,7 +67,7 @@ class InstallationReportSpec
     updatesCompleted.foreach(updateListener.apply)
 
     eventually {
-      getStats(correlationId, InstallationStatsLevel.Device) ~> route ~> check {
+      getStats(correlationId, InstallationStatsLevel.Device) ~> routes ~> check {
         status shouldBe OK
         val expected = Seq(
           InstallationStat(ResultCode("0"), 1, true),
@@ -61,7 +80,7 @@ class InstallationReportSpec
     }
   }
 
-  property("should save device reports and retrieve failed stats per ECUs") {
+  test("should save device reports and retrieve failed stats per ECUs") {
     val correlationId = genCorrelationId.generate
     val resultCodes = Seq("0", "1", "2", "2", "3", "3", "3").map(ResultCode)
     val updatesCompleted =
@@ -70,7 +89,7 @@ class InstallationReportSpec
     updatesCompleted.foreach(updateListener.apply)
 
     eventually {
-      getStats(correlationId, InstallationStatsLevel.Ecu) ~> route ~> check {
+      getStats(correlationId, InstallationStatsLevel.Ecu) ~> routes ~> check {
         status shouldBe OK
         val expected = Seq(
           InstallationStat(ResultCode("0"), 1, true),
@@ -83,7 +102,7 @@ class InstallationReportSpec
     }
   }
 
-  property("should save the whole message as a blob and get back the history for a device") {
+  test("should save the whole message as a blob and get back the history for a device") {
     val deviceId = createDeviceOk(genDeviceT.generate)
     val correlationIds = Gen.listOfN(50, genCorrelationId).generate
     val updatesCompleted = correlationIds
@@ -93,7 +112,7 @@ class InstallationReportSpec
     updatesCompleted.foreach(updateListener.apply)
 
     eventually {
-      getReportBlob(deviceId) ~> route ~> check {
+      getReportBlob(deviceId) ~> routes ~> check {
         status shouldBe OK
         responseAs[
           PaginationResult[DeviceUpdateCompleted]
@@ -102,7 +121,7 @@ class InstallationReportSpec
     }
   }
 
-  property("does not overwrite existing reports") {
+  test("does not overwrite existing reports") {
     val deviceId = createDeviceOk(genDeviceT.generate)
     val correlationId = genCorrelationId.generate
     val updateCompleted1 =
@@ -112,7 +131,7 @@ class InstallationReportSpec
 
     updateListener.apply(updateCompleted1).futureValue
 
-    getReportBlob(deviceId) ~> route ~> check {
+    getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe OK
       responseAs[
         PaginationResult[DeviceUpdateCompleted]
@@ -121,7 +140,7 @@ class InstallationReportSpec
 
     updateListener.apply(updateCompleted2).futureValue
 
-    getReportBlob(deviceId) ~> route ~> check {
+    getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe OK
       responseAs[
         PaginationResult[DeviceUpdateCompleted]
@@ -129,7 +148,7 @@ class InstallationReportSpec
     }
   }
 
-  property("should fetch installation events and ECU replacement events") {
+  test("should fetch installation events and ECU replacement events") {
     val deviceId = createDeviceOk(genDeviceT.generate)
     val now = Instant.now.truncatedTo(ChronoUnit.SECONDS)
 
@@ -153,7 +172,7 @@ class InstallationReportSpec
     updateListener.apply(updateCompleted2).futureValue
     ecuReplacementListener(failedReplacement).futureValue
 
-    getReportBlob(deviceId) ~> route ~> check {
+    getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Json]].values
       result(0)
@@ -167,12 +186,12 @@ class InstallationReportSpec
     fetchDeviceOk(deviceId).deviceStatus shouldBe DeviceStatus.Error
   }
 
-  property(
+  test(
     "fails gracefully if trying to record ECU replacements for a non-existent or deleted device"
   ) {
     val deviceId = createDeviceOk(genDeviceT.generate)
 
-    getReportBlob(deviceId) ~> route ~> check {
+    getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe OK
       responseAs[PaginationResult[Json]].total shouldBe 0
     }
@@ -183,19 +202,19 @@ class InstallationReportSpec
     val ecuReplaced = genEcuReplacement(deviceId, now, success = true).generate
     ecuReplacementListener(ecuReplaced).futureValue
 
-    getReportBlob(deviceId) ~> route ~> check {
+    getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe NotFound
     }
   }
 
-  property("can delete replaced devices") {
-    getReportBlob(genDeviceUUID.generate) ~> route ~> check {
+  test("can delete replaced devices") {
+    getReportBlob(genDeviceUUID.generate) ~> routes ~> check {
       status shouldBe NotFound
     }
 
     val deviceId = createDeviceOk(genDeviceT.generate)
 
-    getReportBlob(deviceId) ~> route ~> check {
+    getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Json]]
       result.total shouldBe 0
@@ -205,7 +224,7 @@ class InstallationReportSpec
     val ecuReplaced = genEcuReplacement(deviceId, now, success = true).generate
     ecuReplacementListener(ecuReplaced).futureValue
 
-    getReportBlob(deviceId) ~> route ~> check {
+    getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Json]].values
       result.head.as[EcuReplacement].value.asInstanceOf[EcuReplaced] shouldBe ecuReplaced
@@ -214,12 +233,12 @@ class InstallationReportSpec
     val deleteDeviceRequest = DeleteDeviceRequest(defaultNs, deviceId)
     deleteDeviceListener(deleteDeviceRequest).futureValue
 
-    getReportBlob(deviceId) ~> route ~> check {
+    getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe NotFound
     }
   }
 
-  property("multiple ECU replacement error is handled gracefully") {
+  test("multiple ECU replacement error is handled gracefully") {
     val deviceId = createDeviceOk(genDeviceT.generate)
     val now = Instant.now.truncatedTo(ChronoUnit.SECONDS)
     val ecuReplaced = genEcuReplacement(deviceId, now, success = true).generate
@@ -227,16 +246,16 @@ class InstallationReportSpec
     ecuReplacementListener(ecuReplaced).futureValue
   }
 
-  property("empty installation reports") {
+  test("empty installation reports") {
     val deviceId = createDeviceOk(genDeviceT.generate)
 
-    getInstallationReports(deviceId) ~> route ~> check {
+    getInstallationReports(deviceId) ~> routes ~> check {
       status shouldBe OK
       responseAs[PaginationResult[DeviceUpdateCompleted]].total shouldBe 0
     }
   }
 
-  property("one installationReport") {
+  test("one installationReport") {
     val deviceId = createDeviceOk(genDeviceT.generate)
     val now = Instant.now.truncatedTo(ChronoUnit.SECONDS)
 
@@ -249,7 +268,7 @@ class InstallationReportSpec
     ).generate
 
     updateListener(updateCompleted).futureValue
-    getInstallationReports(deviceId) ~> route ~> check {
+    getInstallationReports(deviceId) ~> routes ~> check {
       status shouldBe OK
       responseAs[
         PaginationResult[DeviceUpdateCompleted]

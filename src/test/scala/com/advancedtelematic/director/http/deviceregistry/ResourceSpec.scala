@@ -8,63 +8,20 @@
 
 package com.advancedtelematic.director.http.deviceregistry
 
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
-import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
-import com.advancedtelematic.director.deviceregistry.data.{DeviceGenerators, GroupGenerators, PackageIdGenerators, SimpleJsonGenerator}
-import com.advancedtelematic.director.deviceregistry.{AllowUUIDPath, DatabaseSpec}
-import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.http.tracing.NullServerRequestTracing
-import com.advancedtelematic.libats.http.{NamespaceDirectives, ServiceHttpClientSupport}
-import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.director.util.{DefaultPatience, ResourceSpec, RouteResourceSpec}
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.propspec.AnyPropSpec
-import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-import scala.concurrent.Future
-import scala.concurrent.duration.*
-
-trait ResourceSpec
-    extends ScalatestRouteTest
-    with BeforeAndAfterAll
-    with DatabaseSpec
-    with DeviceGenerators
-    with DeviceRequests
-    with GroupGenerators
+trait DeviceRegistryRequests
+    extends DeviceRequests
     with GroupRequests
-    with PublicCredentialsRequests
-    with PackageIdGenerators
-    with Matchers
-    with SimpleJsonGenerator
-    with ServiceHttpClientSupport { // TODO: Use mock
-
-  self: Suite =>
-
-  implicit val routeTimeout: RouteTestTimeout =
-    RouteTestTimeout(10.second)
-
-  lazy val defaultNs: Namespace = Namespace("default")
-
-  lazy val namespaceExtractor = NamespaceDirectives.defaultNamespaceExtractor
-
-  protected val namespaceAuthorizer = AllowUUIDPath.deviceUUID(namespaceExtractor, deviceAllowed)
-
-  private def deviceAllowed(deviceId: DeviceId): Future[Namespace] =
-    db.run(DeviceRepository.deviceNamespace(deviceId))
-
-  lazy val messageBus = new MockMessageBus
-
-  implicit val tracing: NullServerRequestTracing = new NullServerRequestTracing
-
-  // Route
-  lazy implicit val route: Route =
-    new DeviceRegistryRoutes(namespaceExtractor, namespaceAuthorizer, messageBus).route
-
+    with PublicCredentialsRequests {
+  self: DefaultPatience & ResourceSpec & RouteResourceSpec & Matchers =>
 }
 
-trait ResourcePropSpec extends AnyPropSpec with ResourceSpec with ScalaCheckPropertyChecks {
+// TODO: Remove this, not needed?
+trait ResourcePropSpec extends AnyFunSuite with ResourceSpec with ScalaCheckPropertyChecks with Matchers {
 
   implicit override val generatorDrivenConfig =
     PropertyCheckConfiguration(minSuccessful = 1, minSize = 3)

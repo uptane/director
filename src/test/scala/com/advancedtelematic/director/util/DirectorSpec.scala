@@ -45,12 +45,12 @@ abstract class DirectorSpec
 
   def testWithNamespace(testName: String, testArgs: Tag*)(testFun: Namespace => Any)(
     implicit pos: Position): Unit =
-    test(testName, testArgs: _*)(withRandomNamespace(testFun))(pos = pos)
+    test(testName, testArgs *)(withRandomNamespace(testFun))(pos = pos)
 
 }
 
 trait RepositorySpec {
-  self: AdminResources with DirectorSpec =>
+  self: AdminResources & DirectorSpec =>
 
   def testWithRepo(testName: String, testArgs: Tag*)(testFun: Namespace => Any)(
     implicit pos: Position): Unit = {

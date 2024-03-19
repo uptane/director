@@ -19,6 +19,7 @@ import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes.MalformedInput
+import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import org.scalacheck.Arbitrary.*
@@ -28,8 +29,10 @@ import org.scalatest.Inspectors.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
+import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 
-class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures {
+class GroupsResourceSpec extends DirectorSpec with RouteResourceSpec with DeviceRequests with GroupRequests {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   private val limit = 30
@@ -42,7 +45,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val groupNames = Gen.listOfN(10, arbitrary[GroupName]).sample.get
     groupNames.foreach(createStaticGroupOk)
 
-    listGroups() ~> route ~> check {
+    listGroups() ~> routes ~> check {
       status shouldBe OK
       val responseGroups = responseAs[PaginationResult[Group]]
       responseGroups.total shouldBe groupNames.size
@@ -57,7 +60,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val sortedGroupNames = groupNames.sortBy(_.value.toLowerCase)
     groupNames.foreach(n => createGroupOk(n))
 
-    listGroups() ~> route ~> check {
+    listGroups() ~> routes ~> check {
       status shouldBe OK
       val responseGroups = responseAs[PaginationResult[Group]].values
       responseGroups.map(_.groupName).filter(sortedGroupNames.contains) shouldBe sortedGroupNames
@@ -74,16 +77,16 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
     addDeviceToGroupOk(groupId, deviceId)
 
-    countDevicesInGroup(groupId) ~> route ~> check {
+    countDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe OK
       responseAs[Long] shouldBe 1
     }
 
-    deleteGroup(groupId) ~> route ~> check {
+    deleteGroup(groupId) ~> routes ~> check {
       status shouldBe NoContent
     }
 
-    countDevicesInGroup(groupId) ~> route ~> check {
+    countDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe NotFound
     }
   }
@@ -96,16 +99,16 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
     createDeviceOk(device)
 
-    countDevicesInGroup(groupId) ~> route ~> check {
+    countDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe OK
       responseAs[Long] shouldBe 1
     }
 
-    deleteGroup(groupId) ~> route ~> check {
+    deleteGroup(groupId) ~> routes ~> check {
       status shouldBe NoContent
     }
 
-    countDevicesInGroup(groupId) ~> route ~> check {
+    countDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe NotFound
     }
   }
@@ -113,7 +116,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
   test("gets all existing groups sorted by creation time") {
     val groupIds = (1 to 20).map(_ => createGroupOk())
 
-    listGroups(Some(GroupSortBy.CreatedAt)) ~> route ~> check {
+    listGroups(Some(GroupSortBy.CreatedAt)) ~> routes ~> check {
       status shouldBe OK
       val responseGroups = responseAs[PaginationResult[Group]].values
       responseGroups.reverse.map(_.id).filter(groupIds.contains) shouldBe groupIds
@@ -122,7 +125,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
   test("fails to get existing groups given an invalid sorting") {
     val q = Query(Map("sortBy" -> Gen.alphaNumStr.sample.get))
-    Get(Resource.uri(groupsApi).withQuery(q)) ~> route ~> check {
+    Get(Resource.uri(groupsApi).withQuery(q)) ~> routes ~> check {
       status shouldBe BadRequest
     }
   }
@@ -141,7 +144,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     )
 
     tests.foreach { case (k, v) =>
-      listGroups(nameContains = Some(k)) ~> route ~> check {
+      listGroups(nameContains = Some(k)) ~> routes ~> check {
         status shouldBe OK
         val responseGroupNames =
           responseAs[PaginationResult[Group]].values.map(_.groupName.value).filter(names.contains)
@@ -160,7 +163,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
     deviceIds.foreach(deviceId => addDeviceToGroupOk(groupId, deviceId))
 
-    listDevicesInGroup(groupId, limit = Some(limit)) ~> route ~> check {
+    listDevicesInGroup(groupId, limit = Some(limit)) ~> routes ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[DeviceId]]
       result.values.length shouldBe limit
@@ -177,11 +180,11 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
 
     deviceIds.foreach(deviceId => addDeviceToGroupOk(groupId, deviceId))
 
-    val allDevices = listDevicesInGroup(groupId, limit = Some(deviceNumber)) ~> route ~> check {
+    val allDevices = listDevicesInGroup(groupId, limit = Some(deviceNumber)) ~> routes ~> check {
       responseAs[PaginationResult[DeviceId]].values
     }
 
-    listDevicesInGroup(groupId, offset = Some(offset), limit = Some(limit)) ~> route ~> check {
+    listDevicesInGroup(groupId, offset = Some(offset), limit = Some(limit)) ~> routes ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[DeviceId]]
       result.values.length shouldBe limit
@@ -192,7 +195,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
   test("lists devices with negative pagination limit fails") {
     val groupId = createStaticGroupOk()
 
-    listDevicesInGroup(groupId, limit = Some(-1)) ~> route ~> check {
+    listDevicesInGroup(groupId, limit = Some(-1)) ~> routes ~> check {
       status shouldBe BadRequest
       val res = responseAs[ErrorRepresentation]
       res.code shouldBe ErrorCodes.InvalidEntity
@@ -203,7 +206,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
   test("lists devices with negative pagination offset fails") {
     val groupId = createStaticGroupOk()
 
-    listDevicesInGroup(groupId, offset = Some(-1)) ~> route ~> check {
+    listDevicesInGroup(groupId, offset = Some(-1)) ~> routes ~> check {
       status shouldBe BadRequest
       val res = responseAs[ErrorRepresentation]
       res.code shouldBe ErrorCodes.InvalidEntity
@@ -215,7 +218,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val groupName = genGroupName().sample.get
     val groupId = createStaticGroupOk(groupName)
 
-    getGroupDetails(groupId) ~> route ~> check {
+    getGroupDetails(groupId) ~> routes ~> check {
       status shouldBe OK
       val group: Group = responseAs[Group]
       group.id shouldBe groupId
@@ -226,7 +229,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
   test("gets detailed information of a non-existing group fails") {
     val groupId = genStaticGroup.sample.get.id
 
-    getGroupDetails(groupId) ~> route ~> check {
+    getGroupDetails(groupId) ~> routes ~> check {
       status shouldBe NotFound
     }
   }
@@ -235,11 +238,11 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val newGroupName = genGroupName().sample.get
     val groupId = createStaticGroupOk()
 
-    renameGroup(groupId, newGroupName) ~> route ~> check {
+    renameGroup(groupId, newGroupName) ~> routes ~> check {
       status shouldBe OK
     }
 
-    listGroups(limit = Some(100L)) ~> route ~> check {
+    listGroups(limit = Some(100L)) ~> routes ~> check {
       status shouldBe OK
       val groups = responseAs[PaginationResult[Group]]
       groups.values.count(e => e.id.equals(groupId) && e.groupName.equals(newGroupName)) shouldBe 1
@@ -247,7 +250,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
   }
 
   test("counting devices fails for non-existing groups") {
-    countDevicesInGroup(GroupId.generate()) ~> route ~> check {
+    countDevicesInGroup(GroupId.generate()) ~> routes ~> check {
       status shouldBe NotFound
     }
   }
@@ -256,11 +259,11 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val groupId = createStaticGroupOk()
     val deviceUuid = createDeviceOk(genDeviceT.sample.get)
 
-    addDeviceToGroup(groupId, deviceUuid) ~> route ~> check {
+    addDeviceToGroup(groupId, deviceUuid) ~> routes ~> check {
       status shouldBe OK
     }
 
-    listDevicesInGroup(groupId) ~> route ~> check {
+    listDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe OK
       val devices = responseAs[PaginationResult[DeviceId]]
       devices.values.contains(deviceUuid) shouldBe true
@@ -272,7 +275,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val groupAId = createStaticGroupOk()
     val _ = createStaticGroupOk(groupBName)
 
-    renameGroup(groupAId, groupBName) ~> route ~> check {
+    renameGroup(groupAId, groupBName) ~> routes ~> check {
       status shouldBe Conflict
     }
   }
@@ -281,21 +284,21 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val deviceId = createDeviceOk(genDeviceT.sample.get)
     val groupId = createStaticGroupOk()
 
-    addDeviceToGroup(groupId, deviceId) ~> route ~> check {
+    addDeviceToGroup(groupId, deviceId) ~> routes ~> check {
       status shouldBe OK
     }
 
-    listDevicesInGroup(groupId) ~> route ~> check {
+    listDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe OK
       val devices = responseAs[PaginationResult[DeviceId]]
       devices.values.contains(deviceId) shouldBe true
     }
 
-    removeDeviceFromGroup(groupId, deviceId) ~> route ~> check {
+    removeDeviceFromGroup(groupId, deviceId) ~> routes ~> check {
       status shouldBe OK
     }
 
-    listDevicesInGroup(groupId) ~> route ~> check {
+    listDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe OK
       val devices = responseAs[PaginationResult[DeviceId]]
       devices.values.contains(deviceId) shouldBe false
@@ -307,7 +310,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val deviceTs = Gen.listOf(genDeviceT).sample.get
     val uuidsCreated = deviceTs.map(createDeviceOk)
 
-    importGroup(groupName, deviceTs.map(_.deviceId)) ~> route ~> check {
+    importGroup(groupName, deviceTs.map(_.deviceId)) ~> routes ~> check {
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
@@ -325,7 +328,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val deviceTs = Gen.listOfN(500, genDeviceT).sample.get
     val uuidsCreated = deviceTs.map(createDeviceOk)
 
-    importGroup(groupName, deviceTs.map(_.deviceId)) ~> route ~> check {
+    importGroup(groupName, deviceTs.map(_.deviceId)) ~> routes ~> check {
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
@@ -340,7 +343,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val groupName = genGroupName().sample.get
     val deviceTs = Gen.listOf(genDeviceT).sample.get
 
-    importGroup(groupName, deviceTs.map(_.deviceId)) ~> route ~> check {
+    importGroup(groupName, deviceTs.map(_.deviceId)) ~> routes ~> check {
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
@@ -357,7 +360,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     val groupName = genGroupName().sample.get
     val oemId = Gen.listOfN(130, Gen.alphaNumChar).map(_.mkString).map(DeviceOemId).sample.get
 
-    importGroup(groupName, Seq(oemId)) ~> route ~> check {
+    importGroup(groupName, Seq(oemId)) ~> routes ~> check {
       status shouldEqual BadRequest
       responseAs[ErrorRepresentation].code shouldBe MalformedInput
     }
@@ -372,7 +375,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     Post(
       Resource.uri(groupsApi, groupId.show, "hibernation"),
       UpdateHibernationStatusRequest(true)
-    ) ~> route ~> check {
+    ) ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 
@@ -394,7 +397,7 @@ class GroupsResourceSpec extends AnyFunSuite with ResourceSpec with ScalaFutures
     Post(
       Resource.uri(groupsApi, groupId.show, "hibernation"),
       UpdateHibernationStatusRequest(true)
-    ) ~> route ~> check {
+    ) ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 

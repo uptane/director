@@ -12,11 +12,18 @@ import akka.http.scaladsl.model.StatusCodes.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.{CredentialsType, Device}
 import com.advancedtelematic.director.http.deviceregistry.PublicCredentialsResource.FetchPublicCredentials
+import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import io.circe.generic.auto.*
 import org.scalacheck.{Arbitrary, Gen}
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 
-class PublicCredentialsResourceSpec extends ResourcePropSpec {
+class PublicCredentialsResourceSpec
+    extends DirectorSpec
+    with RouteResourceSpec
+    with ResourcePropSpec
+    with DeviceRequests
+    with PublicCredentialsRequests {
 
   import Device.*
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -28,13 +35,13 @@ class PublicCredentialsResourceSpec extends ResourcePropSpec {
     genCredentialsType
   )
 
-  property("GET requests fails on non-existent device") {
+  test("GET requests fails on non-existent device") {
     forAll { (uuid: DeviceId) =>
-      fetchPublicCredentials(uuid) ~> route ~> check(status shouldBe NotFound)
+      fetchPublicCredentials(uuid) ~> routes ~> check(status shouldBe NotFound)
     }
   }
 
-  property("GET request after PUT yields same credentials") {
+  test("GET request after PUT yields same credentials") {
     forAll { (deviceId: DeviceOemId, creds: Array[Byte]) =>
       val uuid = updatePublicCredentialsOk(deviceId, creds)
 
@@ -42,14 +49,14 @@ class PublicCredentialsResourceSpec extends ResourcePropSpec {
     }
   }
 
-  property("PUT uses existing uuid if device exists") {
+  test("PUT uses existing uuid if device exists") {
     forAll { (devId: DeviceOemId, mdevT: DeviceT, creds: Array[Byte]) =>
       val devT = mdevT.copy(deviceId = devId)
       val uuid: DeviceId = createDeviceOk(devT)
       uuid shouldBe updatePublicCredentialsOk(devId, creds)
 
       // updatePublicCredentials didn't change the device
-      fetchDevice(uuid) ~> route ~> check {
+      fetchDevice(uuid) ~> routes ~> check {
         status shouldBe OK
         val dev = responseAs[Device]
         dev.deviceName shouldBe devT.deviceName
@@ -59,7 +66,7 @@ class PublicCredentialsResourceSpec extends ResourcePropSpec {
     }
   }
 
-  property("Latest PUT is the one that wins") {
+  test("Latest PUT is the one that wins") {
     forAll { (deviceId: DeviceOemId, creds1: Array[Byte], creds2: Array[Byte]) =>
       val uuid = updatePublicCredentialsOk(deviceId, creds1)
       updatePublicCredentialsOk(deviceId, creds2)
@@ -68,7 +75,7 @@ class PublicCredentialsResourceSpec extends ResourcePropSpec {
     }
   }
 
-  property("Type of credentials is set correctly") {
+  test("Type of credentials is set correctly") {
     forAll {
       (deviceId: DeviceOemId,
        mdevT: DeviceT,
@@ -76,12 +83,12 @@ class PublicCredentialsResourceSpec extends ResourcePropSpec {
        cType: CredentialsType.CredentialsType) =>
         val devT =
           mdevT.copy(deviceId = deviceId, credentials = Some(creds), credentialsType = Some(cType))
-        val uuid: DeviceId = createDeviceWithCredentials(devT) ~> route ~> check {
+        val uuid: DeviceId = createDeviceWithCredentials(devT) ~> routes ~> check {
           status shouldBe OK
           responseAs[DeviceId]
         }
 
-        fetchPublicCredentials(uuid) ~> route ~> check {
+        fetchPublicCredentials(uuid) ~> routes ~> check {
           status shouldBe OK
           val dev = responseAs[FetchPublicCredentials]
 

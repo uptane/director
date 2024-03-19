@@ -18,16 +18,20 @@ import com.advancedtelematic.director.deviceregistry.data.Group.GroupId.*
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.{GroupExpression, GroupName, GroupType}
+import com.advancedtelematic.director.util.RouteResourceSpec
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalatest.Assertion
+import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
+import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
 
+// TODO: Matchers should not be explicit
 trait GroupRequests {
-  self: ResourceSpec =>
+  self: RouteResourceSpec & Matchers =>
 
   private val defaultExpression = GroupExpression.from("deviceid contains abcd").toOption.get
   protected val groupsApi = "device_groups"
@@ -52,7 +56,7 @@ trait GroupRequests {
     }
 
   def listDevicesInGroupOk(groupId: GroupId, deviceIds: Seq[DeviceId]): Assertion =
-    listDevicesInGroup(groupId) ~> route ~> check {
+    listDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe OK
       responseAs[PaginationResult[DeviceId]].values should contain theSameElementsAs deviceIds
     }
@@ -101,14 +105,14 @@ trait GroupRequests {
   }
 
   def createStaticGroupOk(name: GroupName = genGroupName().sample.get): GroupId =
-    createGroup(GroupType.static, None, Some(name)) ~> route ~> check {
+    createGroup(GroupType.static, None, Some(name)) ~> routes ~> check {
       status shouldBe Created
       responseAs[GroupId]
     }
 
   def createDynamicGroupOk(expression: GroupExpression = defaultExpression,
                            name: GroupName = genGroupName().sample.get): GroupId =
-    createGroup(GroupType.dynamic, Some(expression), Some(name)) ~> route ~> check {
+    createGroup(GroupType.dynamic, Some(expression), Some(name)) ~> routes ~> check {
       status shouldBe Created
       responseAs[GroupId]
     }
@@ -120,7 +124,7 @@ trait GroupRequests {
     Post(Resource.uri(groupsApi, groupId.show, "devices", deviceUuid.show))
 
   def addDeviceToGroupOk(groupId: GroupId, deviceUuid: DeviceId): Unit =
-    addDeviceToGroup(groupId, deviceUuid) ~> route ~> check {
+    addDeviceToGroup(groupId, deviceUuid) ~> routes ~> check {
       status shouldBe OK
     }
 

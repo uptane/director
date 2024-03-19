@@ -2,22 +2,22 @@ package com.advancedtelematic.director.deviceregistry.data
 
 import cats.data.NonEmptyList
 import cats.implicits.*
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository.*
+import com.advancedtelematic.director.db.deviceregistry.SearchDBIO
+import com.advancedtelematic.director.db.deviceregistry.TaggedDeviceRepository.tagDeviceByOemId
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
+import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST.*
+import com.advancedtelematic.director.util.{DirectorSpec, MysqlDatabaseSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.Errors
-import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
-import GeneratorOps.*
-import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, SearchDBIO}
-import com.advancedtelematic.director.deviceregistry.DatabaseSpec
-import com.advancedtelematic.director.deviceregistry.data.GroupExpressionAST.*
-import com.advancedtelematic.director.db.deviceregistry.DeviceRepository.*
-import com.advancedtelematic.director.db.deviceregistry.TaggedDeviceRepository.tagDeviceByOemId
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.EitherValues.*
 import org.scalatest.OptionValues.*
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
-import slick.jdbc.MySQLProfile.api.*
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Seconds, Span}
+import slick.jdbc.MySQLProfile.api.*
 
 import scala.language.implicitConversions
 
@@ -300,7 +300,7 @@ class GroupExpressionParserSpec extends AnyFunSuite with Matchers {
 
 }
 
-class GroupExpressionRunSpec extends AnyFunSuite with Matchers with DatabaseSpec with ScalaFutures {
+class GroupExpressionRunSpec extends DirectorSpec with BeforeAndAfterAll with MysqlDatabaseSpec {
 
   val ns = Namespace("group-exp")
 

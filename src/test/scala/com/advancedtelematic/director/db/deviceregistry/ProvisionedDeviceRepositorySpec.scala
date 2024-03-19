@@ -8,28 +8,24 @@
 
 package com.advancedtelematic.director.db.deviceregistry
 
-import com.advancedtelematic.director.deviceregistry.DatabaseSpec
-import com.advancedtelematic.director.deviceregistry.data.Namespaces
-
-import java.time.Instant
-import com.advancedtelematic.libats.test.LongTest
-import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
-import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.{genDeviceId, genDeviceT}
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeletedDevice
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.{genDeviceId, genDeviceT}
+import com.advancedtelematic.director.deviceregistry.data.Namespaces
+import com.advancedtelematic.director.util.{DirectorSpec, MysqlDatabaseSpec}
+import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
+import com.advancedtelematic.libats.test.LongTest
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.LoneElement.*
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Seconds, Span}
 import slick.jdbc.MySQLProfile.api.*
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.LoneElement.*
 
-class DeviceRepositorySpec
-    extends AnyFunSuite
-    with DatabaseSpec
-    with ScalaFutures
+class ProvisionedDeviceRepositorySpec
+    extends DirectorSpec
+    with MysqlDatabaseSpec
     with Matchers
     with LongTest {
 

@@ -1,29 +1,24 @@
 package com.advancedtelematic.director.deviceregistry.daemon
 
 import akka.http.scaladsl.model.StatusCodes.{NotFound, OK}
-import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
-import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.GenSample
 import cats.syntax.show.*
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourceSpec}
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
+import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.GenSample
+import com.advancedtelematic.director.http.deviceregistry.DeviceRequests
+import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.libats.messaging.test.MockMessageBus
+import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
 import org.scalatest.OptionValues.*
 import org.scalatest.concurrent.Eventually.eventually
-import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.funsuite.AnyFunSuite
 
-class DeletedDevicePublisherSpec
-    extends AnyFunSuite
-    with ResourceSpec
-    with DeviceRequests
-    with ScalaFutures {
+class DeletedDevicePublisherSpec extends DirectorSpec with RouteResourceSpec with DeviceRequests {
 
   implicit override val patienceConfig =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(15, Millis))
 
   val deleteDeviceHandler = new DeleteDeviceRequestListener()
-  val msgPub = new MockMessageBus
   val subject = new DeletedDevicePublisher(msgPub)
 
   test("deleted devices are published") {
@@ -32,14 +27,14 @@ class DeletedDevicePublisherSpec
     val device = genDeviceT.generate
     val deviceId = createDeviceOk(device)
 
-    fetchDevice(deviceId) ~> route ~> check {
+    fetchDevice(deviceId) ~> routes ~> check {
       status shouldBe OK
     }
 
     // delete the device from the DB, no message bus involved
     deleteDeviceHandler(DeleteDeviceRequest(defaultNs, deviceId)).futureValue
 
-    fetchDevice(deviceId) ~> route ~> check {
+    fetchDevice(deviceId) ~> routes ~> check {
       status shouldBe NotFound
     }
 
