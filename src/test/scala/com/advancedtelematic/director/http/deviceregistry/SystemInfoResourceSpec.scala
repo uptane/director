@@ -20,7 +20,7 @@ import com.advancedtelematic.director.http.deviceregistry.{
   ResourcePropSpec,
   SystemInfoResource
 }
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
@@ -36,11 +36,7 @@ import toml.Value.{Str, Tbl}
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.SimpleJsonGenerator.*
 
-class SystemInfoResourceSpec
-    extends DirectorSpec
-    with RouteResourceSpec
-    with ResourcePropSpec
-    with DeviceRequests {
+class SystemInfoResourceSpec extends DirectorSpec with ResourcePropSpec with DeviceRequests {
 
   import akka.http.scaladsl.model.StatusCodes.*
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*

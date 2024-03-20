@@ -14,7 +14,13 @@ import com.advancedtelematic.director.data.AdminDataType.TargetUpdate
 import com.advancedtelematic.director.data.UptaneDataType.*
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.DeviceRequest
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationReport, InstallationReportEntity, MissingInstallationReport}
+import com.advancedtelematic.director.data.DeviceRequest.{
+  DeviceManifest,
+  EcuManifest,
+  InstallationReport,
+  InstallationReportEntity,
+  MissingInstallationReport
+}
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
@@ -25,6 +31,7 @@ import com.advancedtelematic.libats.http.NamespaceDirectives
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
@@ -32,8 +39,11 @@ trait ResourceSpec
     extends ScalatestRouteTest
     with ScalaFutures
     with MysqlDatabaseSpec
+    with Matchers
     with Settings {
   self: Suite =>
+
+  import Directives.*
 
   def apiUri(path: String): String = "/api/v1/" + path
 
@@ -42,22 +52,6 @@ trait ResourceSpec
   implicit val msgPub: MockMessageBus = new MockMessageBus
 
   implicit val ec: ExecutionContextExecutor = executor
-}
-
-trait MysqlDatabaseSpec extends com.advancedtelematic.libats.test.MysqlDatabaseSpec {
-  self: Suite =>
-}
-
-// TODO: merge w/ ResourceSpec
-trait RouteResourceSpec extends ResourceSpec {
-  self: Suite =>
-
-  import Directives.*
-
-  import scala.concurrent.duration.*
-
-//  implicit val routeTimeout: RouteTestTimeout =
-//    RouteTestTimeout(10.second)
 
   val keyserverClient = new FakeKeyserverClient
 
@@ -67,16 +61,20 @@ trait RouteResourceSpec extends ResourceSpec {
   private def deviceAllowed(deviceId: DeviceId): Future[Namespace] =
     db.run(DeviceRepository.deviceNamespace(deviceId))
 
-  implicit lazy val routes: Route = new DirectorRoutes(keyserverClient, allowEcuReplacement = true).routes ~
-    pathPrefix("device-registry") {
-      new DeviceRegistryRoutes(
-        NamespaceDirectives.defaultNamespaceExtractor,
-        namespaceAuthorizer,
-        msgPub
-      ).route
-    }
+  implicit lazy val routes: Route =
+    new DirectorRoutes(keyserverClient, allowEcuReplacement = true).routes ~
+      pathPrefix("device-registry") {
+        new DeviceRegistryRoutes(
+          NamespaceDirectives.defaultNamespaceExtractor,
+          namespaceAuthorizer,
+          msgPub
+        ).route
+      }
 
-//  implicit lazy val routes: Route = routes2
+}
+
+trait MysqlDatabaseSpec extends com.advancedtelematic.libats.test.MysqlDatabaseSpec {
+  self: Suite =>
 }
 
 trait DeviceManifestSpec {

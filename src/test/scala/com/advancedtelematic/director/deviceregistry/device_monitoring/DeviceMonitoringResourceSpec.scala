@@ -4,8 +4,8 @@ import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPublishResult
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators
-import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, Resource}
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, DeviceRegistryResourceUri}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
@@ -131,7 +131,7 @@ object TestPayloads {
 
 class DeviceMonitoringResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with DeviceRequests
     with DeviceGenerators {
 
@@ -144,7 +144,7 @@ class DeviceMonitoringResourceSpec
     val uuid = createDeviceOk(genDeviceT.generate)
 
     Post(
-      Resource.uri("devices", uuid.show, "monitoring"),
+      DeviceRegistryResourceUri.uri("devices", uuid.show, "monitoring"),
       TestPayloads.jsonPayload
     ) ~> routes ~> check {
       status shouldBe StatusCodes.NoContent
@@ -162,7 +162,7 @@ class DeviceMonitoringResourceSpec
     val uuid = createDeviceOk(genDeviceT.generate)
 
     Post(
-      Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"),
+      DeviceRegistryResourceUri.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"),
       TestPayloads.jsonPayloadBufferedList
     ) ~> routes ~> check {
       status shouldBe StatusCodes.NoContent
@@ -192,7 +192,7 @@ class BadMessageBus extends MockMessageBus {
 
 class DeviceMonitoringResourceSpecBadMsgPub
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with DeviceRequests
     with DeviceGenerators {
 
@@ -208,7 +208,7 @@ class DeviceMonitoringResourceSpecBadMsgPub
     val uuid = createDeviceOk(genDeviceT.generate)
 
     Post(
-      Resource.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"),
+      DeviceRegistryResourceUri.uri("devices", uuid.show, "monitoring", "fluentbit-metrics"),
       TestPayloads.jsonPayloadBufferedList
     ) ~> routes ~> check {
       status shouldBe StatusCodes.RangeNotSatisfiable

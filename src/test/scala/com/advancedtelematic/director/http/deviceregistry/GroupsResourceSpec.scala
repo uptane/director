@@ -14,25 +14,35 @@ import akka.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceT,
+  UpdateHibernationStatusRequest
+}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
+import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
+import com.advancedtelematic.director.deviceregistry.data.{
+  Group,
+  GroupExpression,
+  GroupName,
+  GroupSortBy
+}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes.MalformedInput
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Gen
 import org.scalatest.EitherValues.*
 import org.scalatest.Inspectors.*
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.time.{Millis, Seconds, Span}
-import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
-import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 
-class GroupsResourceSpec extends DirectorSpec with RouteResourceSpec with DeviceRequests with GroupRequests {
+class GroupsResourceSpec
+    extends DirectorSpec
+    with ResourceSpec
+    with DeviceRequests
+    with GroupRequests {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   private val limit = 30
@@ -125,7 +135,7 @@ class GroupsResourceSpec extends DirectorSpec with RouteResourceSpec with Device
 
   test("fails to get existing groups given an invalid sorting") {
     val q = Query(Map("sortBy" -> Gen.alphaNumStr.sample.get))
-    Get(Resource.uri(groupsApi).withQuery(q)) ~> routes ~> check {
+    Get(DeviceRegistryResourceUri.uri(groupsApi).withQuery(q)) ~> routes ~> check {
       status shouldBe BadRequest
     }
   }
@@ -373,7 +383,7 @@ class GroupsResourceSpec extends DirectorSpec with RouteResourceSpec with Device
     addDeviceToGroupOk(groupId, deviceUuid)
 
     Post(
-      Resource.uri(groupsApi, groupId.show, "hibernation"),
+      DeviceRegistryResourceUri.uri(groupsApi, groupId.show, "hibernation"),
       UpdateHibernationStatusRequest(true)
     ) ~> routes ~> check {
       status shouldBe StatusCodes.OK
@@ -395,7 +405,7 @@ class GroupsResourceSpec extends DirectorSpec with RouteResourceSpec with Device
     }
 
     Post(
-      Resource.uri(groupsApi, groupId.show, "hibernation"),
+      DeviceRegistryResourceUri.uri(groupsApi, groupId.show, "hibernation"),
       UpdateHibernationStatusRequest(true)
     ) ~> routes ~> check {
       status shouldBe StatusCodes.OK

@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import com.advancedtelematic.director.data.AdminDataType.RegisterDevice
 import com.advancedtelematic.director.data.DeviceRequest.DeviceManifest
 import com.advancedtelematic.director.data.Generators.GenRegisterEcu
-import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
@@ -19,7 +19,7 @@ import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 
 trait DeviceResources {
-  self: DirectorSpec with ResourceSpec with RouteResourceSpec =>
+  self: DirectorSpec & ResourceSpec =>
 
   def registerDeviceOk()(implicit namespace: Namespace, pos: Position): DeviceId = {
     val ecus = GenRegisterEcu.generate

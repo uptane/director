@@ -8,22 +8,19 @@
 
 package com.advancedtelematic.director.http.deviceregistry
 
-import com.advancedtelematic.director.util.{DefaultPatience, ResourceSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.ResourceSpec
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-trait DeviceRegistryRequests
-    extends DeviceRequests
-    with GroupRequests
-    with PublicCredentialsRequests {
-  self: DefaultPatience & ResourceSpec & RouteResourceSpec & Matchers =>
-}
+trait ResourcePropSpec
+    extends AnyFunSuite
+    with ResourceSpec
+    with ScalaCheckPropertyChecks
+    with Matchers {
 
-// TODO: Remove this, not needed?
-trait ResourcePropSpec extends AnyFunSuite with ResourceSpec with ScalaCheckPropertyChecks with Matchers {
-
-  implicit override val generatorDrivenConfig =
+  implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 1, minSize = 3)
 
 }
+

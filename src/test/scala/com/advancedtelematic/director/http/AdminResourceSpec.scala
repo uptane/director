@@ -55,7 +55,7 @@ object AdminResources {
 }
 
 trait AdminResources {
-  self: DirectorSpec with RouteResourceSpec with NamespacedTests =>
+  self: DirectorSpec & ResourceSpec & NamespacedTests =>
 
   def registerAdminDeviceWithSecondariesOk()(
     implicit ns: Namespace,
@@ -130,7 +130,7 @@ trait AdminResources {
 
 class AdminResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with RepoNamespaceRepositorySupport
     with DbDeviceRoleRepositorySupport
     with AdminResources

@@ -17,16 +17,13 @@ import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.DataType.{CampaignId, CorrelationId, MultiTargetUpdateId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeleteDeviceRequest,
-  DeviceEventMessage
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
 import EventJournalSpec.EventPayload
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceEventListener
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourcePropSpec}
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import io.circe.generic.semiauto.*
 import io.circe.testing.ArbitraryInstances
 import io.circe.{Decoder, Json}
@@ -62,7 +59,7 @@ object EventJournalSpec {
 class EventJournalSpec
     extends DirectorSpec
     with ResourcePropSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with DeviceRequests
     with ScalaFutures
     with Eventually

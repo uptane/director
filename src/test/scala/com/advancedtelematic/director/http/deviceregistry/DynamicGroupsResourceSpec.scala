@@ -8,7 +8,7 @@ import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.{GroupExpression, GroupType}
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -18,7 +18,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 
 class DynamicGroupsResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with Eventually
     with DeviceRequests
     with GroupRequests {

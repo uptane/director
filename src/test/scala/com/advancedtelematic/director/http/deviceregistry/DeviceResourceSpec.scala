@@ -34,7 +34,7 @@ import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.Namespaces.NamespaceGen
 import com.advancedtelematic.director.deviceregistry.data.{PackageStat, *}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
@@ -57,9 +57,10 @@ import GroupGenerators.*
 
 class DeviceResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with ResourcePropSpec
-    with DeviceRegistryRequests
+    with DeviceRequests
+    with GroupRequests
     with Eventually {
 
   import Device.*
@@ -680,7 +681,7 @@ class DeviceResourceSpec
     val deviceT = genDeviceT.sample.get
     val uuid = createDeviceInNamespaceOk(deviceT, ns)
 
-    Post(Resource.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true))
+    Post(DeviceRegistryResourceUri.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true))
       .withNs(ns) ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
@@ -1211,9 +1212,7 @@ class DeviceResourceSpec
     }
   }
 
-  test(
-    "counting devices that satisfy a dynamic group expression fails if no expression is given"
-  ) {
+  test("counting devices that satisfy a dynamic group expression fails if no expression is given") {
     countDevicesForExpression(None) ~> routes ~> check {
       status shouldBe BadRequest
       responseAs[ErrorRepresentation].code shouldBe Errors.Codes.InvalidGroupExpression
@@ -1585,14 +1584,14 @@ class DeviceResourceSpec
         }
         getDeviceTagsOk should contain(tagId)
 
-        Put(Resource.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
+        Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
           status shouldBe OK
         }
         getDeviceTagsOk should not contain tagId
         getDeviceTagsOk should contain(newTagId)
 
         // Idempotence
-        Put(Resource.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
+        Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
           status shouldBe OK
         }
         getDeviceTagsOk should not contain tagId
@@ -1620,7 +1619,7 @@ class DeviceResourceSpec
       responseAs[PaginationResult[DeviceId]].values should contain only duid
     }
 
-    Put(Resource.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
+    Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
       status shouldBe OK
     }
 
@@ -1640,11 +1639,11 @@ class DeviceResourceSpec
   test("fails to rename a device tag id if the current tag is invalid") {
     val newTagId = TagId.from("Country").valueOr(throw _)
 
-    Put(Resource.uri("device_tags", "in+valid*"), RenameTagId(newTagId)) ~> routes ~> check {
+    Put(DeviceRegistryResourceUri.uri("device_tags", "in+valid*"), RenameTagId(newTagId)) ~> routes ~> check {
       status shouldBe NotFound
     }
 
-    Put(Resource.uri("device_tags", "in+valid*")) ~> routes ~> check {
+    Put(DeviceRegistryResourceUri.uri("device_tags", "in+valid*")) ~> routes ~> check {
       status shouldBe NotFound
     }
   }
@@ -1659,7 +1658,7 @@ class DeviceResourceSpec
     getDeviceTagsOk should contain(tagId)
 
     val newTagId = io.circe.parser.parse("""{ "tagId" : "in*valid*" }""").valueOr(throw _)
-    Put(Resource.uri("device_tags", tagId.value), newTagId) ~> routes ~> check {
+    Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), newTagId) ~> routes ~> check {
       status shouldBe BadRequest
       responseAs[ErrorRepresentation].code shouldBe ErrorCodes.InvalidEntity
     }
@@ -1676,7 +1675,7 @@ class DeviceResourceSpec
     postDeviceTagsOk(csvRows)
     getDeviceTagsOk should contain(tagId)
 
-    Put(Resource.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
+    Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
       status shouldBe Conflict
       responseAs[ErrorRepresentation].code shouldBe ErrorCodes.ConflictingEntity
     }
@@ -1788,7 +1787,7 @@ class DeviceResourceSpec
 
     listDevicesInGroupOk(groupId, Seq(duid))
 
-    Delete(Resource.uri("device_tags", tagId)) ~> routes ~> check {
+    Delete(DeviceRegistryResourceUri.uri("device_tags", tagId)) ~> routes ~> check {
       status shouldBe BadRequest
       responseAs[ErrorRepresentation].code shouldBe Errors.CannotRemoveDeviceTag.code
     }
@@ -1833,7 +1832,7 @@ class DeviceResourceSpec
         .valueOr(throw _)
     ).map(createDynamicGroupOk(_))
 
-    Get(Resource.uri("device_tags")) ~> routes ~> check {
+    Get(DeviceRegistryResourceUri.uri("device_tags")) ~> routes ~> check {
       status shouldBe OK
       val (delibles, indelibles) = responseAs[Seq[TagInfo]]
         .filter(ti => tagIds.contains(ti.tagId.value))
@@ -1855,7 +1854,7 @@ class DeviceResourceSpec
       GroupExpression.from("tag(10) position(2) is h and tag(11) contains ha-ha").valueOr(throw _)
     createDynamicGroupOk(expression)
 
-    Get(Resource.uri("device_tags")) ~> routes ~> check {
+    Get(DeviceRegistryResourceUri.uri("device_tags")) ~> routes ~> check {
       status shouldBe OK
       val result = responseAs[Seq[TagInfo]].map(ti => ti.tagId.value -> ti.isDelible)
       (result should contain).allOf("10" -> true, "11" -> true)
@@ -1863,7 +1862,7 @@ class DeviceResourceSpec
 
     deleteDeviceTagOk(TagId.from("10").valueOr(throw _))
 
-    Get(Resource.uri("device_tags")) ~> routes ~> check {
+    Get(DeviceRegistryResourceUri.uri("device_tags")) ~> routes ~> check {
       status shouldBe OK
       val result = responseAs[Seq[TagInfo]].map(ti => ti.tagId.value -> ti.isDelible)
       result should contain("11" -> false)
@@ -1908,7 +1907,7 @@ class DeviceResourceSpec
 
         // so now try to do this with deviceOemIds
         val deviceOemIds = devicesResponse.map(_.deviceId)
-        Get(Resource.uri("devices"), DevicesQuery(Some(deviceOemIds), None)) ~> routes ~> check {
+        Get(DeviceRegistryResourceUri.uri("devices"), DevicesQuery(Some(deviceOemIds), None)) ~> routes ~> check {
           status shouldBe OK
           val responseDevices = responseAs[List[Device]]
           responseDevices.length shouldBe devices.length
@@ -1932,7 +1931,7 @@ class DeviceResourceSpec
         val deviceOemIds = devicesResponse.slice(0, 5).map(_.deviceId)
         val deviceUuids = devicesResponse.slice(5, devicesResponse.length).map(_.uuid)
         Get(
-          Resource.uri("devices"),
+          DeviceRegistryResourceUri.uri("devices"),
           DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
         ) ~> routes ~> check {
           status shouldBe OK
@@ -1959,7 +1958,7 @@ class DeviceResourceSpec
         val deviceOemIds = devicesResponse.map(_.deviceId)
         val deviceUuids = devicesResponse.map(_.uuid)
         Get(
-          Resource.uri("devices"),
+          DeviceRegistryResourceUri.uri("devices"),
           DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
         ) ~> routes ~> check {
           status shouldBe OK
@@ -1983,7 +1982,7 @@ class DeviceResourceSpec
         devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
 
         val deviceOemIds = devicesResponse.map(_.deviceId) :+ DeviceOemId("not-real-deviceId")
-        Get(Resource.uri("devices"), DevicesQuery(Some(deviceOemIds), None)) ~> routes ~> check {
+        Get(DeviceRegistryResourceUri.uri("devices"), DevicesQuery(Some(deviceOemIds), None)) ~> routes ~> check {
           status shouldBe NotFound
           val errResponse = responseAs[ErrorRepresentation]
           errResponse.code shouldBe Codes.MissingDevice
@@ -2012,7 +2011,7 @@ class DeviceResourceSpec
         devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
 
         val deviceUuids = devicesResponse.map(_.uuid) :+ DeviceId(UUID.randomUUID())
-        Get(Resource.uri("devices"), DevicesQuery(None, Some(deviceUuids))) ~> routes ~> check {
+        Get(DeviceRegistryResourceUri.uri("devices"), DevicesQuery(None, Some(deviceUuids))) ~> routes ~> check {
           status shouldBe NotFound
           val errResponse = responseAs[ErrorRepresentation]
           errResponse.code shouldBe Codes.MissingDevice
@@ -2043,7 +2042,7 @@ class DeviceResourceSpec
         val deviceUuids = devicesResponse.map(_.uuid) :+ DeviceId(UUID.randomUUID())
         val deviceOemIds = devicesResponse.map(_.deviceId) :+ DeviceOemId("not-real-deviceId")
         Get(
-          Resource.uri("devices"),
+          DeviceRegistryResourceUri.uri("devices"),
           DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
         ) ~> routes ~> check {
           status shouldBe NotFound
@@ -2069,7 +2068,7 @@ class DeviceResourceSpec
     val uuid = createDeviceOk(deviceT)
 
     Post(
-      Resource.uri(api, uuid.show, "hibernation"),
+      DeviceRegistryResourceUri.uri(api, uuid.show, "hibernation"),
       UpdateHibernationStatusRequest(true)
     ) ~> routes ~> check {
       status shouldBe StatusCodes.OK
@@ -2084,7 +2083,7 @@ class DeviceResourceSpec
     val uuid = createDeviceOk(deviceT)
 
     Post(
-      Resource.uri(api, uuid.show, "hibernation"),
+      DeviceRegistryResourceUri.uri(api, uuid.show, "hibernation"),
       UpdateHibernationStatusRequest(true)
     ) ~> routes ~> check {
       status shouldBe StatusCodes.OK
@@ -2095,7 +2094,7 @@ class DeviceResourceSpec
     msgPub.reset()
 
     Post(
-      Resource.uri(api, uuid.show, "hibernation"),
+      DeviceRegistryResourceUri.uri(api, uuid.show, "hibernation"),
       UpdateHibernationStatusRequest(false)
     ) ~> routes ~> check {
       status shouldBe StatusCodes.OK

@@ -2,21 +2,21 @@ package com.advancedtelematic.director.daemon
 
 import akka.Done
 import akka.http.scaladsl.model.StatusCodes
-import com.advancedtelematic.director.http.{AdminResources, DeviceResources}
-import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, RouteResourceSpec}
 import com.advancedtelematic.director.data.ClientDataType
 import com.advancedtelematic.director.data.Codecs.*
+import com.advancedtelematic.director.data.GeneratorOps.GenSample
+import com.advancedtelematic.director.http.{AdminResources, DeviceResources}
+import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalacheck.Gen
-import com.advancedtelematic.director.data.GeneratorOps.GenSample
 
 class DeleteDeviceRequestListenerSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with AdminResources
     with RepositorySpec
     with DeviceResources {

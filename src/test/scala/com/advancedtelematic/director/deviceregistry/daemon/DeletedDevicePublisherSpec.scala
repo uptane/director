@@ -6,14 +6,14 @@ import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.GenSample
 import com.advancedtelematic.director.http.deviceregistry.DeviceRequests
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
 import org.scalatest.OptionValues.*
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 
-class DeletedDevicePublisherSpec extends DirectorSpec with RouteResourceSpec with DeviceRequests {
+class DeletedDevicePublisherSpec extends DirectorSpec with ResourceSpec with DeviceRequests {
 
   implicit override val patienceConfig =
     PatienceConfig(timeout = Span(5, Seconds), interval = Span(15, Millis))

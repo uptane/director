@@ -10,17 +10,16 @@ package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.{CredentialsType, Device}
 import com.advancedtelematic.director.http.deviceregistry.PublicCredentialsResource.FetchPublicCredentials
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import io.circe.generic.auto.*
 import org.scalacheck.{Arbitrary, Gen}
-import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 
 class PublicCredentialsResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
     with ResourcePropSpec
     with DeviceRequests
     with PublicCredentialsRequests {

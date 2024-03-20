@@ -14,14 +14,12 @@ import com.advancedtelematic.director.deviceregistry.data.CredentialsType.Creden
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.http.deviceregistry.PublicCredentialsResource.FetchPublicCredentials
-import com.advancedtelematic.director.util.RouteResourceSpec
+import com.advancedtelematic.director.util.ResourceSpec
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import org.scalatest.matchers.should.Matchers
 
 import java.util.Base64
 
-// TODO: Matchers should not be explicit
-trait PublicCredentialsRequests { self: RouteResourceSpec & Matchers =>
+trait PublicCredentialsRequests { self: ResourceSpec =>
 
   import StatusCodes.*
   import com.advancedtelematic.director.deviceregistry.data.Device.*
@@ -34,7 +32,7 @@ trait PublicCredentialsRequests { self: RouteResourceSpec & Matchers =>
 
   def fetchPublicCredentials(device: DeviceId): HttpRequest = {
     import cats.syntax.show.*
-    Get(Resource.uri(credentialsApi, device.show, "public_credentials"))
+    Get(DeviceRegistryResourceUri.uri(credentialsApi, device.show, "public_credentials"))
   }
 
   def fetchPublicCredentialsOk(device: DeviceId): Array[Byte] =
@@ -47,7 +45,7 @@ trait PublicCredentialsRequests { self: RouteResourceSpec & Matchers =>
     }
 
   def createDeviceWithCredentials(devT: DeviceT): HttpRequest =
-    Put(Resource.uri(credentialsApi), devT)
+    Put(DeviceRegistryResourceUri.uri(credentialsApi), devT)
 
   def updatePublicCredentials(device: DeviceOemId,
                               creds: Array[Byte],

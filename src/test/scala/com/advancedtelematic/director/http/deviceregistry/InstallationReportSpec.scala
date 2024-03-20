@@ -2,35 +2,17 @@ package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes.*
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.director.deviceregistry.daemon.{
-  DeviceUpdateEventListener,
-  EcuReplacementListener
-}
+import com.advancedtelematic.director.deviceregistry.daemon.{DeviceUpdateEventListener, EcuReplacementListener}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.installationStatDecoder
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  InstallationStat,
-  InstallationStatsLevel
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{InstallationStat, InstallationStatsLevel}
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.data.{
-  DeviceStatus,
-  InstallationReportGenerators
-}
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{
-  deviceUpdateCompletedCodec,
-  ecuReplacementCodec
-}
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeleteDeviceRequest,
-  DeviceUpdateCompleted,
-  EcuReplaced,
-  EcuReplacement,
-  EcuReplacementFailed
-}
+import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{deviceUpdateCompletedCodec, ecuReplacementCodec}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceUpdateCompleted, EcuReplaced, EcuReplacement, EcuReplacementFailed}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalacheck.Gen
@@ -46,7 +28,6 @@ class InstallationReportSpec
     extends DirectorSpec
     with ResourcePropSpec
     with DeviceRequests
-    with RouteResourceSpec
     with ScalaFutures
     with Eventually
     with InstallationReportGenerators {

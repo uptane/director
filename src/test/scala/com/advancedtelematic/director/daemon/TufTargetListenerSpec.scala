@@ -1,21 +1,20 @@
 package com.advancedtelematic.director.daemon
 
 import java.net.URI
-
-import com.advancedtelematic.director.data.GeneratorOps._
-import com.advancedtelematic.director.data.Generators._
-import com.advancedtelematic.director.db._
+import com.advancedtelematic.director.data.GeneratorOps.*
+import com.advancedtelematic.director.data.Generators.*
+import com.advancedtelematic.director.db.*
 import com.advancedtelematic.director.http.{AdminResources, AssignmentResources}
-import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.AutoUpdateId
 import com.advancedtelematic.libtuf.data.ClientDataType.TargetCustom
 import com.advancedtelematic.libtuf.data.TufDataType.{TargetName, TargetVersion}
 import com.advancedtelematic.libtuf_server.data.Messages.TufTargetAdded
-import org.scalatest.LoneElement._
+import org.scalatest.LoneElement.*
 
 class TufTargetListenerSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with AssignmentResources
     with AdminResources
     with RepositorySpec

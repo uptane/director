@@ -2,22 +2,22 @@ package com.advancedtelematic.director.http
 
 import akka.http.scaladsl.model.StatusCodes
 import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, QueueResponse}
-import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
-import com.advancedtelematic.director.data.Generators._
+import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.libats.data.DataType.MultiTargetUpdateId
-import com.advancedtelematic.director.data.GeneratorOps._
-import com.advancedtelematic.director.data.Codecs._
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import cats.syntax.show._
+import com.advancedtelematic.director.data.GeneratorOps.*
+import com.advancedtelematic.director.data.Codecs.*
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import cats.syntax.show.*
 import com.advancedtelematic.libats.data.PaginationResult
-import org.scalatest.OptionValues._
-import com.advancedtelematic.libats.messaging_datatype.Messages._
-import org.scalatest.LoneElement._
+import org.scalatest.OptionValues.*
+import com.advancedtelematic.libats.messaging_datatype.Messages.*
+import org.scalatest.LoneElement.*
 
 class LegacyApiResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with AdminResources
     with RepositorySpec
     with AssignmentResources {

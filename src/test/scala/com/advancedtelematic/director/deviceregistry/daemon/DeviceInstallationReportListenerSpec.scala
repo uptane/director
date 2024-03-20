@@ -1,34 +1,23 @@
 package com.advancedtelematic.director.deviceregistry.daemon
 
 import com.advancedtelematic.director.db.deviceregistry.InstallationReportRepository
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceInstallationResult,
-  EcuInstallationResult
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceInstallationResult, EcuInstallationResult}
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.data.{
-  DeviceStatus,
-  InstallationReportGenerators
-}
-import com.advancedtelematic.director.http.deviceregistry.{DeviceRegistryRequests, ResourcePropSpec}
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
+import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourcePropSpec}
+import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateInFlight}
 import io.circe.syntax.*
-import org.scalatest.time.{Millis, Seconds, Span}
 
 import java.time.Instant
 
 class DeviceInstallationReportListenerSpec
     extends DirectorSpec
     with ResourcePropSpec
-    with RouteResourceSpec
-    with DeviceRegistryRequests
+    with DeviceRequests
     with InstallationReportGenerators {
-
-  implicit override val patienceConfig: PatienceConfig =
-    PatienceConfig(Span(10, Seconds), Span(50, Millis))
 
   val listener = new DeviceUpdateEventListener(msgPub)
 

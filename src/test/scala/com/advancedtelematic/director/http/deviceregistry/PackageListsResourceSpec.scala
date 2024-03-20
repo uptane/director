@@ -7,7 +7,7 @@ import com.advancedtelematic.director.deviceregistry.data.Codecs.{packageListIte
 import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, PackageListItem, PackageListItemCount}
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.director.deviceregistry.data.PackageId
-import com.advancedtelematic.director.http.deviceregistry.Resource.uri
+import com.advancedtelematic.director.http.deviceregistry.DeviceRegistryResourceUri.uri
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -15,9 +15,9 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.concurrent.ScalaFutures
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.PackageIdGenerators.*
-import com.advancedtelematic.director.util.{DirectorSpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 
-class PackageListsResourceSpec extends DirectorSpec with ResourcePropSpec with RouteResourceSpec with DeviceRequests {
+class PackageListsResourceSpec extends DirectorSpec with ResourcePropSpec with DeviceRequests {
 
   private val genNonConflictingDeviceTs = Gen.choose(0, 20).flatMap(genConflictFreeDeviceTs)
 
