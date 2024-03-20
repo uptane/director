@@ -4,7 +4,10 @@ import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPublishResult
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators
-import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, DeviceRegistryResourceUri}
+import com.advancedtelematic.director.http.deviceregistry.{
+  DeviceRegistryResourceUri,
+  DeviceRequests
+}
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
@@ -129,12 +132,9 @@ object TestPayloads {
 
 }
 
-class DeviceMonitoringResourceSpec
-    extends DirectorSpec
-    with ResourceSpec
-    with DeviceRequests
-    with DeviceGenerators {
+class DeviceMonitoringResourceSpec extends DirectorSpec with ResourceSpec with DeviceRequests {
 
+  import DeviceGenerators.*
   import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 
   override implicit def patienceConfig: PatienceConfig =
@@ -193,10 +193,10 @@ class BadMessageBus extends MockMessageBus {
 class DeviceMonitoringResourceSpecBadMsgPub
     extends DirectorSpec
     with ResourceSpec
-    with DeviceRequests
-    with DeviceGenerators {
+    with DeviceRequests {
 
   import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
+  import DeviceGenerators.*
 
   override implicit def patienceConfig: PatienceConfig =
     super.patienceConfig.copy(timeout = Span(3, Seconds))

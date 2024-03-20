@@ -9,7 +9,7 @@ import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, Resou
 import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateInFlight}
+import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceUpdateInFlight
 import io.circe.syntax.*
 
 import java.time.Instant
@@ -17,8 +17,10 @@ import java.time.Instant
 class DeviceInstallationReportListenerSpec
     extends DirectorSpec
     with ResourcePropSpec
-    with DeviceRequests
-    with InstallationReportGenerators {
+    with DeviceRequests {
+
+  import InstallationReportGenerators.*
+  import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 
   val listener = new DeviceUpdateEventListener(msgPub)
 

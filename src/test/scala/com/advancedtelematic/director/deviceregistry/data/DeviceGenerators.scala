@@ -16,8 +16,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDe
 import Namespaces.defaultNs
 import org.scalacheck.{Arbitrary, Gen}
 
-// TODO: Make this not a trait
-trait DeviceGenerators {
+object DeviceGenerators {
 
   import Arbitrary._
   import Device._
@@ -86,9 +85,9 @@ trait DeviceGenerators {
 
 }
 
-object DeviceGenerators extends DeviceGenerators
-
-object InvalidDeviceGenerators extends DeviceGenerators with DeviceIdGenerators {
+object InvalidDeviceGenerators {
+  import DeviceGenerators.*
+  import DeviceIdGenerators.*
 
   val genInvalidVehicle: Gen[Device] = for {
     // TODO: for now, just generate an invalid VIN with a valid namespace

@@ -12,9 +12,7 @@ import cats.syntax.show._
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import org.scalacheck.{Arbitrary, Gen}
 
-/** Created by vladimir on 16/03/16.
-  */
-trait DeviceIdGenerators {
+object DeviceIdGenerators {
 
   /** For property based testing purposes, we need to explain how to randomly generate (possibly
     * invalid) VINs.

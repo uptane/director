@@ -28,7 +28,8 @@ import org.scalacheck.Gen
 
 import scala.util.{Success, Try}
 
-trait InstallationReportGenerators extends DeviceGenerators {
+object InstallationReportGenerators {
+  import DeviceGenerators.*
 
   val genCorrelationId: Gen[CorrelationId] =
     Gen.uuid.flatMap(uuid => Gen.oneOf(CampaignId(uuid), MultiTargetUpdateId(uuid)))
