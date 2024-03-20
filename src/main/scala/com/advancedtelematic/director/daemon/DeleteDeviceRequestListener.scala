@@ -16,7 +16,7 @@ class DeleteDeviceRequestListener()(implicit val db: Database, val ec: Execution
     extends MsgOperation[DeleteDeviceRequest]
     with ProvisionedDeviceRepositorySupport {
 
-  val log = LoggerFactory.getLogger(this.getClass)
+  private val log = LoggerFactory.getLogger(this.getClass)
 
   override def apply(message: DeleteDeviceRequest): Future[Done] = {
     val f0 = db
@@ -25,7 +25,7 @@ class DeleteDeviceRequestListener()(implicit val db: Database, val ec: Execution
           .delete(message.namespace, message.uuid)
       )
       .recover { case ex @ Errors.MissingDevice =>
-        log.warn("wat", ex)
+        log.warn("could not delete device in device-registry", ex)
       }
 
     val f1 = provisionedDeviceRepository.markDeleted(message.namespace, message.uuid).recover {

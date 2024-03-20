@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import com.advancedtelematic.director.data.ClientDataType
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.GeneratorOps.GenSample
-import com.advancedtelematic.director.http.{AdminResources, DeviceResources}
+import com.advancedtelematic.director.http.{AdminResources, ProvisionedDevicesRequests}
 import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
@@ -19,7 +19,7 @@ class DeleteDeviceRequestListenerSpec
     with ResourceSpec
     with AdminResources
     with RepositorySpec
-    with DeviceResources {
+    with ProvisionedDevicesRequests {
 
   val listener = new DeleteDeviceRequestListener()
 

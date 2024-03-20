@@ -66,7 +66,7 @@ class ScheduledUpdatesSpec
     with ResourceSpec
     with AdminResources
     with RepositorySpec
-    with DeviceResources
+    with ProvisionedDevicesRequests
     with ScheduledUpdatesResources {
 
   testWithRepo("creates and lists a scheduled update") { implicit ns =>

@@ -37,6 +37,7 @@ import com.advancedtelematic.director.util.{DefaultPatience, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.http.HttpOps.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalatest.matchers.should.Matchers
@@ -75,6 +76,7 @@ trait DeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
                     lastSeenEnd: Option[Instant] = None,
                     createdAtStart: Option[Instant] = None,
                     createdAtEnd: Option[Instant] = None,
+                    hardwareIds: Seq[HardwareIdentifier] = Seq.empty,
                     namespace: Namespace = defaultNs): HttpRequest = {
     val m = Seq(
       status.map("status" -> _.toString),
@@ -85,8 +87,12 @@ trait DeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
       lastSeenEnd.map("lastSeenEnd" -> _.toString),
       createdAtStart.map("createdAtStart" -> _.toString),
       createdAtEnd.map("createdAtEnd" -> _.toString)
-    ).collect { case Some(a) => a }
-    Get(DeviceRegistryResourceUri.uri(api).withQuery(Query(m.toMap))).withNs(namespace)
+    ) :+ (hardwareIds match {
+      case x if x.nonEmpty => Option("hardwareIds" -> hardwareIds.map(_.value).mkString(","))
+      case _               => None
+    })
+
+    Get(DeviceRegistryResourceUri.uri(api).withQuery(Query(m.flatten.toMap))).withNs(namespace)
   }
 
   def fetchByDeviceId(deviceId: DeviceOemId,

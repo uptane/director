@@ -76,7 +76,7 @@ class DeviceResourceSpec
     with DeviceManifestSpec
     with RepositorySpec
     with Inspectors
-    with DeviceResources
+    with ProvisionedDevicesRequests
     with AssignmentsRepositorySupport
     with ScheduledUpdatesResources {
 

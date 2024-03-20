@@ -34,7 +34,7 @@ class OfflineUpdatesRoutesSpec
     with AdminResources
     with RepositorySpec
     with Generators
-    with DeviceResources {
+    with ProvisionedDevicesRequests {
 
   def forceRoleExpire[T](ns: Namespace)(implicit tufRole: TufRole[T]): Unit = {
     val sql =

@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query
 import cats.syntax.option.*
+import com.advancedtelematic.director.data.Generators.GenHardwareIdentifier
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.DevicesQuery
@@ -13,8 +14,9 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSor
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.director.deviceregistry.data.Namespaces.*
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
+import com.advancedtelematic.director.http.{AdminResources, ProvisionedDevicesRequests}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
-import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -59,7 +61,10 @@ class SearchResourceSpec
     extends DirectorSpec
     with ResourceSpec
     with DeviceRequests
-    with SearchRequests {
+    with SearchRequests
+    with AdminResources
+    with RepositorySpec
+    with ProvisionedDevicesRequests {
 
   test(
     "querying devices with duplicate devices specified are not duplicated in response (response should be a set)"
@@ -88,50 +93,23 @@ class SearchResourceSpec
     }
   }
 
-  test("can search devices by hardware id") {
-    pending
-
-    val ns = NamespaceGen.generate
-
+  testWithRepo("can search devices by hardware id") { implicit ns =>
     val device1 = genDeviceT.sample.get
+    val device2 = genDeviceT.sample.get
     val uuid1 = createDeviceInNamespaceOk(device1, ns)
+    val uuid2 = createDeviceInNamespaceOk(device2, ns)
 
-    val now = Instant.now
-    val oneHourAgo = now.minus(Duration.ofHours(1))
-    val oneHourAfter = now.plus(Duration.ofHours(1))
+    val hwId = GenHardwareIdentifier.generate
 
-    filterDevices(createdAtStart = oneHourAgo.some, namespace = ns) ~> routes ~> check {
+    registerAdminDeviceOk(hwId.some, uuid1)
+    registerAdminDeviceOk(deviceId = uuid2)
+
+    filterDevices(namespace = ns, hardwareIds = Seq(hwId)) ~> routes ~> check {
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
       result.length shouldBe 1
-      result should contain allElementsOf Seq(uuid1)
+      result shouldBe Seq(uuid1)
     }
-
-    filterDevices(createdAtEnd = oneHourAgo.some, namespace = ns) ~> routes ~> check {
-      status shouldBe OK
-      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
-      result.length shouldBe 0
-    }
-
-    filterDevices(
-      createdAtStart = oneHourAgo.some,
-      createdAtEnd = oneHourAfter.some,
-      namespace = ns
-    ) ~> routes ~> check {
-      status shouldBe OK
-      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
-      result.length shouldBe 1
-      result should contain allElementsOf Seq(uuid1)
-    }
-
-    filterDevices(namespace = ns) ~> routes ~> check {
-      status shouldBe OK
-      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
-      result.length shouldBe 1
-      result should contain allElementsOf Seq(uuid1)
-    }
-
-    fail("should fail")
   }
 
   test("querying devices with bad DeviceOemId fails gracefully") {

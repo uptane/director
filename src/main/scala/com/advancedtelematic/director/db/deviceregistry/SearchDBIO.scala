@@ -57,7 +57,7 @@ object SearchDBIO {
                           notSeenSinceHours: Option[Int]) = {
 
     val groupFilter = optionalFilter(groupId) { (dt, gid) =>
-      dt.uuid in groupMembers.filter(_.groupId === gid).map(_.deviceUuid)
+      dt.uuid.in(groupMembers.filter(_.groupId === gid).map(_.deviceUuid))
     }
 
     val nameContainsFilter = optionalFilter(nameContains) { (dt, s) =>
@@ -226,7 +226,7 @@ object SearchDBIO {
     }
 
     deviceTableQuery
-      .maybeFilter(_.deviceStatus === params.status)
+      .maybeFilter(r => r.deviceStatus === params.status)
       .maybeFilter(_.hibernated === params.hibernated)
       .maybeFilter(_.createdAt > params.createdAtStart)
       .maybeFilter(_.createdAt < params.createdAtEnd)

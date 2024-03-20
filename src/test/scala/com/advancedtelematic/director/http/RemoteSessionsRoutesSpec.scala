@@ -28,7 +28,7 @@ class RemoteSessionsRoutesSpec
     with AdminResources
     with RepositorySpec
     with Generators
-    with DeviceResources {
+    with ProvisionedDevicesRequests {
 
   testWithRepo("can set a remote session for a device") { implicit ns =>
     val deviceId = DeviceId.generate()

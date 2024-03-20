@@ -74,7 +74,6 @@ class DirectorBoot(override val globalConfig: Config,
 
   private lazy val authNamespace = NamespaceDirectives.fromConfig()
 
-  // TODO: Device table + repo needs to be renamed
   def deviceAllowed(deviceId: DeviceId): Future[Namespace] =
     db.run(DeviceRepository.deviceNamespace(deviceId))
 

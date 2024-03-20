@@ -18,21 +18,25 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 
-trait DeviceResources {
+trait ProvisionedDevicesRequests {
   self: DirectorSpec & ResourceSpec =>
 
   def registerDeviceOk()(implicit namespace: Namespace, pos: Position): DeviceId = {
+    val deviceId = DeviceId.generate()
+    registerDeviceOk(deviceId)
+  }
+
+  def registerDeviceOk(id: DeviceId)(implicit namespace: Namespace, pos: Position): DeviceId = {
     val ecus = GenRegisterEcu.generate
     val primaryEcu = ecus.ecu_serial
 
-    val deviceId = DeviceId.generate()
-    val req = RegisterDevice(deviceId.some, primaryEcu, Seq(ecus))
+    val req = RegisterDevice(id.some, primaryEcu, Seq(ecus))
 
-    Post(apiUri(s"device/${deviceId.show}/ecus"), req).namespaced ~> routes ~> check {
+    Post(apiUri(s"device/${id.show}/ecus"), req).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Created
     }
 
-    deviceId
+    id
   }
 
   def getDeviceRole[T](deviceId: DeviceId, version: Option[Int] = None)(

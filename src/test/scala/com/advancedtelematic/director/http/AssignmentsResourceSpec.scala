@@ -124,7 +124,7 @@ class AssignmentsResourceSpec
     with AdminResources
     with AssignmentResources
     with RepositorySpec
-    with DeviceResources
+    with ProvisionedDevicesRequests
     with DeviceManifestSpec
     with Inspectors {
 
