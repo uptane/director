@@ -67,33 +67,6 @@ trait DeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
       responseAs[Device]
     }
 
-  def listDevices(sortBy: Option[DeviceSortBy] = None,
-                  sortDirection: Option[SortDirection] = None): HttpRequest = {
-    val m = (sortBy, sortDirection) match {
-      case (None, _)          => Map.empty[String, String]
-      case (Some(sort), None) => Map("sortBy" -> sort.toString)
-      case (Some(sort), Some(sortDir)) =>
-        Map("sortBy" -> sort.toString, "sortDirection" -> sortDir.toString)
-    }
-    Get(DeviceRegistryResourceUri.uri(api).withQuery(Query(m)))
-  }
-
-  def listDevicesByUuids(deviceUuids: Seq[DeviceId],
-                         sortBy: Option[DeviceSortBy] = None): HttpRequest = {
-    val m = sortBy.fold(Map.empty[String, String])(s => Map("sortBy" -> s.toString))
-    Get(
-      DeviceRegistryResourceUri.uri(api).withQuery(Query(m)),
-      DevicesQuery(None, Some(deviceUuids.toList))
-    )
-  }
-
-  def searchDevice(regex: String, offset: Long = 0, limit: Long = 50): HttpRequest =
-    Get(
-      DeviceRegistryResourceUri
-        .uri(api)
-        .withQuery(Query("regex" -> regex, "offset" -> offset.toString, "limit" -> limit.toString))
-    )
-
   def filterDevices(status: Option[DeviceStatus] = None,
                     hibernated: Option[Boolean] = None,
                     activatedAfter: Option[Instant] = None,

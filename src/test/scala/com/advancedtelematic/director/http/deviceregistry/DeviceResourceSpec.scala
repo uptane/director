@@ -14,26 +14,18 @@ import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
-  DevicesCount,
-  InstalledPackage
-}
+import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{DevicesCount, InstalledPackage}
 import com.advancedtelematic.director.db.deviceregistry.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceSeenListener
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceT,
-  DevicesQuery,
-  RenameTagId,
-  TagInfo,
-  UpdateHibernationStatusRequest
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, RenameTagId, TagInfo, UpdateHibernationStatusRequest}
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.Namespaces.NamespaceGen
+import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
+import com.advancedtelematic.director.deviceregistry.data.PackageIdGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.{PackageStat, *}
-import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
@@ -45,15 +37,11 @@ import io.circe.Json
 import io.circe.generic.auto.*
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.{Gen, Shrink}
-import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 
 import java.time.temporal.ChronoUnit
 import java.time.{Duration, Instant, OffsetDateTime}
-import java.util.UUID
-import DeviceGenerators.*
-import PackageIdGenerators.*
-import GroupGenerators.*
 
 class DeviceResourceSpec
     extends DirectorSpec
@@ -114,20 +102,6 @@ class DeviceResourceSpec
     }
   }
 
-  test("fetches only devices for the given namespace") {
-    forAll { (dt1: DeviceT, dt2: DeviceT) =>
-      val d1 = createDeviceInNamespaceOk(dt1, defaultNs)
-      val d2 = createDeviceInNamespaceOk(dt2, Namespace("test-namespace"))
-
-      listDevices() ~> routes ~> check {
-        status shouldBe OK
-        val devices = responseAs[PaginationResult[Device]].values.map(_.uuid)
-        devices should contain(d1)
-        devices should not contain d2
-      }
-    }
-  }
-
   test("uses correct codec for device") {
     import org.scalatest.EitherValues.*
     import org.scalatest.OptionValues.*
@@ -135,7 +109,7 @@ class DeviceResourceSpec
     forAll { (dt1: DeviceT) =>
       val d1 = createDeviceInNamespaceOk(dt1, defaultNs)
 
-      listDevices() ~> routes ~> check {
+      Get(DeviceRegistryResourceUri.uri(api)) ~> routes ~> check {
         status shouldBe OK
         val devicesJson = responseAs[PaginationResult[Json]].values
 
@@ -524,52 +498,6 @@ class DeviceResourceSpec
     }
   }
 
-  test("can list devices with custom pagination limit") {
-    val limit = 30
-    val deviceTs = genConflictFreeDeviceTs(limit * 2).sample.get
-    deviceTs.foreach(createDeviceOk)
-
-    searchDevice("", limit = limit) ~> routes ~> check {
-      status shouldBe OK
-      val result = responseAs[PaginationResult[Device]]
-      result.values.length shouldBe limit
-    }
-  }
-
-  test("can list devices with custom pagination limit and offset") {
-    val limit = 30
-    val offset = 10
-    val deviceTs = genConflictFreeDeviceTs(limit * 2).sample.get
-    deviceTs.foreach(createDeviceOk)
-
-    searchDevice("", offset = offset, limit = limit) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices.length shouldBe limit
-      devices.zip(devices.tail).foreach { case (device1, device2) =>
-        device1.deviceName.value.compareTo(device2.deviceName.value) should be <= 0
-      }
-    }
-  }
-
-  test("list devices with negative pagination limit fails") {
-    searchDevice("", limit = -1) ~> routes ~> check {
-      status shouldBe BadRequest
-      val res = responseAs[ErrorRepresentation]
-      res.code shouldBe ErrorCodes.InvalidEntity
-      res.description should include("The query parameter 'limit' was malformed")
-    }
-  }
-
-  test("list devices with negative pagination offset fails") {
-    searchDevice("", offset = -1) ~> routes ~> check {
-      status shouldBe BadRequest
-      val res = responseAs[ErrorRepresentation]
-      res.code shouldBe ErrorCodes.InvalidEntity
-      res.description should include("The query parameter 'offset' was malformed")
-    }
-  }
-
   test("searching a device by 'nameContains' and 'deviceId' fails") {
     val deviceT = genDeviceT.sample.get
     createDeviceOk(deviceT)
@@ -892,52 +820,6 @@ class DeviceResourceSpec
       result.length shouldBe 1
       result should contain allElementsOf Seq(uuid1)
     }
-  }
-
-  test("can search devices by hardware id") {
-    pending
-
-    val ns = NamespaceGen.generate
-
-    val device1 = genDeviceT.sample.get
-    val uuid1 = createDeviceInNamespaceOk(device1, ns)
-
-    val now = Instant.now
-    val oneHourAgo = now.minus(Duration.ofHours(1))
-    val oneHourAfter = now.plus(Duration.ofHours(1))
-
-    filterDevices(createdAtStart = oneHourAgo.some, namespace = ns) ~> routes ~> check {
-      status shouldBe OK
-      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
-      result.length shouldBe 1
-      result should contain allElementsOf Seq(uuid1)
-    }
-
-    filterDevices(createdAtEnd = oneHourAgo.some, namespace = ns) ~> routes ~> check {
-      status shouldBe OK
-      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
-      result.length shouldBe 0
-    }
-
-    filterDevices(
-      createdAtStart = oneHourAgo.some,
-      createdAtEnd = oneHourAfter.some,
-      namespace = ns
-    ) ~> routes ~> check {
-      status shouldBe OK
-      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
-      result.length shouldBe 1
-      result should contain allElementsOf Seq(uuid1)
-    }
-
-    filterDevices(namespace = ns) ~> routes ~> check {
-      status shouldBe OK
-      val result = responseAs[PaginationResult[Device]].values.map(_.uuid)
-      result.length shouldBe 1
-      result should contain allElementsOf Seq(uuid1)
-    }
-
-    fail("should fail")
   }
 
   test("can search static group devices") {
@@ -1315,102 +1197,6 @@ class DeviceResourceSpec
       status shouldBe OK
       val result = responseAs[PaginationResult[Device]].values.map(_.uuid).filter(_ == deviceUuid)
       result.length shouldBe 1
-    }
-  }
-
-  test("finds all the devices sorted by name ascending") {
-    listDevices(Some(DeviceSortBy.Name)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices shouldBe devices.sortBy(_.deviceName.value)
-    }
-  }
-
-  test("finds all the devices sorted by name descending") {
-    listDevices(Some(DeviceSortBy.Name), Some(SortDirection.Desc)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices shouldBe devices.sortBy(_.deviceName.value).reverse
-    }
-  }
-
-  test("finds all the devices sorted by DeviceId ascending") {
-    listDevices(Some(DeviceSortBy.DeviceId)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices shouldBe devices.sortBy(_.deviceId.underlying)
-    }
-  }
-
-  test("finds all the devices sorted by DeviceId descending") {
-    listDevices(Some(DeviceSortBy.DeviceId), Some(SortDirection.Desc)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices shouldBe devices.sortBy(_.deviceId.underlying).reverse
-    }
-  }
-
-  test("finds all the devices sorted by Uuid ascending") {
-    listDevices(Some(DeviceSortBy.Uuid)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices shouldBe devices.sortBy(_.uuid.uuid.toString)
-    }
-  }
-
-  test("finds all the devices sorted by Uuid descending") {
-    listDevices(Some(DeviceSortBy.Uuid), Some(SortDirection.Desc)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices shouldBe devices.sortBy(_.uuid.uuid.toString).reverse
-    }
-  }
-
-  test("finds all the devices sorted by creation date ascending") {
-    listDevices(Some(DeviceSortBy.CreatedAt)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices.map(_.createdAt) shouldBe devices.sortBy(_.createdAt).map(_.createdAt)
-    }
-  }
-
-  test("finds all the devices sorted by creation date descending") {
-    listDevices(Some(DeviceSortBy.CreatedAt), Some(SortDirection.Desc)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices.map(_.createdAt) shouldBe devices.sortBy(_.createdAt).map(_.createdAt).reverse
-    }
-  }
-
-  test("finds all the devices sorted by Activation Date ascending") {
-    listDevices(Some(DeviceSortBy.ActivatedAt)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices shouldBe devices.sortBy(_.activatedAt)
-    }
-  }
-
-  test("finds all the devices sorted by Activation Date descending") {
-    listDevices(Some(DeviceSortBy.ActivatedAt), Some(SortDirection.Desc)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices.map(_.activatedAt) shouldBe devices.sortBy(_.activatedAt).reverse.map(_.activatedAt)
-    }
-  }
-
-  test("finds all the devices sorted by LastSeen ascending") {
-    listDevices(Some(DeviceSortBy.LastSeen)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices shouldBe devices.sortBy(_.lastSeen)
-    }
-  }
-
-  test("finds all the devices sorted by LastSeen descending") {
-    listDevices(Some(DeviceSortBy.LastSeen), Some(SortDirection.Desc)) ~> routes ~> check {
-      status shouldBe OK
-      val devices = responseAs[PaginationResult[Device]].values
-      devices.map(_.lastSeen) shouldBe devices.sortBy(_.lastSeen).reverse.map(_.lastSeen)
     }
   }
 
@@ -1866,200 +1652,6 @@ class DeviceResourceSpec
       status shouldBe OK
       val result = responseAs[Seq[TagInfo]].map(ti => ti.tagId.value -> ti.isDelible)
       result should contain("11" -> false)
-    }
-  }
-
-  test("can fetch devices by UUIDs") {
-    forAll(genConflictFreeDeviceTs(10)) { devices =>
-      val uuids = devices.map(createDeviceOk(_))
-
-      listDevicesByUuids(uuids) ~> routes ~> check {
-        status shouldBe OK
-        val devicesResponse = responseAs[List[Device]]
-        devicesResponse.length shouldBe devices.length
-        devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
-      }
-    }
-  }
-
-  test("can fetch devices by UUIDs and sorted") {
-    forAll(genConflictFreeDeviceTs(10)) { devices =>
-      val uuids = devices.map(createDeviceOk(_))
-
-      listDevicesByUuids(uuids, Some(DeviceSortBy.CreatedAt)) ~> routes ~> check {
-        status shouldBe OK
-        val devicesResponse = responseAs[List[Device]]
-        devicesResponse.length shouldBe devices.length
-        devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
-      }
-    }
-  }
-
-  test("can query devices using DeviceOemIds") {
-    forAll(genConflictFreeDeviceTs(10)) { devices =>
-      val uuids = devices.map(createDeviceOk(_))
-
-      listDevicesByUuids(uuids, Some(DeviceSortBy.CreatedAt)) ~> routes ~> check {
-        status shouldBe OK
-        val devicesResponse = responseAs[List[Device]]
-        devicesResponse.length shouldBe devices.length
-        devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
-
-        // so now try to do this with deviceOemIds
-        val deviceOemIds = devicesResponse.map(_.deviceId)
-        Get(DeviceRegistryResourceUri.uri("devices"), DevicesQuery(Some(deviceOemIds), None)) ~> routes ~> check {
-          status shouldBe OK
-          val responseDevices = responseAs[List[Device]]
-          responseDevices.length shouldBe devices.length
-          responseDevices.map(_.deviceId) should contain theSameElementsAs deviceOemIds
-        }
-      }
-    }
-  }
-
-  test("can query devices with DeviceOemIds AND DeviceUuids") {
-    forAll(genConflictFreeDeviceTs(10)) { devices =>
-      val uuids = devices.map(createDeviceOk(_))
-
-      listDevicesByUuids(uuids, Some(DeviceSortBy.CreatedAt)) ~> routes ~> check {
-        status shouldBe OK
-        val devicesResponse = responseAs[List[Device]]
-        devicesResponse.length shouldBe devices.length
-        devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
-
-        // query the first 5 as deviceOemIds, and the last 5 as deviceUuids
-        val deviceOemIds = devicesResponse.slice(0, 5).map(_.deviceId)
-        val deviceUuids = devicesResponse.slice(5, devicesResponse.length).map(_.uuid)
-        Get(
-          DeviceRegistryResourceUri.uri("devices"),
-          DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
-        ) ~> routes ~> check {
-          status shouldBe OK
-          val responseDevices = responseAs[List[Device]]
-          responseDevices.length shouldBe devices.length
-          responseDevices should contain theSameElementsAs devicesResponse
-        }
-      }
-    }
-  }
-
-  test(
-    "querying devices with duplicate devices specified are not duplicated in response (response should be a set)"
-  ) {
-    forAll(genConflictFreeDeviceTs(10)) { devices =>
-      val uuids = devices.map(createDeviceOk(_))
-
-      listDevicesByUuids(uuids, Some(DeviceSortBy.CreatedAt)) ~> routes ~> check {
-        status shouldBe OK
-        val devicesResponse = responseAs[List[Device]]
-        devicesResponse.length shouldBe devices.length
-        devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
-
-        val deviceOemIds = devicesResponse.map(_.deviceId)
-        val deviceUuids = devicesResponse.map(_.uuid)
-        Get(
-          DeviceRegistryResourceUri.uri("devices"),
-          DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
-        ) ~> routes ~> check {
-          status shouldBe OK
-          val responseDevices = responseAs[List[Device]]
-          responseDevices.length shouldBe devices.length
-          responseDevices should contain theSameElementsAs devicesResponse
-          responseDevices.map(_.deviceId) should contain theSameElementsAs deviceOemIds
-        }
-      }
-    }
-  }
-
-  test("querying devices with bad DeviceOemId fails gracefully") {
-    forAll(genConflictFreeDeviceTs(10)) { devices =>
-      val uuids = devices.map(createDeviceOk(_))
-
-      listDevicesByUuids(uuids, Some(DeviceSortBy.CreatedAt)) ~> routes ~> check {
-        status shouldBe OK
-        val devicesResponse = responseAs[List[Device]]
-        devicesResponse.length shouldBe devices.length
-        devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
-
-        val deviceOemIds = devicesResponse.map(_.deviceId) :+ DeviceOemId("not-real-deviceId")
-        Get(DeviceRegistryResourceUri.uri("devices"), DevicesQuery(Some(deviceOemIds), None)) ~> routes ~> check {
-          status shouldBe NotFound
-          val errResponse = responseAs[ErrorRepresentation]
-          errResponse.code shouldBe Codes.MissingDevice
-          errResponse.cause shouldBe defined
-          val errMap = errResponse.cause
-            .getOrElse(Json.fromString("{}"))
-            .as[Map[String, String]]
-            .getOrElse(Map.empty[String, String])
-          errMap.keys should contain("missingDeviceUuids")
-          errMap.keys should contain("missingOemIds")
-          errMap("missingOemIds") should not be empty
-          errMap("missingDeviceUuids") shouldBe empty
-        }
-      }
-    }
-  }
-
-  test("querying devices with bad DeviceUuid fails gracefully") {
-    forAll(genConflictFreeDeviceTs(10)) { devices =>
-      val uuids = devices.map(createDeviceOk(_))
-
-      listDevicesByUuids(uuids, Some(DeviceSortBy.CreatedAt)) ~> routes ~> check {
-        status shouldBe OK
-        val devicesResponse = responseAs[List[Device]]
-        devicesResponse.length shouldBe devices.length
-        devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
-
-        val deviceUuids = devicesResponse.map(_.uuid) :+ DeviceId(UUID.randomUUID())
-        Get(DeviceRegistryResourceUri.uri("devices"), DevicesQuery(None, Some(deviceUuids))) ~> routes ~> check {
-          status shouldBe NotFound
-          val errResponse = responseAs[ErrorRepresentation]
-          errResponse.code shouldBe Codes.MissingDevice
-          errResponse.cause shouldBe defined
-          val errMap = errResponse.cause
-            .getOrElse(Json.fromString("{}"))
-            .as[Map[String, String]]
-            .getOrElse(Map.empty[String, String])
-          errMap.keys should contain("missingDeviceUuids")
-          errMap.keys should contain("missingOemIds")
-          errMap("missingOemIds") shouldBe empty
-          errMap("missingDeviceUuids") should not be empty
-        }
-      }
-    }
-  }
-
-  test("querying devices with bad DeviceOemIds and DeviceUuids fails gracefully") {
-    forAll(genConflictFreeDeviceTs(10)) { devices =>
-      val uuids = devices.map(createDeviceOk(_))
-
-      listDevicesByUuids(uuids, Some(DeviceSortBy.CreatedAt)) ~> routes ~> check {
-        status shouldBe OK
-        val devicesResponse = responseAs[List[Device]]
-        devicesResponse.length shouldBe devices.length
-        devicesResponse.map(_.uuid) should contain theSameElementsAs uuids
-
-        val deviceUuids = devicesResponse.map(_.uuid) :+ DeviceId(UUID.randomUUID())
-        val deviceOemIds = devicesResponse.map(_.deviceId) :+ DeviceOemId("not-real-deviceId")
-        Get(
-          DeviceRegistryResourceUri.uri("devices"),
-          DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
-        ) ~> routes ~> check {
-          status shouldBe NotFound
-          val errResponse = responseAs[ErrorRepresentation]
-          errResponse.code shouldBe Codes.MissingDevice
-          errResponse.cause shouldBe defined
-
-          val errMap = errResponse.cause
-            .getOrElse(Json.fromString("{}"))
-            .as[Map[String, String]]
-            .getOrElse(Map.empty[String, String])
-          errMap.keys should contain("missingDeviceUuids")
-          errMap.keys should contain("missingOemIds")
-          errMap("missingOemIds") should not be empty
-          errMap("missingDeviceUuids") should not be empty
-        }
-      }
     }
   }
 
