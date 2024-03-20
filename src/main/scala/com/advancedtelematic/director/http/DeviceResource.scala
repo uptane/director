@@ -3,18 +3,22 @@ package com.advancedtelematic.director.http
 import java.time.Instant
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directive, Directive0, Directive1, Route}
+import akka.pattern.StatusReply.Success
 import cats.data.Validated.{Invalid, Valid}
-import cats.implicits._
+import cats.implicits.*
 import com.advancedtelematic.director.data.AdminDataType.RegisterDevice
-import com.advancedtelematic.director.data.Codecs._
+import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.AdminRoleName.AdminRoleNamePathMatcher
 import com.advancedtelematic.director.data.DbDataType.Assignment
-import com.advancedtelematic.director.data.Messages.{DeviceManifestReported, _}
-import com.advancedtelematic.director.db._
+import com.advancedtelematic.director.data.Messages.{DeviceManifestReported, *}
+import com.advancedtelematic.director.db.*
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.messages.DeviceActivated
 import com.advancedtelematic.director.manifest.{DeviceManifestProcess, ManifestCompiler}
 import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates, RemoteSessions}
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.http.UUIDKeyAkka._
+import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
@@ -22,19 +26,25 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceUpdateEvent,
   DeviceUpdateInFlight
 }
-import com.advancedtelematic.libtuf.data.ClientCodecs._
+import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{SnapshotRole, TimestampRole}
-import com.advancedtelematic.libtuf.data.TufCodecs._
+import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{RoleType, SignedPayload}
 import com.advancedtelematic.libtuf_server.data.Marshalling.JsonRoleTypeMetaPath
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
-import slick.jdbc.MySQLProfile.api._
+import slick.jdbc.MySQLProfile.api.*
 
-import scala.async.Async._
+import scala.async.Async.*
 import scala.concurrent.{ExecutionContext, Future}
 import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
+
+import scala.util.Failure
+
+object DeviceResource {
+  import akka.http.scaladsl.server.Directives.*
+}
 
 class DeviceResource(extractNamespace: Directive1[Namespace],
                      val keyserverClient: KeyserverClient,
@@ -49,7 +59,8 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
     with NamespaceRepoId
     with RootFetching {
 
-  import akka.http.scaladsl.server.Directives._
+  import akka.http.scaladsl.server.Directives.*
+  import DeviceResource.*
 
   val deviceRegistration = new DeviceRegistration(keyserverClient)
   val deviceManifestProcess = new DeviceManifestProcess()
@@ -69,17 +80,24 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
       }
     }
 
-  private def logDevice(namespace: Namespace, device: DeviceId): Directive0 = {
-    val f = messageBusPublisher.publishSafe(DeviceSeen(namespace, device))
-    onComplete(f).flatMap(_ => pass)
-  }
-
   private def publishInFlight(assignments: Seq[Assignment]): Future[Unit] = {
     val now = Instant.now
     val msgs = assignments.map { a =>
       DeviceUpdateInFlight(a.ns, now, a.correlationId, a.deviceId).asInstanceOf[DeviceUpdateEvent]
     }
     Future.traverse(msgs)(msg => messageBusPublisher.publishSafe(msg)).map(_ => ())
+  }
+
+  private def logDevice(ns: Namespace, deviceId: DeviceId): Directive0 = {
+    val f = LogDeviceSeen.logDevice(ns, deviceId)
+
+    (onComplete(f) & extractLog).tflatMap {
+      case (Failure(ex), log) =>
+        log.warning(ex, "could not update device seen status")
+        pass
+      case _ =>
+        pass
+    }
   }
 
   val route = extractNamespaceRepoId(extractNamespace) { (repoId, ns) =>

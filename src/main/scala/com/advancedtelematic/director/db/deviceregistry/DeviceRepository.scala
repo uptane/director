@@ -148,20 +148,20 @@ object DeviceRepository {
     findByUuids(ns, deviceIds).result
 
   def updateLastSeen(uuid: DeviceId, when: Instant)(
-    implicit ec: ExecutionContext): DBIO[(Boolean, Namespace)] = {
+    implicit ec: ExecutionContext): DBIO[Boolean] = {
     val sometime = Some(when)
 
     val dbIO = for {
-      (ns, activatedAt) <- devices
+      activatedAt <- devices
         .filter(_.uuid === uuid)
-        .map(x => (x.namespace, x.activatedAt))
+        .map(_.activatedAt)
         .result
         .failIfNotSingle(Errors.MissingDevice)
       _ <- devices
         .filter(_.uuid === uuid)
         .map(x => (x.lastSeen, x.activatedAt))
         .update((sometime, activatedAt.orElse(sometime)))
-    } yield (activatedAt.isEmpty, ns)
+    } yield activatedAt.isEmpty
 
     dbIO.transactionally
   }

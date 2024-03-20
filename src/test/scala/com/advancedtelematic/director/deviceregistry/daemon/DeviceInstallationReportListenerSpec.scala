@@ -4,6 +4,7 @@ import com.advancedtelematic.director.db.deviceregistry.InstallationReportReposi
 import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceInstallationResult, EcuInstallationResult}
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.director.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
+import com.advancedtelematic.director.http.LogDeviceSeen
 import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourcePropSpec}
 import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.data.DataType.ResultCode
@@ -117,8 +118,7 @@ class DeviceInstallationReportListenerSpec
     val correlationId = genCorrelationId.generate
     val updateInFlight = DeviceUpdateInFlight(defaultNs, Instant.now(), correlationId, deviceId)
 
-    val deviceSeenListener = new DeviceSeenListener(msgPub)
-    deviceSeenListener.apply(DeviceSeen(defaultNs, deviceId, Instant.now())).futureValue
+    LogDeviceSeen.logDevice(defaultNs, deviceId).futureValue
 
     listener.apply(updateInFlight).futureValue
 

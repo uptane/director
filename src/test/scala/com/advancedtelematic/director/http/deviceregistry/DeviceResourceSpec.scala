@@ -14,11 +14,18 @@ import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{DevicesCount, InstalledPackage}
+import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
+  DevicesCount,
+  InstalledPackage
+}
 import com.advancedtelematic.director.db.deviceregistry.{InstalledPackages, TaggedDeviceRepository}
-import com.advancedtelematic.director.deviceregistry.daemon.DeviceSeenListener
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, RenameTagId, TagInfo, UpdateHibernationStatusRequest}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceT,
+  RenameTagId,
+  TagInfo,
+  UpdateHibernationStatusRequest
+}
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
@@ -26,6 +33,7 @@ import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.PackageIdGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.{PackageStat, *}
+import com.advancedtelematic.director.http.LogDeviceSeen
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
@@ -56,7 +64,6 @@ class DeviceResourceSpec
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
   private implicit val exec: scala.concurrent.ExecutionContextExecutor = system.dispatcher
-  private val publisher = new DeviceSeenListener(MessageBusPublisher.ignore)
 
   implicit override val patienceConfig =
     PatienceConfig(timeout = Span(30, Seconds), interval = Span(100, Millis))
@@ -68,10 +75,10 @@ class DeviceResourceSpec
     case None    => false
   }
 
-  private def sendDeviceSeen(uuid: DeviceId,
+  private def logDeviceSeen(uuid: DeviceId,
                              lastSeen: Instant = Instant.now(),
                              namespace: Namespace = defaultNs): Unit =
-    publisher(DeviceSeen(namespace, uuid, lastSeen)).futureValue
+    LogDeviceSeen.logDevice(namespace, uuid, lastSeen).futureValue
 
   private def createGroupedAndUngroupedDevices(): Map[String, Seq[DeviceId]] = {
     val deviceTs = genConflictFreeDeviceTs(12).sample.get
@@ -178,11 +185,11 @@ class DeviceResourceSpec
         val notSeenLatelyIds = notSeenLately.map(createDeviceOk(_))
         val seenLatelyIds = seenLately.map(createDeviceOk(_))
 
-        seenLatelyIds.foreach(sendDeviceSeen(_))
+        seenLatelyIds.foreach(logDeviceSeen(_))
         val hours = Gen.chooseNum(1, 100000).sample.get
         notSeenLatelyIds.foreach { did =>
           val i = Instant.now.minus(hours, ChronoUnit.HOURS).minusSeconds(600)
-          sendDeviceSeen(did, i)
+          logDeviceSeen(did, i)
         }
 
         fetchNotSeenSince(hours) ~> routes ~> check {
@@ -233,7 +240,7 @@ class DeviceResourceSpec
     forAll { (devicePre: DeviceT) =>
       val uuid: DeviceId = createDeviceOk(devicePre)
 
-      sendDeviceSeen(uuid)
+      logDeviceSeen(uuid)
 
       fetchDevice(uuid) ~> routes ~> check {
         val devicePost: Device = responseAs[Device]
@@ -269,7 +276,7 @@ class DeviceResourceSpec
     forAll { (devicePre: DeviceT) =>
       val uuid = createDeviceOk(devicePre)
 
-      sendDeviceSeen(uuid)
+      logDeviceSeen(uuid)
 
       fetchDevice(uuid) ~> routes ~> check {
         val firstDevice = responseAs[Device]
@@ -293,7 +300,7 @@ class DeviceResourceSpec
       val uuid = createDeviceOk(devicePre)
       val end = start.plusHours(1)
 
-      sendDeviceSeen(uuid)
+      logDeviceSeen(uuid)
 
       getActiveDeviceCount(start, end) ~> routes ~> check {
         responseAs[ActiveDeviceCount].deviceCount shouldBe 1
@@ -409,7 +416,7 @@ class DeviceResourceSpec
     forAll(genConflictFreeDeviceTs(2)) { case Seq(d1: DeviceT, d2: DeviceT) =>
       val uuid = createDeviceOk(d1)
 
-      sendDeviceSeen(uuid)
+      logDeviceSeen(uuid)
 
       setDevice(uuid, d2.deviceName) ~> routes ~> check {
         status shouldBe OK
@@ -609,7 +616,10 @@ class DeviceResourceSpec
     val deviceT = genDeviceT.sample.get
     val uuid = createDeviceInNamespaceOk(deviceT, ns)
 
-    Post(DeviceRegistryResourceUri.uri(api, uuid.show, "hibernation"), UpdateHibernationStatusRequest(true))
+    Post(
+      DeviceRegistryResourceUri.uri(api, uuid.show, "hibernation"),
+      UpdateHibernationStatusRequest(true)
+    )
       .withNs(ns) ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
@@ -644,7 +654,7 @@ class DeviceResourceSpec
       }
     }
 
-    sendDeviceSeen(uuid, namespace = ns)
+    logDeviceSeen(uuid, namespace = ns)
 
     filterDevices(status = DeviceStatus.UpToDate.some, namespace = ns) ~> routes ~> check {
       status shouldBe OK
@@ -683,9 +693,9 @@ class DeviceResourceSpec
     val oneHourAgo = now.minus(Duration.ofHours(1))
     val twoHoursAgo = now.minus(Duration.ofHours(2))
 
-    sendDeviceSeen(uuid1, now, ns)
-    sendDeviceSeen(uuid2, oneHourAgo, ns)
-    sendDeviceSeen(uuid3, twoHoursAgo, ns)
+    logDeviceSeen(uuid1, now, ns)
+    logDeviceSeen(uuid2, oneHourAgo, ns)
+    logDeviceSeen(uuid3, twoHoursAgo, ns)
 
     val afterDate = oneHourAgo.minus(Duration.ofMinutes(1))
     filterDevices(activatedAfter = afterDate.some, namespace = ns) ~> routes ~> check {
@@ -741,9 +751,9 @@ class DeviceResourceSpec
     val oneHourAgo = now.minus(Duration.ofHours(1))
     val twoHoursAgo = now.minus(Duration.ofHours(2))
 
-    sendDeviceSeen(uuid1, now, ns)
-    sendDeviceSeen(uuid2, oneHourAgo, ns)
-    sendDeviceSeen(uuid3, twoHoursAgo, ns)
+    logDeviceSeen(uuid1, now, ns)
+    logDeviceSeen(uuid2, oneHourAgo, ns)
+    logDeviceSeen(uuid3, twoHoursAgo, ns)
 
     val startDate = oneHourAgo.minus(Duration.ofMinutes(1))
     filterDevices(lastSeenStart = startDate.some, namespace = ns) ~> routes ~> check {
@@ -1040,8 +1050,8 @@ class DeviceResourceSpec
 
       listener.apply(new DeleteDeviceRequest(defaultNs, uuid1))
 
-      sendDeviceSeen(uuid1)
-      sendDeviceSeen(uuid2)
+      logDeviceSeen(uuid1)
+      logDeviceSeen(uuid2)
       fetchDevice(uuid2) ~> routes ~> check {
         val devicePost: Device = responseAs[Device]
         devicePost.lastSeen should not be None
@@ -1370,14 +1380,20 @@ class DeviceResourceSpec
         }
         getDeviceTagsOk should contain(tagId)
 
-        Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
+        Put(
+          DeviceRegistryResourceUri.uri("device_tags", tagId.value),
+          RenameTagId(newTagId)
+        ) ~> routes ~> check {
           status shouldBe OK
         }
         getDeviceTagsOk should not contain tagId
         getDeviceTagsOk should contain(newTagId)
 
         // Idempotence
-        Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
+        Put(
+          DeviceRegistryResourceUri.uri("device_tags", tagId.value),
+          RenameTagId(newTagId)
+        ) ~> routes ~> check {
           status shouldBe OK
         }
         getDeviceTagsOk should not contain tagId
@@ -1405,7 +1421,10 @@ class DeviceResourceSpec
       responseAs[PaginationResult[DeviceId]].values should contain only duid
     }
 
-    Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
+    Put(
+      DeviceRegistryResourceUri.uri("device_tags", tagId.value),
+      RenameTagId(newTagId)
+    ) ~> routes ~> check {
       status shouldBe OK
     }
 
@@ -1425,7 +1444,10 @@ class DeviceResourceSpec
   test("fails to rename a device tag id if the current tag is invalid") {
     val newTagId = TagId.from("Country").valueOr(throw _)
 
-    Put(DeviceRegistryResourceUri.uri("device_tags", "in+valid*"), RenameTagId(newTagId)) ~> routes ~> check {
+    Put(
+      DeviceRegistryResourceUri.uri("device_tags", "in+valid*"),
+      RenameTagId(newTagId)
+    ) ~> routes ~> check {
       status shouldBe NotFound
     }
 
@@ -1461,7 +1483,10 @@ class DeviceResourceSpec
     postDeviceTagsOk(csvRows)
     getDeviceTagsOk should contain(tagId)
 
-    Put(DeviceRegistryResourceUri.uri("device_tags", tagId.value), RenameTagId(newTagId)) ~> routes ~> check {
+    Put(
+      DeviceRegistryResourceUri.uri("device_tags", tagId.value),
+      RenameTagId(newTagId)
+    ) ~> routes ~> check {
       status shouldBe Conflict
       responseAs[ErrorRepresentation].code shouldBe ErrorCodes.ConflictingEntity
     }

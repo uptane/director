@@ -34,8 +34,8 @@ class ProvisionedDeviceRepositorySpec
     val device = genDeviceT.sample.get.copy(deviceId = genDeviceId.sample.get)
     val setTwice = for {
       uuid <- DeviceRepository.create(Namespaces.defaultNs, device)
-      first <- DeviceRepository.updateLastSeen(uuid, Instant.now()).map(_._1)
-      second <- DeviceRepository.updateLastSeen(uuid, Instant.now()).map(_._1)
+      first <- DeviceRepository.updateLastSeen(uuid, Instant.now())
+      second <- DeviceRepository.updateLastSeen(uuid, Instant.now())
     } yield (first, second)
 
     whenReady(db.run(setTwice), Timeout(Span(10, Seconds))) { case (f, s) =>
