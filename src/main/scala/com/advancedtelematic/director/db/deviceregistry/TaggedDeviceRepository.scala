@@ -1,21 +1,21 @@
 package com.advancedtelematic.director.db.deviceregistry
 
-import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.slick.db.SlickAnyVal.stringAnyValSerializer
-import com.advancedtelematic.libats.slick.db.SlickExtensions._
-import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
-import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.director.deviceregistry.data.DataType.{TagInfo, TaggedDevice}
-import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.director.deviceregistry.data.{Device, TagId}
-import DeviceRepository.findByDeviceIdQuery
-import GroupMemberRepository.{
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository.findByDeviceIdQuery
+import com.advancedtelematic.director.db.deviceregistry.GroupMemberRepository.{
   addDeviceToDynamicGroups,
   deleteDynamicGroupsForDevice
 }
+import com.advancedtelematic.director.deviceregistry.data.DataType.{TagInfo, TaggedDevice}
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.{Device, TagId}
 import com.advancedtelematic.director.http.deviceregistry.Errors
-import slick.jdbc.MySQLProfile.api._
+import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.libats.slick.db.SlickAnyVal.stringAnyValSerializer
+import com.advancedtelematic.libats.slick.db.SlickExtensions.*
+import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
+import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
+import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.ExecutionContext
 
@@ -34,6 +34,7 @@ object TaggedDeviceRepository {
       tagValue
     ).shaped <> ((TaggedDevice.apply _).tupled, TaggedDevice.unapply)
 
+    def pk = primaryKey("tagged_device_pk", (deviceUuid, tagId))
   }
 
   val taggedDevices = TableQuery[TaggedDeviceTable]
@@ -106,8 +107,7 @@ object TaggedDeviceRepository {
     val action = for {
       d <- DeviceRepository.exists(namespace, deviceId)
       currentTags <- fetchForDevice(deviceId).map(_.toMap)
-      newTags =
-        if (currentTags.contains(tagId)) currentTags.updated(tagId, tagValue) else currentTags
+      newTags = currentTags + (tagId ->  tagValue)
       _ <- refreshDeviceTags(namespace, d, newTags)
     } yield ()
     action.transactionally
@@ -126,8 +126,15 @@ object TaggedDeviceRepository {
   private def setDeviceTags(ns: Namespace, deviceUuid: DeviceId, tags: Map[TagId, String])(
     implicit ec: ExecutionContext): DBIO[Unit] = {
     val action = for {
-      _ <- taggedDevices.filter(_.deviceUuid === deviceUuid).delete
-      _ <- taggedDevices ++= tags.map { case (tid, tv) => TaggedDevice(ns, deviceUuid, tid, tv) }
+      _ <- taggedDevices
+        .filterNot(_.tagId.inSet(tags.keys))
+        .filter(_.deviceUuid === deviceUuid)
+        .delete
+      _ <- DBIO.sequence(
+        tags
+          .map { case (tid, tv) => TaggedDevice(ns, deviceUuid, tid, tv) }
+          .map(taggedDevices.insertOrUpdate)
+      )
     } yield ()
     action.transactionally
   }
