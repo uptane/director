@@ -997,7 +997,7 @@ class DeviceResourceSpec
         devices.values.find(_ == uuid) shouldBe Some(uuid)
       }
 
-      listener.apply(DeleteDeviceRequest(defaultNs, uuid))
+      listener.apply(DeleteDeviceRequest(defaultNs, uuid)).futureValue
 
       eventually {
         fetchByGroupId(groupId, offset = 0, limit = 10) ~> routes ~> check {
@@ -1030,7 +1030,7 @@ class DeviceResourceSpec
 
     val uuid: DeviceId = deviceIds.head
 
-    listener.apply(new DeleteDeviceRequest(defaultNs, uuid))
+    listener.apply(DeleteDeviceRequest(defaultNs, uuid)).futureValue
 
     eventually {
       (0 until groupNumber).foreach { i =>
@@ -1048,7 +1048,7 @@ class DeviceResourceSpec
       val uuid1 = createDeviceOk(d1)
       val uuid2 = createDeviceOk(d2)
 
-      listener.apply(new DeleteDeviceRequest(defaultNs, uuid1))
+      listener.apply(DeleteDeviceRequest(defaultNs, uuid1)).futureValue
 
       logDeviceSeen(uuid1)
       logDeviceSeen(uuid2)
