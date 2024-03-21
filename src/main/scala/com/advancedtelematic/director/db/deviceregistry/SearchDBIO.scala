@@ -31,7 +31,7 @@ import scala.concurrent.ExecutionContext
 object SearchDBIO {
 
   private def devicesForExpressionQuery(ns: Namespace, expression: GroupExpression) = {
-    val all = devices.filter(_.namespace === ns).map(_.uuid)
+    val all = devices.filter(_.namespace === ns).map(_.id)
     GroupExpressionAST
       .compileToSlick(expression)(Schema.devices, TaggedDeviceRepository.taggedDevices)(all)
       .distinct
@@ -57,7 +57,7 @@ object SearchDBIO {
                           notSeenSinceHours: Option[Int]) = {
 
     val groupFilter = optionalFilter(groupId) { (dt, gid) =>
-      dt.uuid.in(groupMembers.filter(_.groupId === gid).map(_.deviceUuid))
+      dt.id.in(groupMembers.filter(_.groupId === gid).map(_.deviceUuid))
     }
 
     val nameContainsFilter = optionalFilter(nameContains) { (dt, s) =>
@@ -78,8 +78,8 @@ object SearchDBIO {
   private def runQueryFilteringByName(ns: Namespace,
                                       query: Query[DeviceTable, Device, Seq],
                                       nameContains: Option[String]) = {
-    val deviceIdsByName = searchQuery(ns, nameContains, None, None).map(_.uuid)
-    query.filter(_.uuid in deviceIdsByName)
+    val deviceIdsByName = searchQuery(ns, nameContains, None, None).map(_.id)
+    query.filter(_.id in deviceIdsByName)
   }
 
   private val groupedDevicesQuery
@@ -90,7 +90,7 @@ object SearchDBIO {
       .join(groupMembers)
       .on(_.id === _.groupId)
       .join(devices)
-      .on(_._2.deviceUuid === _.uuid)
+      .on(_._2.deviceUuid === _.id)
       .map(_._2)
       .distinct
 
@@ -166,7 +166,7 @@ object SearchDBIO {
             _
           ) =>
         val ungroupedDevicesQuery =
-          devices.filterNot(_.uuid.in(groupedDevicesQuery(ns, gt).map(_.uuid)))
+          devices.filterNot(_.id.in(groupedDevicesQuery(ns, gt).map(_.id)))
         runQueryFilteringByName(ns, ungroupedDevicesQuery, nameContains)
 
       case SearchParams(
@@ -219,7 +219,7 @@ object SearchDBIO {
         dt => {
           val hardwareIdsQuery =
             db.Schema.activeEcus.filter(_.hardwareId.inSet(x :: xs)).map(_.deviceId)
-          dt.uuid.in(hardwareIdsQuery)
+          dt.id.in(hardwareIdsQuery)
         }
       case _ =>
         _ => true.bind

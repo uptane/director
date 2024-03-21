@@ -23,9 +23,9 @@ object Schema {
   // scalastyle:off
   class DeviceTable(tag: Tag) extends Table[Device](tag, "Device") {
     def namespace = column[Namespace]("namespace")
-    def uuid = column[DeviceId]("uuid")
+    def id = column[DeviceId]("uuid")
     def deviceName = column[DeviceName]("device_name")
-    def deviceId = column[DeviceOemId]("device_id")
+    def oemId = column[DeviceOemId]("device_id")
     def rawId = column[String]("device_id")
     def deviceType = column[DeviceType]("device_type")
     def lastSeen = column[Option[Instant]]("last_seen")(javaInstantMapping.optionType)
@@ -38,9 +38,9 @@ object Schema {
     def * =
       (
         namespace,
-        uuid,
+        id,
         deviceName,
-        deviceId,
+        oemId,
         deviceType,
         lastSeen,
         createdAt,
@@ -50,7 +50,7 @@ object Schema {
         hibernated
       ).shaped <> ((Device.apply _).tupled, Device.unapply)
 
-    def pk = primaryKey("uuid", uuid)
+    def pk = primaryKey("uuid", id)
   }
 
   // scalastyle:on

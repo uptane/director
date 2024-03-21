@@ -154,7 +154,7 @@ object SystemInfoRepository {
     Schema.devices
       .filter(_.namespace === ns)
       .join(systemInfos)
-      .on(_.uuid === _.uuid)
+      .on(_.id === _.uuid)
       .map(_._2)
       .result
 

@@ -108,14 +108,14 @@ object GroupExpressionAST {
     taggedDevices: TableQuery[TaggedDeviceTable]): DeviceIdsQuery => DeviceIdsQuery = exp match {
     case DeviceIdContains(word) =>
       (q: DeviceIdsQuery) =>
-        val a = devices.filter(_.rawId.toLowerCase.like("%" + word.toLowerCase + "%")).map(_.uuid)
+        val a = devices.filter(_.rawId.toLowerCase.like("%" + word.toLowerCase + "%")).map(_.id)
         q.filter(_.in(a))
 
     case DeviceIdCharAt(c, p) =>
       (q: DeviceIdsQuery) =>
         val a = devices
           .filter(_.rawId.substring(p, p + 1).toLowerCase.mappedTo[Char] === c.toLower)
-          .map(_.uuid)
+          .map(_.id)
         q.filter(_.in(a))
 
     case TagContains(tid, word) =>

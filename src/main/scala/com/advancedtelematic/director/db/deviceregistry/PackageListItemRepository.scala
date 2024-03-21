@@ -56,7 +56,7 @@ object PackageListItemRepository {
     devices
       .filter(_.namespace === namespace)
       .join(installedPackages)
-      .on(_.uuid === _.device)
+      .on(_.id === _.device)
       .map(_._2)
       .groupBy(ip => (ip.name, ip.version))
       .map { case ((name, version), ips) => (name, version, ips.length) }

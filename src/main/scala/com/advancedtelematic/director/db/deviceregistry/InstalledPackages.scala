@@ -98,7 +98,7 @@ object InstalledPackages {
       devices <- installedPackages
         .filter(p => p.name === pkg.name && p.version === pkg.version)
         .join(Schema.devices)
-        .on(_.device === _.uuid)
+        .on(_.device === _.id)
         .filter(_._2.namespace === ns)
         .map(_._1.device)
         .distinct
@@ -109,7 +109,7 @@ object InstalledPackages {
         .join(GroupMemberRepository.groupMembers)
         .on(_.device === _.deviceUuid)
         .join(Schema.devices)
-        .on(_._2.deviceUuid === _.uuid)
+        .on(_._2.deviceUuid === _.id)
         .filter(_._2.namespace === ns)
         .map(_._1._2.groupId)
         .distinct
@@ -124,7 +124,7 @@ object InstalledPackages {
     Schema.devices
       .filter(_.namespace === ns)
       .join(installedPackages)
-      .on(_.uuid === _.device)
+      .on(_.id === _.device)
       .map(r => (r._2.name, r._2.version))
       .distinct
 
@@ -159,7 +159,7 @@ object InstalledPackages {
                                ids: Set[PackageId]): DBIO[Seq[(DeviceId, PackageId)]] =
     inSetQuery(ids)
       .join(Schema.devices)
-      .on(_.device === _.uuid)
+      .on(_.device === _.id)
       .filter(_._2.namespace === namespace)
       .map(r => (r._1.device, LiftedPackageId(r._1.name, r._1.version)))
       .result
@@ -172,7 +172,7 @@ object InstalledPackages {
     val query = installedPackages
       .filter(_.name === name)
       .join(Schema.devices)
-      .on(_.device === _.uuid)
+      .on(_.device === _.id)
       .filter(_._2.namespace === ns)
       .groupBy(_._1.version)
       .map { case (version, installedPkg) => (version, installedPkg.length) }

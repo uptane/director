@@ -85,7 +85,7 @@ object DeviceRepository {
 
   def exists(ns: Namespace, uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Device] =
     devices
-      .filter(d => d.namespace === ns && d.uuid === uuid)
+      .filter(d => d.namespace === ns && d.id === uuid)
       .result
       .headOption
       .flatMap(_.fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
@@ -93,18 +93,18 @@ object DeviceRepository {
   def filterExisting(ns: Namespace, deviceOemIds: Set[DeviceOemId]): DBIO[Seq[DeviceId]] =
     devices
       .filter(_.namespace === ns)
-      .filter(_.deviceId.inSet(deviceOemIds))
-      .map(_.uuid)
+      .filter(_.oemId.inSet(deviceOemIds))
+      .map(_.id)
       .result
 
   def findByDeviceIdQuery(ns: Namespace, deviceId: DeviceOemId): Query[DeviceTable, Device, Seq] =
-    devices.filter(d => d.namespace === ns && d.deviceId === deviceId)
+    devices.filter(d => d.namespace === ns && d.oemId === deviceId)
 
   def setDevice(ns: Namespace, uuid: DeviceId, deviceName: DeviceName, notes: Option[String])(
     implicit ec: ExecutionContext): DBIO[Unit] =
     devices
       .filter(_.namespace === ns)
-      .filter(_.uuid === uuid)
+      .filter(_.id === uuid)
       .map(r => r.deviceName -> r.notes)
       .update(deviceName -> notes)
       .handleIntegrityErrors(Errors.ConflictingDevice(deviceName.some))
@@ -115,7 +115,7 @@ object DeviceRepository {
                    deviceName: Option[DeviceName],
                    notes: Option[String])(implicit ec: ExecutionContext): DBIO[Unit] = {
     val findQ = devices
-      .filter(_.uuid === uuid)
+      .filter(_.id === uuid)
       .filter(_.namespace === ns)
 
     val updateQ = (deviceName, notes) match {
@@ -133,16 +133,16 @@ object DeviceRepository {
 
   def findByUuid(uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Device] =
     devices
-      .filter(_.uuid === uuid)
+      .filter(_.id === uuid)
       .result
       .headOption
       .flatMap(_.fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
 
   def findByUuids(ns: Namespace, ids: Seq[DeviceId]): Query[DeviceTable, Device, Seq] =
-    devices.filter(d => (d.namespace === ns) && (d.uuid.inSet(ids)))
+    devices.filter(d => (d.namespace === ns) && (d.id.inSet(ids)))
 
   def findByOemIds(ns: Namespace, oemIds: Seq[DeviceOemId]): DBIO[Seq[Device]] =
-    devices.filter(d => (d.namespace === ns) && (d.deviceId.inSet(oemIds))).result
+    devices.filter(d => (d.namespace === ns) && (d.oemId.inSet(oemIds))).result
 
   def findByDeviceUuids(ns: Namespace, deviceIds: Seq[DeviceId]): DBIO[Seq[Device]] =
     findByUuids(ns, deviceIds).result
@@ -153,12 +153,12 @@ object DeviceRepository {
 
     val dbIO = for {
       activatedAt <- devices
-        .filter(_.uuid === uuid)
+        .filter(_.id === uuid)
         .map(_.activatedAt)
         .result
         .failIfNotSingle(Errors.MissingDevice)
       _ <- devices
-        .filter(_.uuid === uuid)
+        .filter(_.id === uuid)
         .map(x => (x.lastSeen, x.activatedAt))
         .update((sometime, activatedAt.orElse(sometime)))
     } yield activatedAt.isEmpty
@@ -175,7 +175,7 @@ object DeviceRepository {
       _ <- PublicCredentialsRepository.delete(uuid)
       _ <- SystemInfoRepository.delete(uuid)
       _ <- TaggedDeviceRepository.delete(uuid)
-      _ <- devices.filter(d => d.namespace === ns && d.uuid === uuid).delete
+      _ <- devices.filter(d => d.namespace === ns && d.id === uuid).delete
       _ <- deletedDevices += DeletedDevice(ns, device.uuid, device.deviceId)
     } yield ()
 
@@ -184,7 +184,7 @@ object DeviceRepository {
 
   def deviceNamespace(uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Namespace] =
     devices
-      .filter(_.uuid === uuid)
+      .filter(_.id === uuid)
       .map(_.namespace)
       .result
       .failIfNotSingle(Errors.MissingDevice)
@@ -209,7 +209,7 @@ object DeviceRepository {
   def setDeviceStatus(uuid: DeviceId, status: DeviceStatus)(
     implicit ec: ExecutionContext): DBIO[Unit] =
     devices
-      .filter(_.uuid === uuid)
+      .filter(_.id === uuid)
       .map(_.deviceStatus)
       .update(status)
       .handleSingleUpdateError(Errors.MissingDevice)
@@ -219,7 +219,7 @@ object DeviceRepository {
     implicit ec: ExecutionContext): DBIO[HibernationStatus] =
     devices
       .filter(_.namespace === ns)
-      .filter(_.uuid === id)
+      .filter(_.id === id)
       .map(_.hibernated)
       .update(status)
       .flatMap {
