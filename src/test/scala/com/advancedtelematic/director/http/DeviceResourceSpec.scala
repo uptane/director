@@ -69,14 +69,14 @@ import org.scalatest.EitherValues.*
 
 class DeviceResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with AdminResources
     with AssignmentResources
     with EcuRepositorySupport
     with DeviceManifestSpec
     with RepositorySpec
     with Inspectors
-    with DeviceResources
+    with ProvisionedDevicesRequests
     with AssignmentsRepositorySupport
     with ScheduledUpdatesResources {
 
@@ -85,7 +85,7 @@ class DeviceResourceSpec
   val updateSchedulerIO = new UpdateSchedulerDBIO()
 
   def forceRoleExpire[T](deviceId: DeviceId)(implicit tufRole: TufRole[T]): Unit = {
-    import slick.jdbc.MySQLProfile.api._
+    import slick.jdbc.MySQLProfile.api.*
     val sql =
       sql"update device_roles set expires_at = '1970-01-01 00:00:00' where device_id = '#${deviceId.show}' and role = '#${tufRole.roleType.toString}'"
     db.run(sql.asUpdate).futureValue

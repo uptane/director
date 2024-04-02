@@ -461,6 +461,7 @@ object ManifestCompiler {
             ResultCode(operationResult.result_code.toString),
             ResultDescription(operationResult.result_text)
           )
+          // we could add hash here as well in targets not just filepath
           Map(
             ecuReport.ecu_serial -> EcuInstallationReport(
               installationResult,

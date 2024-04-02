@@ -25,7 +25,7 @@ class CompiledManifestExecutor()(implicit val db: Database, val ec: ExecutionCon
         .filter(_.deviceId === deviceId)
         .map(ecu => ecu.ecuSerial -> ecu.installedTarget)
         .result
-      device <- Schema.allDevices.filter(_.id === deviceId).result.head
+      device <- Schema.allProvisionedDevices.filter(_.id === deviceId).result.head
       scheduledUpdates <- Schema.scheduledUpdates.filter(_.deviceId === deviceId).result
       hardwareUpdatesEcuTargetIds <- Schema.hardwareUpdates
         .filter(_.id.inSet(scheduledUpdates.map(_.updateId).toSet))
@@ -98,7 +98,7 @@ class CompiledManifestExecutor()(implicit val db: Database, val ec: ExecutionCon
                                                old: DeviceKnownState,
                                                newStatus: DeviceKnownState): DBIO[Unit] =
     if (old.generatedMetadataOutdated != newStatus.generatedMetadataOutdated)
-      Schema.allDevices
+      Schema.allProvisionedDevices
         .filter(_.id === deviceId)
         .map(_.generatedMetadataOutdated)
         .update(newStatus.generatedMetadataOutdated)

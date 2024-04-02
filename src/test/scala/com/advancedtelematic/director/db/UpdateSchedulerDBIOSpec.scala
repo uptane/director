@@ -28,7 +28,7 @@ class UpdateSchedulerDBIOSpec
     with ScheduledUpdatesRepositorySupport
     with AssignmentsRepositorySupport
     with EcuRepositorySupport
-    with DeviceRepositorySupport {
+    with ProvisionedDeviceRepositorySupport {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
@@ -47,7 +47,7 @@ class UpdateSchedulerDBIOSpec
     val mtu = MultiTargetUpdate(_mtu)
     val updateId = multiTargetUpdates.create(ns, mtu).futureValue
 
-    deviceRepository
+    provisionedDeviceRepository
       .create(ecuRepository)(ns, device, ecuId, registerEcus.map(_.toEcu(ns, device)))
       .futureValue
 
@@ -140,7 +140,7 @@ class UpdateSchedulerDBIOSpec
       )
       val updateId = multiTargetUpdates.create(ns, mtu).futureValue
 
-      deviceRepository
+      provisionedDeviceRepository
         .create(ecuRepository)(
           ns,
           device,
@@ -178,7 +178,7 @@ class UpdateSchedulerDBIOSpec
       val updateId = multiTargetUpdates.create(ns, mtu).futureValue
       val device = DeviceId.generate()
 
-      deviceRepository
+      provisionedDeviceRepository
         .create(ecuRepository)(
           ns,
           device,
@@ -221,7 +221,7 @@ class UpdateSchedulerDBIOSpec
     val updateId = multiTargetUpdates.create(ns, mtu).futureValue
     val device = DeviceId.generate()
 
-    deviceRepository
+    provisionedDeviceRepository
       .create(ecuRepository)(ns, device, registerEcu.ecu_serial, Seq(registerEcu.toEcu(ns, device)))
       .futureValue
 
@@ -270,10 +270,10 @@ class UpdateSchedulerDBIOSpec
     val updateId = createMtu(registerEcu.hardware_identifier)
     val updateId2 = createMtu(registerEcu2.hardware_identifier)
 
-    deviceRepository
+    provisionedDeviceRepository
       .create(ecuRepository)(ns, device, registerEcu.ecu_serial, Seq(registerEcu.toEcu(ns, device)))
       .futureValue
-    deviceRepository
+    provisionedDeviceRepository
       .create(ecuRepository)(
         ns,
         device2,
@@ -316,7 +316,7 @@ class UpdateSchedulerDBIOSpec
     val updateId = createMtu(registerEcu.hardware_identifier)
     val updateId1 = createMtu(registerEcu.hardware_identifier)
 
-    deviceRepository
+    provisionedDeviceRepository
       .create(ecuRepository)(ns, device, registerEcu.ecu_serial, Seq(registerEcu.toEcu(ns, device)))
       .futureValue
 

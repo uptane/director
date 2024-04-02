@@ -1,44 +1,40 @@
 package com.advancedtelematic.director.http
 
-import io.circe.syntax._
-import com.advancedtelematic.libtuf.crypt.CanonicalJson._
+import io.circe.syntax.*
+import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
 import akka.http.scaladsl.model.StatusCodes
 import com.advancedtelematic.director.data.Generators
 import com.advancedtelematic.director.db.RepoNamespaceRepositorySupport
-import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, RouteResourceSpec}
-import com.advancedtelematic.libtuf.data.ClientCodecs._
-import com.advancedtelematic.libtuf.data.TufCodecs._
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import com.advancedtelematic.director.data.GeneratorOps._
+import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
+import com.advancedtelematic.libtuf.data.ClientCodecs.*
+import com.advancedtelematic.libtuf.data.TufCodecs.*
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.ErrorRepresentation
-import com.advancedtelematic.libtuf.data.ClientDataType.{
-  OfflineSnapshotRole,
-  OfflineUpdatesRole,
-  TufRole,
-  ValidMetaPath
-}
+import com.advancedtelematic.libtuf.data.ClientDataType.{OfflineSnapshotRole, OfflineUpdatesRole, TufRole, ValidMetaPath}
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import eu.timepit.refined.api.Refined
-import slick.jdbc.MySQLProfile.api._
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId._
-import cats.syntax.show._
-import com.advancedtelematic.director.data.Codecs._
+import slick.jdbc.MySQLProfile.api.*
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
+import cats.syntax.show.*
+import com.advancedtelematic.director.data.Codecs.*
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import cats.syntax.option._
+import cats.syntax.option.*
+import org.scalacheck.Gen
 import org.scalatest.Inspectors.*
 
 class OfflineUpdatesRoutesSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with RepoNamespaceRepositorySupport
     with AdminResources
     with RepositorySpec
     with Generators
-    with DeviceResources {
+    with ProvisionedDevicesRequests {
 
   def forceRoleExpire[T](ns: Namespace)(implicit tufRole: TufRole[T]): Unit = {
     val sql =
@@ -46,7 +42,7 @@ class OfflineUpdatesRoutesSpec
     db.run(sql.asUpdate).futureValue
   }
 
-  val GenOfflineUpdateRequest = GenTarget.map { case (filename, t) =>
+  val GenOfflineUpdateRequest: Gen[OfflineUpdateRequest] = GenTarget.map { case (filename, t) =>
     OfflineUpdateRequest(Map(filename -> t), None)
   }
 

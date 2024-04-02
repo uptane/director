@@ -41,7 +41,7 @@ object Schema {
   import com.advancedtelematic.libats.slick.db.SlickUrnMapper.*
   import com.advancedtelematic.libtuf_server.data.TufSlickMappings.*
 
-  class DevicesTable(tag: Tag) extends Table[Device](tag, "devices") {
+  class ProvisionedDevicesTable(tag: Tag) extends Table[Device](tag, "provisioned_devices") {
     def namespace = column[Namespace]("namespace")
     def id = column[DeviceId]("id")
     def primaryEcu = column[EcuIdentifier]("primary_ecu_id")
@@ -61,9 +61,10 @@ object Schema {
 
   }
 
-  protected[db] val allDevices = TableQuery[DevicesTable]
+  protected[db] val allProvisionedDevices = TableQuery[ProvisionedDevicesTable]
 
-  protected[db] val activeDevices = TableQuery[DevicesTable].filter(_.deleted === false)
+  protected[db] val activeProvisionedDevices =
+    TableQuery[ProvisionedDevicesTable].filter(_.deleted === false)
 
   class EcusTable(tag: Tag) extends Table[Ecu](tag, "ecus") {
     def namespace = column[Namespace]("namespace")

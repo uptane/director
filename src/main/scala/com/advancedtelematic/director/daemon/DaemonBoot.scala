@@ -29,9 +29,8 @@ import com.typesafe.config.Config
 import com.advancedtelematic.libats.http.VersionDirectives.*
 import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSupport
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
-import com.advancedtelematic.deviceregistry.daemon.{
+import com.advancedtelematic.director.deviceregistry.daemon.{
   DeviceEventListener,
-  DeviceSeenListener,
   DeviceUpdateEventListener,
   EcuReplacementListener
 }
@@ -74,7 +73,6 @@ class DirectorDaemonBoot(override val globalConfig: Config,
 
     // TODO: No longer needed, we can update tables directly from director
     // Device Registry Listeners
-    startMonitoredListener[DeviceSeen](new DeviceSeenListener(messageBus))
     startMonitoredListener[DeviceEventMessage](new DeviceEventListener)
     startMonitoredListener[DeviceUpdateEvent](new DeviceUpdateEventListener(messageBus))
     startMonitoredListener[EcuReplacement](new EcuReplacementListener)

@@ -1,26 +1,26 @@
 package com.advancedtelematic.director.http
 
 import akka.http.scaladsl.model.StatusCodes
-import cats.syntax.show._
+import cats.syntax.show.*
 import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, TargetUpdateRequest}
-import com.advancedtelematic.director.data.Codecs._
+import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.GeneratorOps.GenSample
 import com.advancedtelematic.director.data.Generators
-import com.advancedtelematic.director.util.{DefaultPatience, DirectorSpec, RouteResourceSpec}
-import com.advancedtelematic.libats.codecs.CirceCodecs._
+import com.advancedtelematic.director.util.{DefaultPatience, DirectorSpec, ResourceSpec}
+import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.ErrorCodes.MissingEntity
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging_datatype.DataType.UpdateId
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
-import org.scalatest.OptionValues._
+import org.scalatest.OptionValues.*
 
 class MultiTargetUpdatesResourceSpec
     extends DirectorSpec
     with Generators
     with DefaultPatience
-    with RouteResourceSpec
+    with ResourceSpec
     with AdminResources {
 
   test("fetching non-existent target info returns 404") {

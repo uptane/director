@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.util
 
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.server.*
+import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.advancedtelematic.director.client.FakeKeyserverClient
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.data.DataType.Namespace
@@ -24,12 +24,26 @@ import com.advancedtelematic.director.data.DeviceRequest.{
 import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
+import com.advancedtelematic.director.deviceregistry.AllowUUIDPath
+import com.advancedtelematic.director.http.deviceregistry.DeviceRegistryRoutes
+import com.advancedtelematic.libats.http.NamespaceDirectives
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
-trait ResourceSpec extends ScalatestRouteTest with MysqlDatabaseSpec with Settings {
+trait ResourceSpec
+    extends ScalatestRouteTest
+    with ScalaFutures
+    with MysqlDatabaseSpec
+    with Matchers
+    with Settings {
   self: Suite =>
+
+  import Directives.*
 
   def apiUri(path: String): String = "/api/v1/" + path
 
@@ -38,18 +52,29 @@ trait ResourceSpec extends ScalatestRouteTest with MysqlDatabaseSpec with Settin
   implicit val msgPub: MockMessageBus = new MockMessageBus
 
   implicit val ec: ExecutionContextExecutor = executor
+
+  val keyserverClient = new FakeKeyserverClient
+
+  protected val namespaceAuthorizer: Directive1[DeviceId] =
+    AllowUUIDPath.deviceUUID(NamespaceDirectives.defaultNamespaceExtractor, deviceAllowed)
+
+  private def deviceAllowed(deviceId: DeviceId): Future[Namespace] =
+    db.run(DeviceRepository.deviceNamespace(deviceId))
+
+  implicit lazy val routes: Route =
+    new DirectorRoutes(keyserverClient, allowEcuReplacement = true).routes ~
+      pathPrefix("device-registry") {
+        new DeviceRegistryRoutes(
+          NamespaceDirectives.defaultNamespaceExtractor,
+          namespaceAuthorizer,
+          msgPub
+        ).route
+      }
+
 }
 
 trait MysqlDatabaseSpec extends com.advancedtelematic.libats.test.MysqlDatabaseSpec {
   self: Suite =>
-}
-
-trait RouteResourceSpec extends ResourceSpec {
-  self: Suite =>
-
-  val keyserverClient = new FakeKeyserverClient
-
-  lazy val routes: Route = new DirectorRoutes(keyserverClient, allowEcuReplacement = true).routes
 }
 
 trait DeviceManifestSpec {

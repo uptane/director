@@ -34,7 +34,7 @@ import java.time.Instant
 import scala.annotation.unused
 
 trait AssignmentResources {
-  self: DirectorSpec & RouteResourceSpec & NamespacedTests & AdminResources =>
+  self: DirectorSpec & ResourceSpec & NamespacedTests & AdminResources =>
 
   def createDeviceAssignment(deviceId: DeviceId,
                              hwId: HardwareIdentifier,
@@ -118,13 +118,13 @@ trait AssignmentResources {
 
 class AssignmentsResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with RepoNamespaceRepositorySupport
     with DbDeviceRoleRepositorySupport
     with AdminResources
     with AssignmentResources
     with RepositorySpec
-    with DeviceResources
+    with ProvisionedDevicesRequests
     with DeviceManifestSpec
     with Inspectors {
 

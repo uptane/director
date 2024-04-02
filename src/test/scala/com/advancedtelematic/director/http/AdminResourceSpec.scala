@@ -55,7 +55,7 @@ object AdminResources {
 }
 
 trait AdminResources {
-  self: DirectorSpec with RouteResourceSpec with NamespacedTests =>
+  self: DirectorSpec & ResourceSpec & NamespacedTests =>
 
   def registerAdminDeviceWithSecondariesOk()(
     implicit ns: Namespace,
@@ -83,15 +83,19 @@ trait AdminResources {
     )
   }
 
-  def registerAdminDeviceOk(hardwareIdentifier: Option[HardwareIdentifier] = None)(
+  def registerAdminDeviceOk(hardwareIdentifier: Option[HardwareIdentifier] = None,
+                            deviceId: DeviceId = DeviceId.generate())(
     implicit ns: Namespace,
     pos: Position): RegisterDeviceResult = {
-    val device = DeviceId.generate()
     val (regEcu, ecuKey) = GenRegisterEcuKeys.generate
 
     val hwId = hardwareIdentifier.getOrElse(regEcu.hardware_identifier)
     val regDev =
-      RegisterDevice(device.some, regEcu.ecu_serial, List(regEcu.copy(hardware_identifier = hwId)))
+      RegisterDevice(
+        deviceId.some,
+        regEcu.ecu_serial,
+        List(regEcu.copy(hardware_identifier = hwId))
+      )
 
     Post(apiUri("admin/devices"), regDev).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Created
@@ -130,12 +134,12 @@ trait AdminResources {
 
 class AdminResourceSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with RepoNamespaceRepositorySupport
     with DbDeviceRoleRepositorySupport
     with AdminResources
     with RepositorySpec
-    with DeviceResources
+    with ProvisionedDevicesRequests
     with DeviceManifestSpec {
 
   testWithNamespace("can register a device") { implicit ns =>

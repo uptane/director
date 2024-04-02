@@ -3,12 +3,7 @@ package com.advancedtelematic.director.http
 import org.scalatest.OptionValues.*
 import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
-import com.advancedtelematic.director.util.{
-  DirectorSpec,
-  NamespacedTests,
-  RepositorySpec,
-  RouteResourceSpec
-}
+import com.advancedtelematic.director.util.{DirectorSpec, NamespacedTests, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import org.scalactic.source.Position
@@ -28,7 +23,7 @@ import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
 
 trait ScheduledUpdatesResources {
-  self: DirectorSpec & RouteResourceSpec & NamespacedTests =>
+  self: DirectorSpec & ResourceSpec & NamespacedTests =>
 
   def createScheduledUpdateOk(deviceId: DeviceId, hardwareId: HardwareIdentifier)(
     implicit ns: Namespace,
@@ -68,10 +63,10 @@ trait ScheduledUpdatesResources {
 
 class ScheduledUpdatesSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with AdminResources
     with RepositorySpec
-    with DeviceResources
+    with ProvisionedDevicesRequests
     with ScheduledUpdatesResources {
 
   testWithRepo("creates and lists a scheduled update") { implicit ns =>

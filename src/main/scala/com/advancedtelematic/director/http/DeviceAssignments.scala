@@ -56,7 +56,7 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext)
     with HardwareUpdateRepositorySupport
     with AssignmentsRepositorySupport
     with EcuTargetsRepositorySupport
-    with DeviceRepositorySupport
+    with ProvisionedDeviceRepositorySupport
     with ScheduledUpdatesRepositorySupport {
 
   import DeviceAssignments.*
@@ -239,7 +239,7 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext)
           ) :: acc
       }
 
-      await(assignmentsRepository.persistMany(deviceRepository)(assignments))
+      await(assignmentsRepository.persistMany(provisionedDeviceRepository)(assignments))
 
       AssignmentCreateResult(assignments.map(_.deviceId), ecus.notAffectedSerializable)
     }
@@ -248,7 +248,7 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext)
   def cancel(namespace: Namespace, deviceId: DeviceId, cancelInFlight: Boolean = false)(
     implicit messageBusPublisher: MessageBusPublisher): Future[Unit] =
     assignmentsRepository
-      .processDeviceCancellation(deviceRepository)(namespace, deviceId, cancelInFlight)
+      .processDeviceCancellation(provisionedDeviceRepository)(namespace, deviceId, cancelInFlight)
       .flatMap { ids =>
         ids
           .map[DeviceUpdateEvent](ci => DeviceUpdateCanceled(namespace, Instant.now, ci, deviceId))
@@ -258,8 +258,9 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext)
 
   def cancel(namespace: Namespace, devices: Seq[DeviceId])(
     implicit messageBusPublisher: MessageBusPublisher): Future[Seq[Assignment]] =
-    assignmentsRepository.processCancellation(deviceRepository)(namespace, devices).flatMap {
-      canceledAssignments =>
+    assignmentsRepository
+      .processCancellation(provisionedDeviceRepository)(namespace, devices)
+      .flatMap { canceledAssignments =>
         Future.traverse(canceledAssignments) { canceledAssignment =>
           val ev: DeviceUpdateEvent =
             DeviceUpdateCanceled(
@@ -270,6 +271,6 @@ class DeviceAssignments(implicit val db: Database, val ec: ExecutionContext)
             )
           messageBusPublisher.publish(ev).map(_ => canceledAssignment)
         }
-    }
+      }
 
 }

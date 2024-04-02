@@ -5,17 +5,12 @@ import cats.syntax.show.*
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.Generators
 import com.advancedtelematic.director.db.RepoNamespaceRepositorySupport
-import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, RouteResourceSpec}
+import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.crypt.TufCrypto
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{
-  RemoteSessionsPayload,
-  RemoteSessionsRole,
-  RootRole,
-  SshSessionProperties
-}
+import com.advancedtelematic.libtuf.data.ClientDataType.{RemoteSessionsPayload, RemoteSessionsRole, RootRole, SshSessionProperties}
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{RoleType, SignedPayload}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -28,12 +23,12 @@ import org.scalatest.OptionValues.*
 
 class RemoteSessionsRoutesSpec
     extends DirectorSpec
-    with RouteResourceSpec
+    with ResourceSpec
     with RepoNamespaceRepositorySupport
     with AdminResources
     with RepositorySpec
     with Generators
-    with DeviceResources {
+    with ProvisionedDevicesRequests {
 
   testWithRepo("can set a remote session for a device") { implicit ns =>
     val deviceId = DeviceId.generate()
