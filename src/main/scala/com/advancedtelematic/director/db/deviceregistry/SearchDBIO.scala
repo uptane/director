@@ -264,10 +264,10 @@ object SearchDBIO {
       from (
               select hibernated,
                   IF(TIMESTAMPDIFF(SECOND, last_seen, NOW()) > $offlineSince, 1, 0) offline,
-                  IF(TIMESTAMPDIFF(SECOND, created_at, NOW()) < $recentSince * 24, 1, 0) recent,
-                  IF(device_status = 'UpdatePending',1,0) update_pending,
-                  IF(device_status = 'Outdated', 1, 0) update_in_progress,
-                  IF(device_status = 'Error', 1, 0) update_failed
+                  IF(TIMESTAMPDIFF(SECOND, created_at, NOW()) < $recentSince, 1, 0) recent,
+                  IF(device_status = ${DeviceStatus.UpdatePending.toString},1,0) update_pending,
+                  IF(device_status = ${DeviceStatus.Outdated.toString}, 1, 0) update_in_progress,
+                  IF(device_status = ${DeviceStatus.Error.toString}, 1, 0) update_failed
               from Device
               where namespace = ${ns.get}
           ) s1;
