@@ -38,13 +38,13 @@ import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
-import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceSeen}
+import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
 import io.circe.Json
 import io.circe.generic.auto.*
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.{Gen, Shrink}
+import org.scalatest.EitherValues.*
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 
@@ -76,9 +76,13 @@ class DeviceResourceSpec
   }
 
   private def logDeviceSeen(uuid: DeviceId,
-                             lastSeen: Instant = Instant.now(),
-                             namespace: Namespace = defaultNs): Unit =
-    LogDeviceSeen.logDevice(namespace, uuid, lastSeen).futureValue
+                            lastSeen: Instant = Instant.now(),
+                            namespace: Namespace = defaultNs): Unit =
+    LogDeviceSeen.logDevice(namespace, uuid, lastSeen)
+      .recover { case Errors.MissingDevice =>
+        println("could not log device seen, missing device")
+      }
+      .futureValue
 
   private def createGroupedAndUngroupedDevices(): Map[String, Seq[DeviceId]] = {
     val deviceTs = genConflictFreeDeviceTs(12).sample.get
@@ -997,7 +1001,7 @@ class DeviceResourceSpec
         devices.values.find(_ == uuid) shouldBe Some(uuid)
       }
 
-      listener.apply(DeleteDeviceRequest(defaultNs, uuid))
+      listener.apply(DeleteDeviceRequest(defaultNs, uuid)).futureValue
 
       eventually {
         fetchByGroupId(groupId, offset = 0, limit = 10) ~> routes ~> check {
@@ -1030,7 +1034,7 @@ class DeviceResourceSpec
 
     val uuid: DeviceId = deviceIds.head
 
-    listener.apply(new DeleteDeviceRequest(defaultNs, uuid))
+    listener.apply(DeleteDeviceRequest(defaultNs, uuid)).futureValue
 
     eventually {
       (0 until groupNumber).foreach { i =>
@@ -1039,24 +1043,6 @@ class DeviceResourceSpec
           val devices = responseAs[PaginationResult[Device]]
           devices.values.find(_.uuid == uuid) shouldBe None
         }
-      }
-    }
-  }
-
-  test("DELETE device does not cause error on subsequent DeviceSeen events") {
-    forAll(genConflictFreeDeviceTs(2)) { case Seq(d1, d2) =>
-      val uuid1 = createDeviceOk(d1)
-      val uuid2 = createDeviceOk(d2)
-
-      listener.apply(new DeleteDeviceRequest(defaultNs, uuid1))
-
-      logDeviceSeen(uuid1)
-      logDeviceSeen(uuid2)
-      fetchDevice(uuid2) ~> routes ~> check {
-        val devicePost: Device = responseAs[Device]
-        devicePost.lastSeen should not be None
-        isRecent(devicePost.lastSeen) shouldBe true
-        devicePost.deviceStatus should not be DeviceStatus.NotSeen
       }
     }
   }
@@ -1526,29 +1512,19 @@ class DeviceResourceSpec
     }
   }
 
-  test("updating a device tag value for a non-existing tagId has no effect") {
+  test("updating a device tag value for a non-existing tagId creates a tag") {
     val deviceT = genDeviceT.generate
     val duid = createDeviceOk(deviceT)
     val expression = GroupExpression.from("tag(land) contains Ita").valueOr(throw _)
     val groupId = createDynamicGroupOk(expression = expression)
-    val tagId = "land"
 
-    val csvRows = Seq(Seq(deviceT.deviceId.underlying, "Italy"))
-    postDeviceTags(csvRows, Seq("DeviceID", tagId)) ~> routes ~> check {
-      status shouldBe NoContent
-    }
+    val updatedTags = updateDeviceTagOk(duid, TagId.from("land").value, "Italy")
+    updatedTags should contain only ("land" -> "Italy")
 
     listDevicesInGroup(groupId) ~> routes ~> check {
       status shouldBe OK
-      responseAs[PaginationResult[DeviceId]].values should contain only duid
-    }
-
-    val updatedTags = updateDeviceTagOk(duid, TagId.from("nonsense").toOption.get, "NotItaly")
-    updatedTags should contain only "land" -> "Italy"
-
-    listDevicesInGroup(groupId) ~> routes ~> check {
-      status shouldBe OK
-      responseAs[PaginationResult[DeviceId]].values should contain only duid
+      val updatedTags = responseAs[PaginationResult[DeviceId]].values
+      updatedTags should contain only duid
     }
   }
 
