@@ -1,32 +1,30 @@
 package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.director.db
-import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
-import com.advancedtelematic.director.db.deviceregistry.Schema.DeviceTable
+import com.advancedtelematic.director.db.deviceregistry.DbOps.{PaginationResultOps, deviceTableToSlickOrder}
+import com.advancedtelematic.director.db.deviceregistry.GroupInfoRepository.groupInfos
+import com.advancedtelematic.director.db.deviceregistry.GroupMemberRepository.groupMembers
+import com.advancedtelematic.director.db.deviceregistry.Schema.*
+import com.advancedtelematic.director.db.deviceregistry.SlickMappings.*
 import com.advancedtelematic.director.deviceregistry.data.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.SearchParams
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceCountParams, DeviceStatusCounts, SearchParams}
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.db.deviceregistry.DbOps.{
-  deviceTableToSlickOrder,
-  PaginationResultOps
-}
-import GroupInfoRepository.groupInfos
-import GroupMemberRepository.groupMembers
-import Schema.*
-import SlickMappings.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
+import slick.jdbc.GetResult
 import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.Rep
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.DurationInt
 
 object SearchDBIO {
 
@@ -237,6 +235,46 @@ object SearchDBIO {
       .filter(hardwareIdFilter)
       .sortBy(devices => devices.ordered(sortBy, sortDirection))
       .paginateResult(params.offset.orDefaultOffset, params.limit.orDefaultLimit)
+  }
+
+  def countByStatus(ns: Namespace, params: DeviceCountParams): DBIO[DeviceStatusCounts] = {
+    val recentSince = params.recentSince.getOrElse(7.days).toSeconds
+    val offlineSince = params.offlineSince.getOrElse(5.minutes).toSeconds
+
+    implicit val getResult = GetResult[DeviceStatusCounts] { pr =>
+      DeviceStatusCounts(
+        pr.rs.getLong("recent"),
+        pr.rs.getLong("hibernated"),
+        pr.rs.getLong("offline"),
+        pr.rs.getLong("update_pending"),
+        pr.rs.getLong("update_in_progress"),
+        pr.rs.getLong("update_failed"),
+      )
+    }
+
+    val io =
+      sql"""
+          select sum(hibernated) hibernated,
+          sum(offline) offline,
+          sum(recent) recent,
+          sum(update_pending) update_pending,
+          sum(update_in_progress) update_in_progress,
+          sum(update_failed) update_failed,
+          count(*) total
+      from (
+              select hibernated,
+                  IF(TIMESTAMPDIFF(SECOND, last_seen, NOW()) > $offlineSince, 1, 0) offline,
+                  IF(TIMESTAMPDIFF(SECOND, created_at, NOW()) < $recentSince * 24, 1, 0) recent,
+                  IF(device_status = 'UpdatePending',1,0) update_pending,
+                  IF(device_status = 'Outdated', 1, 0) update_in_progress,
+                  IF(device_status = 'Error', 1, 0) update_failed
+              from Device
+              where namespace = ${ns.get}
+          ) s1;
+        """.as[DeviceStatusCounts]
+
+    // query guaranteed to return single row
+    io.head
   }
 
 }

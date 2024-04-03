@@ -233,7 +233,7 @@ trait DeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
   def countDevicesForExpression(expression: Option[GroupExpression]): HttpRequest =
     Get(
       DeviceRegistryResourceUri
-        .uri(api, "count")
+        .uri(api, "dynamic-group-count")
         .withQuery(Query(expression.map("expression" -> _.value).toMap))
     )
 

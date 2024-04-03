@@ -10,6 +10,7 @@ package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes.*
+import akka.http.scaladsl.model.Uri.Query
 import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
@@ -21,6 +22,7 @@ import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
 import com.advancedtelematic.director.db.deviceregistry.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceStatusCounts,
   DeviceT,
   RenameTagId,
   TagInfo,
@@ -1071,12 +1073,12 @@ class DeviceResourceSpec
 
   test("counts devices that satisfy a dynamic group expression") {
     val testDevices = Map(
-      validatedDeviceType.from("device1").toOption.get -> DeviceOemId("abc123"),
-      validatedDeviceType.from("device2").toOption.get -> DeviceOemId("123abc456"),
-      validatedDeviceType.from("device3").toOption.get -> DeviceOemId("123aba456")
+      validatedDeviceType.from("device1").value -> DeviceOemId("abc123"),
+      validatedDeviceType.from("device2").value -> DeviceOemId("123abc456"),
+      validatedDeviceType.from("device3").value -> DeviceOemId("123aba456")
     )
     testDevices
-      .map(t => (Gen.const(t._1), Gen.const(t._2)))
+      .map { case (deviceName, oemId) => (Gen.const(deviceName), Gen.const(oemId)) }
       .map((genDeviceTWith _).tupled(_))
       .map(_.sample.get)
       .map(createDeviceOk)
@@ -1088,6 +1090,29 @@ class DeviceResourceSpec
     countDevicesForExpression(expression.some) ~> routes ~> check {
       status shouldBe OK
       responseAs[Int] shouldBe 1
+    }
+  }
+
+  test("counts devices by recent and offline") {
+    val uuid = createDeviceOk(genDeviceT.generate.copy(hibernated = true.some))
+
+    logDeviceSeen(uuid, Instant.now().minusSeconds(10))
+
+    Get(
+      DeviceRegistryResourceUri
+        .uri(api, "count")
+        .withQuery(Query("recentSinceSecs" -> "0", "offlineSinceSecs" -> "0"))
+    ) ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+
+      val counts = responseAs[DeviceStatusCounts]
+
+      counts.hibernated shouldBe 1
+      counts.recent shouldBe 0
+      counts.offline should be > 0L
+      counts.updateFailed shouldBe 0
+      counts.updatePending shouldBe 0
+      counts.updateInProgess shouldBe 0
     }
   }
 
