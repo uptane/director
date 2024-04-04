@@ -1,21 +1,29 @@
 package com.advancedtelematic.director.daemon
 
-import akka.http.scaladsl.util.FastFuture
+import cats.implicits.*
 import cats.implicits.catsSyntaxOptionId
 import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId, StatusInfo}
 import com.advancedtelematic.director.db.{ScheduledUpdatesRepositorySupport, UpdateSchedulerDBIO}
-import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.data.DataType.{MultiTargetUpdateId, Namespace}
+import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeviceUpdateAssigned,
+  DeviceUpdateEvent
+}
 import io.circe.syntax.EncoderOps
 import io.circe.{Encoder, Json}
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant
-import scala.concurrent.{blocking, ExecutionContext, Future}
 import scala.concurrent.duration.*
+import scala.concurrent.{blocking, ExecutionContext, Future}
 
-class UpdateSchedulerDaemon()(implicit db: Database, ec: ExecutionContext) {
+class UpdateSchedulerDaemon()(
+  implicit db: Database,
+  ec: ExecutionContext,
+  msgBus: MessageBusPublisher) {
 
   private val dbio = new UpdateSchedulerDBIO()
 
@@ -32,22 +40,39 @@ class UpdateSchedulerDaemon()(implicit db: Database, ec: ExecutionContext) {
     run()
   }
 
-  private def run(): Future[Unit] = {
+  def runOnce(): Future[Unit] = {
     log.debug("checking for pending scheduled updates")
     dbio
       .run()
-      .flatMap { scheduledCount =>
-        if (scheduledCount == 0) {
+      .flatMap { scheduledUpdates =>
+        if (scheduledUpdates.isEmpty) {
           log.debug("no scheduled updates pending, trying later")
           Future {
             blocking(Thread.sleep(CHECK_INTERVAL.toMillis))
             0
           }
         } else {
-          log.info(s"$scheduledCount scheduled updates processed")
-          FastFuture.successful(scheduledCount)
+          log.info(s"$scheduledUpdates scheduled updates processed")
+
+          val msgFuture = scheduledUpdates.toList.traverse_ { su =>
+            val correlationId = MultiTargetUpdateId(su.updateId.uuid)
+            msgBus.publishSafe(
+              DeviceUpdateAssigned(
+                su.ns,
+                Instant.now(),
+                correlationId,
+                su.deviceId
+              ): DeviceUpdateEvent
+            )
+          }
+
+          msgFuture.map(_ => scheduledUpdates.size)
         }
       }
+  }
+
+  private def run(): Future[Unit] =
+    runOnce()
       .flatMap { _ =>
         run()
       }
@@ -59,7 +84,6 @@ class UpdateSchedulerDaemon()(implicit db: Database, ec: ExecutionContext) {
           run()
         }
       }
-  }
 
 }
 
