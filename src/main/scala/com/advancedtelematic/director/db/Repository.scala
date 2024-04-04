@@ -404,16 +404,15 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       .transactionally
   }
 
+  protected[db] def persistManyDBIO(deviceRepository: ProvisionedDeviceRepository)(
+    assignments: Seq[Assignment]): DBIO[Unit] =
+    (Schema.assignments ++= assignments).andThen {
+      deviceRepository.setMetadataOutdatedAction(assignments.map(_.deviceId).toSet, outdated = true)
+    }
+
   def persistMany(deviceRepository: ProvisionedDeviceRepository)(
     assignments: Seq[Assignment]): Future[Unit] =
-    db.run {
-      (Schema.assignments ++= assignments).andThen {
-        deviceRepository.setMetadataOutdatedAction(
-          assignments.map(_.deviceId).toSet,
-          outdated = true
-        )
-      }.transactionally
-    }
+    db.run(persistManyDBIO(deviceRepository)(assignments).transactionally)
 
   def findBy(deviceId: DeviceId): Future[Seq[Assignment]] = db.run {
     Schema.assignments.filter(_.deviceId === deviceId).result
