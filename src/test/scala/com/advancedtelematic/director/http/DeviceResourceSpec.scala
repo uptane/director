@@ -3,60 +3,27 @@ package com.advancedtelematic.director.http
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
 import cats.syntax.show.*
+import com.advancedtelematic.director.daemon.UpdateSchedulerDaemon
 import com.advancedtelematic.director.data.AdminDataType
-import com.advancedtelematic.director.data.AdminDataType.{
-  EcuInfoResponse,
-  MultiTargetUpdate,
-  QueueResponse,
-  RegisterDevice,
-  TargetUpdate
-}
+import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, MultiTargetUpdate, QueueResponse, RegisterDevice, TargetUpdate}
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.*
-import com.advancedtelematic.director.data.DeviceRequest.{
-  DeviceManifest,
-  EcuManifest,
-  EcuManifestCustom,
-  InstallationReport,
-  InstallationReportEntity,
-  MissingInstallationReport,
-  OperationResult
-}
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom, InstallationReport, InstallationReportEntity, MissingInstallationReport, OperationResult}
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.data.Messages.DeviceManifestReported
 import com.advancedtelematic.director.data.UptaneDataType.{FileInfo, Hashes, Image}
-import com.advancedtelematic.director.db.{
-  AssignmentsRepositorySupport,
-  EcuRepositorySupport,
-  UpdateSchedulerDBIO
-}
+import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepositorySupport, UpdateSchedulerDBIO}
 import com.advancedtelematic.director.manifest.ResultCodes
 import com.advancedtelematic.director.util.*
-import com.advancedtelematic.libats.data.DataType.{
-  CorrelationId,
-  HashMethod,
-  Namespace,
-  ResultCode,
-  ResultDescription
-}
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, HashMethod, MultiTargetUpdateId, Namespace, ResultCode, ResultDescription}
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeviceSeen,
-  DeviceUpdateCompleted,
-  *
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateCompleted, *}
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{
-  RootRole,
-  SnapshotRole,
-  TargetsRole,
-  TimestampRole,
-  TufRole
-}
+import com.advancedtelematic.libtuf.data.ClientDataType.{RootRole, SnapshotRole, TargetsRole, TimestampRole, TufRole}
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -1718,6 +1685,41 @@ class DeviceResourceSpec
     val targets = getTargetsOk(dev.deviceId).signed
 
     targets.targets.keys should contain(newUpdate.to.target)
+  }
+
+  testWithRepo("a bus message gets published when scheduled update gets assigned") { implicit ns =>
+    val dev = registerAdminDeviceWithSecondariesOk()
+    val currentUpdate = GenTargetUpdateRequest.generate
+    val newUpdate = GenTargetUpdateRequest.generate
+
+    val deviceManifest = buildPrimaryManifest(dev.primary, dev.primaryKey, currentUpdate.to)
+    putManifestOk(dev.deviceId, deviceManifest)
+
+    val previousTargets = getTargetsOk(dev.deviceId).signed
+    previousTargets.targets shouldBe empty
+
+    val mtu = MultiTargetUpdate(Map(dev.primary.hardwareId -> newUpdate))
+
+    createScheduledUpdateOk(dev.deviceId, mtu)
+
+    val mtuId = listScheduledUpdatesOK(dev.deviceId).values.loneElement.updateId
+
+    // TODO: runs full daemon instead of IO
+    val daemon = new UpdateSchedulerDaemon()
+    daemon.runOnce().futureValue
+
+    val targets = getTargetsOk(dev.deviceId).signed
+    targets.targets.keys should contain(newUpdate.to.target)
+
+    val assignedMsg = msgPub
+      .findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
+        msg.deviceUuid == dev.deviceId && msg.isInstanceOf[DeviceUpdateAssigned]
+      }
+      .map(_.asInstanceOf[DeviceUpdateAssigned])
+      .value
+
+    assignedMsg.deviceUuid shouldBe dev.deviceId
+    assignedMsg.correlationId shouldBe MultiTargetUpdateId(mtuId.uuid)
   }
 
 }

@@ -200,11 +200,11 @@ class UpdateSchedulerDBIO()(implicit val db: Database, val ec: ExecutionContext)
       .transactionally
   }
 
-  def run(): Future[Int] = {
+  def run(): Future[Seq[ScheduledUpdate]] = {
     val scheduled = findScheduledUpdates()
 
     val io = scheduled.flatMap { seq =>
-      DBIO.sequence(seq.map(startUpdate)).map(_ => seq.size)
+      DBIO.sequence(seq.map(startUpdate)).map(_ => seq)
     }
 
     db.run(io.transactionally.withTransactionIsolation(TransactionIsolation.Serializable))

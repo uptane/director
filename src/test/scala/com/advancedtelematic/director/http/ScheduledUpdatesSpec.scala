@@ -3,7 +3,12 @@ package com.advancedtelematic.director.http
 import org.scalatest.OptionValues.*
 import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
-import com.advancedtelematic.director.util.{DirectorSpec, NamespacedTests, RepositorySpec, ResourceSpec}
+import com.advancedtelematic.director.util.{
+  DirectorSpec,
+  NamespacedTests,
+  RepositorySpec,
+  ResourceSpec
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import org.scalactic.source.Position
