@@ -21,8 +21,10 @@ import java.time.Instant
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class UpdateSchedulerDBIO()(implicit db: Database, ec: ExecutionContext)
-    extends ScheduledUpdatesRepositorySupport {
+class UpdateSchedulerDBIO()(implicit val db: Database, val ec: ExecutionContext)
+    extends ScheduledUpdatesRepositorySupport
+    with AssignmentsRepositorySupport
+    with ProvisionedDeviceRepositorySupport {
   import UpdateSchedulerDBIO.*
 
   private lazy val log = LoggerFactory.getLogger(this.getClass)
@@ -152,7 +154,7 @@ class UpdateSchedulerDBIO()(implicit db: Database, ec: ExecutionContext)
           .log(s"creating ${assignments.length} for ecu ${update.deviceId}")
 
         DBIO.seq(
-          Schema.assignments ++= assignments.toList,
+          assignmentsRepository.persistManyDBIO(provisionedDeviceRepository)(assignments.toList),
           scheduledUpdatesRepository.setStatusAction(
             update.ns,
             update.id,

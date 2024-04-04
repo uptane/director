@@ -1696,4 +1696,28 @@ class DeviceResourceSpec
       scheduledUpdate2.status shouldBe ScheduledUpdate.Status.Completed
   }
 
+  testWithRepo(
+    "scheduled update gets assigned to the device if targets.json is up to date before the scheduled time"
+  ) { implicit ns =>
+    val dev = registerAdminDeviceWithSecondariesOk()
+    val currentUpdate = GenTargetUpdateRequest.generate
+    val newUpdate = GenTargetUpdateRequest.generate
+
+    val deviceManifest = buildPrimaryManifest(dev.primary, dev.primaryKey, currentUpdate.to)
+    putManifestOk(dev.deviceId, deviceManifest)
+
+    val previousTargets = getTargetsOk(dev.deviceId).signed
+    previousTargets.targets shouldBe empty
+
+    val mtu = MultiTargetUpdate(Map(dev.primary.hardwareId -> newUpdate))
+
+    createScheduledUpdateOk(dev.deviceId, mtu)
+
+    updateSchedulerIO.run().futureValue
+
+    val targets = getTargetsOk(dev.deviceId).signed
+
+    targets.targets.keys should contain(newUpdate.to.target)
+  }
+
 }
