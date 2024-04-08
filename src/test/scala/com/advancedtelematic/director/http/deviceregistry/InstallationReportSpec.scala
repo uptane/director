@@ -1,36 +1,18 @@
 package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes.*
-import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
-import com.advancedtelematic.director.deviceregistry.daemon.{
-  DeviceUpdateEventListener,
-  EcuReplacementListener
-}
+import com.advancedtelematic.director.db.DeleteDeviceDBIO
+import com.advancedtelematic.director.deviceregistry.daemon.{DeviceUpdateEventListener, EcuReplacementListener}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.installationStatDecoder
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  InstallationStat,
-  InstallationStatsLevel
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{InstallationStat, InstallationStatsLevel}
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.data.{
-  DeviceStatus,
-  InstallationReportGenerators
-}
+import com.advancedtelematic.director.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{
-  deviceUpdateCompletedCodec,
-  ecuReplacementCodec
-}
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeleteDeviceRequest,
-  DeviceUpdateCompleted,
-  EcuReplaced,
-  EcuReplacement,
-  EcuReplacementFailed
-}
+import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{deviceUpdateCompletedCodec, ecuReplacementCodec}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceUpdateCompleted, EcuReplaced, EcuReplacement, EcuReplacementFailed}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalacheck.Gen
@@ -57,7 +39,6 @@ class InstallationReportSpec
 
   val updateListener = new DeviceUpdateEventListener(msgPub)
   val ecuReplacementListener = new EcuReplacementListener
-  val deleteDeviceListener = new DeleteDeviceRequestListener()
 
   test("should save device reports and retrieve failed stats per devices") {
     val correlationId = genCorrelationId.generate
@@ -197,7 +178,7 @@ class InstallationReportSpec
       responseAs[PaginationResult[Json]].total shouldBe 0
     }
 
-    deleteDeviceListener(DeleteDeviceRequest(defaultNs, deviceId)).futureValue
+    db.run(DeleteDeviceDBIO.deleteDeviceIO(defaultNs, deviceId)).futureValue
 
     val now = Instant.now.truncatedTo(ChronoUnit.SECONDS)
     val ecuReplaced = genEcuReplacement(deviceId, now, success = true).generate
@@ -231,8 +212,7 @@ class InstallationReportSpec
       result.head.as[EcuReplacement].value.asInstanceOf[EcuReplaced] shouldBe ecuReplaced
     }
 
-    val deleteDeviceRequest = DeleteDeviceRequest(defaultNs, deviceId)
-    deleteDeviceListener(deleteDeviceRequest).futureValue
+    db.run(DeleteDeviceDBIO.deleteDeviceIO(defaultNs, deviceId)).futureValue
 
     getReportBlob(deviceId) ~> routes ~> check {
       status shouldBe NotFound

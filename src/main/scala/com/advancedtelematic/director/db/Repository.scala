@@ -129,22 +129,6 @@ protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec:
   def exists(deviceId: DeviceId): Future[Boolean] =
     db.run(existsIO(deviceId))
 
-  def markDeleted(namespace: Namespace, deviceId: DeviceId): Future[Unit] = db.run {
-    DBIO
-      .seq(
-        Schema.allProvisionedDevices
-          .filter(d => d.namespace === namespace && d.id === deviceId)
-          .map(_.deleted)
-          .update(true)
-          .handleSingleUpdateError(MissingEntity[Device]()),
-        Schema.allEcus
-          .filter(e => e.namespace === namespace && e.deviceId === deviceId)
-          .map(_.deleted)
-          .update(true)
-      )
-      .transactionally
-  }
-
   def findAllDeviceIds(ns: Namespace,
                        offset: Long,
                        limit: Long): Future[PaginationResult[DeviceId]] = db.run {

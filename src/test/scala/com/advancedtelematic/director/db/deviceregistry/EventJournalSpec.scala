@@ -19,9 +19,9 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.{Event, EventTyp
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
 import EventJournalSpec.EventPayload
+import com.advancedtelematic.director.db.DeleteDeviceDBIO
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceEventListener
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
 import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourcePropSpec}
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import io.circe.generic.semiauto.*
@@ -186,7 +186,7 @@ class EventJournalSpec
     val journal = new EventJournal()
 
     listener.apply(deviceEventMessage).futureValue
-    new DeleteDeviceRequestListener().apply(DeleteDeviceRequest(defaultNs, uuid))
+    db.run(DeleteDeviceDBIO.deleteDeviceIO(defaultNs, uuid)).futureValue
 
     eventually(timeout(5.seconds), interval(100.millis)) {
       journal.getIndexedEvents(uuid, correlationId = None).futureValue shouldBe empty
