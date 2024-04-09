@@ -7,7 +7,6 @@ import akka.http.scaladsl.server.Directives
 import com.advancedtelematic.director.deviceregistry.daemon.{
   DeviceEventListener,
   DeviceUpdateEventListener,
-  EcuReplacementListener
 }
 import com.advancedtelematic.director.{Settings, VersionInfo}
 import com.advancedtelematic.libats.http.VersionDirectives.*
@@ -17,7 +16,6 @@ import com.advancedtelematic.libats.messaging.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceEventMessage,
   DeviceUpdateEvent,
-  EcuReplacement
 }
 import com.advancedtelematic.libats.slick.db.{BootMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.DbHealthResource
@@ -60,11 +58,8 @@ class DirectorDaemonBoot(override val globalConfig: Config,
       new MetricsBusMonitor(metricRegistry, "director-v2-tuf-target-added")
     )
 
-    // TODO: No longer needed, we can update tables directly from director
-    // Device Registry Listeners
     startMonitoredListener[DeviceEventMessage](new DeviceEventListener)
     startMonitoredListener[DeviceUpdateEvent](new DeviceUpdateEventListener(messageBus))
-    startMonitoredListener[EcuReplacement](new EcuReplacementListener)
     startMonitoredListener[DeviceMqttLifecycle](new MqttLifecycleListener)
 
     val routes = versionHeaders(version) {

@@ -103,7 +103,7 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
         (path("ecus") & entity(as[RegisterDevice]) & deviceRegisterAllowed(device)) { regDev =>
           complete {
             deviceRegistration
-              .registerAndPublish(ns, repoId, device, regDev.primary_ecu_serial, regDev.ecus)
+              .register(ns, repoId, device, regDev.primary_ecu_serial, regDev.ecus)
               .map {
                 case ProvisionedDeviceRepository.Created    => StatusCodes.Created
                 case _: ProvisionedDeviceRepository.Updated => StatusCodes.OK
