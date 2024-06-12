@@ -17,13 +17,7 @@ import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.director.http.deviceregistry.Errors.MemberAlreadyExists
 import com.advancedtelematic.director.deviceregistry.data.DataType.HibernationStatus
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.{
-  Device,
-  GroupExpression,
-  GroupExpressionAST,
-  GroupType,
-  TagId
-}
+import com.advancedtelematic.director.deviceregistry.data.{Device, DeviceDB, GroupExpression, GroupExpressionAST, GroupType, TagId}
 import DbOps.PaginationResultOps
 import com.advancedtelematic.director.http.deviceregistry.Errors
 import slick.jdbc.{PositionedParameters, SetParameter}
@@ -158,7 +152,7 @@ object GroupMemberRepository {
       _ <- GroupInfoRepository.updateSmartGroupExpression(groupId, newExpression)
       _ <- groupMembers.filter(_.groupId === groupId).delete
       devs <- Schema.devices.filter(_.namespace === namespace).result
-      _ <- DBIO.sequence(devs.map(GroupMemberRepository.addDeviceToDynamicGroups(namespace, _)))
+      _ <- DBIO.sequence(devs.map(DeviceDB.toDevice(_)).map(GroupMemberRepository.addDeviceToDynamicGroups(namespace, _)))
     } yield ()
 
 }

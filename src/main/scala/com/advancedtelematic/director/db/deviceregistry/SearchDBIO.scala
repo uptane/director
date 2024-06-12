@@ -76,14 +76,14 @@ object SearchDBIO {
   }
 
   private def runQueryFilteringByName(ns: Namespace,
-                                      query: Query[DeviceTable, Device, Seq],
+                                      query: Query[DeviceTable, DeviceDB, Seq],
                                       nameContains: Option[String]) = {
     val deviceIdsByName = searchQuery(ns, nameContains, None, None).map(_.id)
     query.filter(_.id in deviceIdsByName)
   }
 
   private val groupedDevicesQuery
-    : (Namespace, Option[GroupType]) => Query[DeviceTable, Device, Seq] = (ns, groupType) =>
+    : (Namespace, Option[GroupType]) => Query[DeviceTable, DeviceDB, Seq] = (ns, groupType) =>
     groupInfos
       .maybeFilter(_.groupType === groupType)
       .filter(_.namespace === ns)
@@ -95,7 +95,7 @@ object SearchDBIO {
       .distinct
 
   def search(ns: Namespace, params: SearchParams)(
-    implicit ec: ExecutionContext): DBIO[PaginationResult[Device]] = {
+    implicit ec: ExecutionContext): DBIO[PaginationResult[DeviceDB]] = {
     val deviceTableQuery = params match {
 
       case SearchParams(

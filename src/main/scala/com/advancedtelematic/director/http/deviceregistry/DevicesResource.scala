@@ -220,7 +220,21 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
           limit
         )
     ) { params =>
-      complete(db.run(SearchDBIO.search(ns, params)))
+      complete(
+        for {
+        pr <- db.run(SearchDBIO.search(ns, params))
+        taggedDevicesMap <- db.run(
+          TaggedDeviceRepository.fetchForDevices(pr.values.map(_.uuid)).map { deviceTags =>
+            deviceTags.groupBy(_._1).map { case (k, v) => (k, v.map(_._2)) }
+          }
+        )
+      } yield pr.copy(
+          values = pr.values.map { device =>
+            DeviceDB.toDevice(device, taggedDevicesMap.getOrElse(device.uuid, Seq.empty).toMap)
+          }
+        )
+      )
+
     }
 
   def createDevice(ns: Namespace, device: DeviceT): Route = {
@@ -283,7 +297,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
         )
         throw JsonError(Codes.MissingDevice, StatusCodes.NotFound, msg.asJson, "Devices not found")
       }
-      foundDevices
+      foundDevices.map(DeviceDB.toDevice(_))
     }
   }
 

@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query
 import cats.syntax.option.*
 import com.advancedtelematic.director.data.Generators.GenHardwareIdentifier
+import com.advancedtelematic.director.db.deviceregistry.TaggedDeviceRepository
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.DevicesQuery
@@ -19,6 +20,7 @@ import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
 import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
+import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
@@ -48,12 +50,12 @@ trait SearchRequests {
     )
   }
 
-  def searchDevice(regex: String, offset: Long = 0, limit: Long = 50): HttpRequest =
+  def searchDevice(regex: String, offset: Long = 0, limit: Long = 50, ns: Namespace = defaultNs): HttpRequest =
     Get(
       DeviceRegistryResourceUri
         .uri(api)
         .withQuery(Query("regex" -> regex, "offset" -> offset.toString, "limit" -> limit.toString))
-    )
+    ).withNs(ns)
 
 }
 
@@ -219,6 +221,52 @@ class SearchResourceSpec
       val devices = responseAs[PaginationResult[Device]].values.map(_.uuid)
       devices should contain(d1)
       devices should not contain d2
+    }
+  }
+
+  test("can list devices with attributes") {
+    val ns = Namespace("device_attributes")
+
+    val count = 3
+    val deviceTs = genConflictFreeDeviceTs(count).sample.get
+    val ids = deviceTs.map {
+      createDeviceInNamespaceOk(_, ns)
+    }
+
+    val first = deviceTs.head
+    val firstId = ids.head
+    val second = deviceTs(1)
+    val secondId = ids(1)
+    val thirdId = ids(2)
+
+    val csvRows = Seq(
+      Seq(first.deviceId.underlying, "Germany", "Premium"),
+      Seq(second.deviceId.underlying, "China", "Deluxe"),
+    )
+
+    postDeviceTags(csvRows, ns = ns) ~> routes ~> check {
+      status shouldBe NoContent
+      db.run(TaggedDeviceRepository.fetchForDevice(firstId)).futureValue
+        .map { case (k, v) => k.value -> v } should contain only("market" -> "Germany", "trim" -> "Premium")
+      db.run(TaggedDeviceRepository.fetchForDevice(secondId)).futureValue
+        .map { case (k, v) => k.value -> v } should contain only("market" -> "China", "trim" -> "Deluxe")
+      db.run(TaggedDeviceRepository.fetchForDevice(thirdId)).futureValue shouldBe empty
+    }
+
+    searchDevice("", ns = ns) ~> routes ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]]
+
+      result.values.length shouldBe 3
+
+      val firstIndex = result.values.indexWhere(_.uuid == firstId)
+      result.values(firstIndex).attributes shouldEqual Map(TagId("market") -> "Germany", TagId("trim") -> "Premium")
+
+      val secondIndex = result.values.indexWhere(_.uuid == secondId)
+      result.values(secondIndex).attributes shouldEqual Map(TagId("market") -> "China", TagId("trim") -> "Deluxe")
+
+      val thirdIndex = result.values.indexWhere(_.uuid == thirdId)
+      result.values(thirdIndex).attributes shouldBe empty
     }
   }
 
