@@ -143,7 +143,8 @@ class DeviceResourceSpec
             |  "activatedAt" : null,
             |  "deviceStatus" : "NotSeen",
             |  "notes" : null,
-            |  "hibernated" : false
+            |  "hibernated" : false,
+            |  "attributes": {}
             |}
             |""".stripMargin
 

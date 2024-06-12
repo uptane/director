@@ -1,13 +1,10 @@
 package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository.findByDeviceIdQuery
-import com.advancedtelematic.director.db.deviceregistry.GroupMemberRepository.{
-  addDeviceToDynamicGroups,
-  deleteDynamicGroupsForDevice
-}
+import com.advancedtelematic.director.db.deviceregistry.GroupMemberRepository.{addDeviceToDynamicGroups, deleteDynamicGroupsForDevice}
 import com.advancedtelematic.director.deviceregistry.data.DataType.{TagInfo, TaggedDevice}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
-import com.advancedtelematic.director.deviceregistry.data.{Device, TagId}
+import com.advancedtelematic.director.deviceregistry.data.{Device, DeviceDB, TagId}
 import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -60,6 +57,12 @@ object TaggedDeviceRepository {
       .map(td => td.tagId -> td.tagValue)
       .result
 
+  def fetchForDevices(deviceUuids: Seq[DeviceId]): DBIO[Seq[(DeviceId, (TagId, String))]] =
+    taggedDevices
+      .filter(_.deviceUuid inSet deviceUuids)
+      .map(td => td.deviceUuid -> (td.tagId -> td.tagValue))
+      .result
+
   def updateTagId(namespace: Namespace, tagId: TagId, newTagId: TagId): DBIO[Int] =
     taggedDevices
       .filter(_.namespace === namespace)
@@ -95,7 +98,7 @@ object TaggedDeviceRepository {
     implicit ec: ExecutionContext): DBIO[Unit] = {
     val action = for {
       d <- findByDeviceIdQuery(namespace, deviceId).result.failIfNotSingle(Errors.MissingDevice)
-      _ <- refreshDeviceTags(namespace, d, tags)
+      _ <- refreshDeviceTags(namespace, DeviceDB.toDevice(d), tags)
     } yield ()
     action.transactionally
   }

@@ -21,7 +21,7 @@ object Schema {
     MappedColumnType.base[DeviceStatus.Value, String](_.toString, DeviceStatus.withName)
 
   // scalastyle:off
-  class DeviceTable(tag: Tag) extends Table[Device](tag, "Device") {
+  class DeviceTable(tag: Tag) extends Table[DeviceDB](tag, "Device") {
     def namespace = column[Namespace]("namespace")
     def id = column[DeviceId]("uuid")
     def deviceName = column[DeviceName]("device_name")
@@ -48,7 +48,7 @@ object Schema {
         deviceStatus,
         notes,
         hibernated
-      ).shaped <> ((Device.apply _).tupled, Device.unapply)
+      ).shaped <> ((DeviceDB.apply _).tupled, DeviceDB.unapply)
 
     def pk = primaryKey("uuid", id)
   }

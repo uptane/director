@@ -54,7 +54,7 @@ object DeviceRepository {
   def create(ns: Namespace, device: DeviceT)(implicit ec: ExecutionContext): DBIO[DeviceId] = {
     val uuid = device.uuid.getOrElse(DeviceId.generate())
 
-    val dbDevice = Device(
+    val dbDevice = DeviceDB(
       ns,
       uuid,
       device.deviceName,
@@ -67,7 +67,7 @@ object DeviceRepository {
     val dbIO = devices += dbDevice
     dbIO
       .handleIntegrityErrors(Errors.ConflictingDevice(device.deviceName.some, device.deviceId.some))
-      .andThen(GroupMemberRepository.addDeviceToDynamicGroups(ns, dbDevice, Map.empty))
+      .andThen(GroupMemberRepository.addDeviceToDynamicGroups(ns, DeviceDB.toDevice(dbDevice), Map.empty))
       .map(_ => uuid)
       .transactionally
   }
@@ -88,7 +88,7 @@ object DeviceRepository {
       .filter(d => d.namespace === ns && d.id === uuid)
       .result
       .headOption
-      .flatMap(_.fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
+      .flatMap(_.map(DeviceDB.toDevice(_)).fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
 
   def filterExisting(ns: Namespace, deviceOemIds: Set[DeviceOemId]): DBIO[Seq[DeviceId]] =
     devices
@@ -97,7 +97,7 @@ object DeviceRepository {
       .map(_.id)
       .result
 
-  def findByDeviceIdQuery(ns: Namespace, deviceId: DeviceOemId): Query[DeviceTable, Device, Seq] =
+  def findByDeviceIdQuery(ns: Namespace, deviceId: DeviceOemId): Query[DeviceTable, DeviceDB, Seq] =
     devices.filter(d => d.namespace === ns && d.oemId === deviceId)
 
   def setDevice(ns: Namespace, uuid: DeviceId, deviceName: DeviceName, notes: Option[String])(
@@ -136,15 +136,15 @@ object DeviceRepository {
       .filter(_.id === uuid)
       .result
       .headOption
-      .flatMap(_.fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
+      .flatMap(_.map(DeviceDB.toDevice(_)).fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
 
-  def findByUuids(ns: Namespace, ids: Seq[DeviceId]): Query[DeviceTable, Device, Seq] =
+  def findByUuids(ns: Namespace, ids: Seq[DeviceId]): Query[DeviceTable, DeviceDB, Seq] =
     devices.filter(d => (d.namespace === ns) && (d.id.inSet(ids)))
 
-  def findByOemIds(ns: Namespace, oemIds: Seq[DeviceOemId]): DBIO[Seq[Device]] =
+  def findByOemIds(ns: Namespace, oemIds: Seq[DeviceOemId]): DBIO[Seq[DeviceDB]] =
     devices.filter(d => (d.namespace === ns) && (d.oemId.inSet(oemIds))).result
 
-  def findByDeviceUuids(ns: Namespace, deviceIds: Seq[DeviceId]): DBIO[Seq[Device]] =
+  def findByDeviceUuids(ns: Namespace, deviceIds: Seq[DeviceId]): DBIO[Seq[DeviceDB]] =
     findByUuids(ns, deviceIds).result
 
   def updateLastSeen(uuid: DeviceId, when: Instant)(

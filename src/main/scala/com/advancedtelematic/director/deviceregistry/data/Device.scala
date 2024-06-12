@@ -16,7 +16,36 @@ import cats.syntax.show.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.director.deviceregistry.data.Device.{DeviceOemId, DeviceType}
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
+
+final case class DeviceDB(namespace: Namespace,
+                          uuid: DeviceId,
+                          deviceName: DeviceName,
+                          deviceId: DeviceOemId,
+                          deviceType: DeviceType = DeviceType.Other,
+                          lastSeen: Option[Instant] = None,
+                          createdAt: Instant,
+                          activatedAt: Option[Instant] = None,
+                          deviceStatus: DeviceStatus = NotSeen,
+                          notes: Option[String] = None,
+                          hibernated: Boolean = false)
+
+object DeviceDB {
+  def toDevice(dbDevice: DeviceDB, attributes: Map[TagId, String] = Map.empty): Device =
+    Device(
+      namespace = dbDevice.namespace,
+      uuid = dbDevice.uuid,
+      deviceName = dbDevice.deviceName,
+      deviceId = dbDevice.deviceId,
+      deviceType = dbDevice.deviceType,
+      lastSeen = dbDevice.lastSeen,
+      createdAt = dbDevice.createdAt,
+      activatedAt = dbDevice.activatedAt,
+      deviceStatus = dbDevice.deviceStatus,
+      notes = dbDevice.notes,
+      hibernated = dbDevice.hibernated,
+      attributes = attributes)
+}
 
 final case class Device(namespace: Namespace,
                         uuid: DeviceId,
@@ -28,7 +57,8 @@ final case class Device(namespace: Namespace,
                         activatedAt: Option[Instant] = None,
                         deviceStatus: DeviceStatus = NotSeen,
                         notes: Option[String] = None,
-                        hibernated: Boolean = false)
+                        hibernated: Boolean = false,
+                        attributes: Map[TagId, String] = Map.empty)
 
 object Device {
 
@@ -63,6 +93,10 @@ object Device {
       s"Vehicle: uuid=${d.uuid.show}, VIN=${d.deviceId}, lastSeen=${d.lastSeen}"
     case d => s"Device: uuid=${d.uuid.show}, lastSeen=${d.lastSeen}"
   }
+
+  implicit val TagIdKeyEncoder: KeyEncoder[TagId] = (key: TagId) => key.value
+
+  implicit val TagIdKeyDecoder: KeyDecoder[TagId] = (s: String) => Some(TagId(s))
 
   implicit val EncoderInstance
     : io.circe.Encoder.AsObject[com.advancedtelematic.director.deviceregistry.data.Device] = {

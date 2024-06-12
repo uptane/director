@@ -282,7 +282,8 @@ trait DeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
     Get(DeviceRegistryResourceUri.uri(api, deviceId.show, "installation_reports"))
 
   def postDeviceTags(tags: Seq[Seq[String]],
-                     headers: Seq[String] = Seq("DeviceID", "market", "trim")): HttpRequest = {
+                     headers: Seq[String] = Seq("DeviceID", "market", "trim"),
+                     ns: Namespace = defaultNs): HttpRequest = {
     require(tags.map(_.length == headers.length).reduce(_ && _))
 
     val csv = (headers +: tags).map(_.mkString(";")).mkString("\n")
@@ -293,7 +294,7 @@ trait DeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
         Map("filename" -> "test-custom-fields.csv")
       )
     )
-    Post(DeviceRegistryResourceUri.uri("device_tags"), multipartForm)
+    Post(DeviceRegistryResourceUri.uri("device_tags"), multipartForm).withNs(ns)
   }
 
   def postDeviceTagsOk(tags: Seq[Seq[String]]): Unit =
