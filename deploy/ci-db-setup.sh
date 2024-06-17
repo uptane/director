@@ -14,7 +14,13 @@ done
 $MYSQL -v -h $HOST -u root -proot <<EOF
 CREATE DATABASE IF NOT EXISTS director_v2;
 
+CREATE DATABASE IF NOT EXISTS device_registry;
+
 CREATE USER IF NOT EXISTS 'director_v2' IDENTIFIED BY 'director_v2';
 
-GRANT ALL PRIVILEGES ON \`director%\`.* TO 'director_v2'@'%'; FLUSH PRIVILEGES;
+GRANT ALL PRIVILEGES ON \`director%\`.* TO 'director_v2'@'%';
+
+GRANT ALL PRIVILEGES ON \`device_registry%\`.* TO 'director_v2'@'%';
+
+FLUSH PRIVILEGES;
 EOF

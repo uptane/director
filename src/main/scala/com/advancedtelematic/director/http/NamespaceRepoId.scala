@@ -15,7 +15,7 @@ trait NamespaceRepoId {
 
   private lazy val log = LoggerFactory.getLogger(this.getClass)
 
-  def UserRepoId(ns: Namespace): Directive1[RepoId] = {
+  def UserRepoId(ns: Namespace): Directive1[RepoId] =
     onComplete(repoNamespaceRepo.findFor(ns)).flatMap {
       case Success(repoId) => provide(repoId)
       case Failure(err) if err == repoNamespaceRepo.MissingRepoNamespace(ns) =>
@@ -24,9 +24,10 @@ trait NamespaceRepoId {
 
       case Failure(ex) => failWith(ex)
     }
-  }
 
-  def extractNamespaceRepoId(namespace: Directive1[Namespace]): Directive[(RepoId, Namespace)] = namespace.flatMap { ns =>
-    UserRepoId(ns).map(_ -> ns)
-  }
+  def extractNamespaceRepoId(namespace: Directive1[Namespace]): Directive[(RepoId, Namespace)] =
+    namespace.flatMap { ns =>
+      UserRepoId(ns).map(_ -> ns)
+    }
+
 }
