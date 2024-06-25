@@ -387,9 +387,10 @@ class GroupExpressionRunSpec extends DirectorSpec with BeforeAndAfterAll with My
   }
 
   test("returns matching 'deviceid position is not'") {
-    runGroupExpression(
-      s"deviceid position(1) is not x"
-    ) should contain only (device0.uuid.get, device1.uuid.get)
+    runGroupExpression(s"deviceid position(1) is not x") should contain only (
+      device0.uuid.get,
+      device1.uuid.get
+    )
     runGroupExpression(s"deviceid position(8) is not B") should contain only device1.uuid.get
   }
 
@@ -406,9 +407,10 @@ class GroupExpressionRunSpec extends DirectorSpec with BeforeAndAfterAll with My
   }
 
   test("returns matching 'deviceid position is' is case-insensitive") {
-    runGroupExpression(
-      s"deviceid position(1) is D"
-    ) should contain only (device0.uuid.get, device1.uuid.get)
+    runGroupExpression(s"deviceid position(1) is D") should contain only (
+      device0.uuid.get,
+      device1.uuid.get
+    )
     runGroupExpression(s"deviceid position(8) is b") should contain only device0.uuid.get
   }
 

@@ -31,6 +31,7 @@ final case class DeviceDB(namespace: Namespace,
                           hibernated: Boolean = false)
 
 object DeviceDB {
+
   def toDevice(dbDevice: DeviceDB, attributes: Map[TagId, String] = Map.empty): Device =
     Device(
       namespace = dbDevice.namespace,
@@ -44,7 +45,9 @@ object DeviceDB {
       deviceStatus = dbDevice.deviceStatus,
       notes = dbDevice.notes,
       hibernated = dbDevice.hibernated,
-      attributes = attributes)
+      attributes = attributes
+    )
+
 }
 
 final case class Device(namespace: Namespace,

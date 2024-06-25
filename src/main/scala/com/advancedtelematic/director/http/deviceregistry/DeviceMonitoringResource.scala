@@ -8,7 +8,10 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPu
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceMetricsObservation, deviceMetricsObservationMessageLike}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  deviceMetricsObservationMessageLike,
+  DeviceMetricsObservation
+}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.{Decoder, Json}
 import org.slf4j.LoggerFactory

@@ -26,10 +26,7 @@ import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.director.deviceregistry.data
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import DbOps.{
-  PaginationResultOps,
-  SortBySlickOrderedGroupConversion
-}
+import DbOps.{PaginationResultOps, SortBySlickOrderedGroupConversion}
 import SlickMappings.*
 import com.advancedtelematic.director.http.deviceregistry.Errors
 import slick.jdbc.MySQLProfile.api.*
@@ -48,14 +45,10 @@ object GroupInfoRepository {
     def createdAt = column[Instant]("created_at")(javaInstantMapping)
     def updatedAt = column[Instant]("updated_at")(javaInstantMapping)
 
-    def * = (
-      id,
-      groupName,
-      namespace,
-      createdAt,
-      groupType,
-      expression
-    ) <> ((Group.apply _).tupled, Group.unapply)
+    def * = (id, groupName, namespace, createdAt, groupType, expression) <> (
+      (Group.apply _).tupled,
+      Group.unapply
+    )
 
   }
   // scalastyle:on

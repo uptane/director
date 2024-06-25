@@ -1,7 +1,12 @@
 package com.advancedtelematic.director.deviceregistry
 
 import akka.http.scaladsl.util.FastFuture
-import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, GroupInfoRepository, GroupMemberRepository, SearchDBIO}
+import com.advancedtelematic.director.db.deviceregistry.{
+  DeviceRepository,
+  GroupInfoRepository,
+  GroupMemberRepository,
+  SearchDBIO
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId

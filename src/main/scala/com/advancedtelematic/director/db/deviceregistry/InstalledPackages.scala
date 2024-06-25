@@ -33,9 +33,8 @@ object InstalledPackages {
   object InstalledPackage {
     import com.advancedtelematic.libats.codecs.CirceCodecs._
 
-    implicit val EncoderInstance: io.circe.Encoder.AsObject[
-      InstalledPackages.InstalledPackage
-    ] = io.circe.generic.semiauto.deriveEncoder[InstalledPackage]
+    implicit val EncoderInstance: io.circe.Encoder.AsObject[InstalledPackages.InstalledPackage] =
+      io.circe.generic.semiauto.deriveEncoder[InstalledPackage]
 
   }
 
@@ -43,9 +42,8 @@ object InstalledPackages {
 
   object DevicesCount {
 
-    implicit val EncoderInstance: io.circe.Encoder.AsObject[
-      InstalledPackages.DevicesCount
-    ] = io.circe.generic.semiauto.deriveEncoder[DevicesCount]
+    implicit val EncoderInstance: io.circe.Encoder.AsObject[InstalledPackages.DevicesCount] =
+      io.circe.generic.semiauto.deriveEncoder[DevicesCount]
 
   }
 

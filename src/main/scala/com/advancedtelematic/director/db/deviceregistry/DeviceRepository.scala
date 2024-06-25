@@ -26,10 +26,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceSta
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.*
-import DbOps.{
-  deviceTableToSlickOrder,
-  PaginationResultOps
-}
+import DbOps.{deviceTableToSlickOrder, PaginationResultOps}
 import GroupInfoRepository.groupInfos
 import GroupMemberRepository.groupMembers
 import SlickMappings.*
@@ -67,7 +64,9 @@ object DeviceRepository {
     val dbIO = devices += dbDevice
     dbIO
       .handleIntegrityErrors(Errors.ConflictingDevice(device.deviceName.some, device.deviceId.some))
-      .andThen(GroupMemberRepository.addDeviceToDynamicGroups(ns, DeviceDB.toDevice(dbDevice), Map.empty))
+      .andThen(
+        GroupMemberRepository.addDeviceToDynamicGroups(ns, DeviceDB.toDevice(dbDevice), Map.empty)
+      )
       .map(_ => uuid)
       .transactionally
   }
@@ -88,7 +87,10 @@ object DeviceRepository {
       .filter(d => d.namespace === ns && d.id === uuid)
       .result
       .headOption
-      .flatMap(_.map(DeviceDB.toDevice(_)).fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
+      .flatMap(
+        _.map(DeviceDB.toDevice(_))
+          .fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful)
+      )
 
   def filterExisting(ns: Namespace, deviceOemIds: Set[DeviceOemId]): DBIO[Seq[DeviceId]] =
     devices
@@ -136,7 +138,10 @@ object DeviceRepository {
       .filter(_.id === uuid)
       .result
       .headOption
-      .flatMap(_.map(DeviceDB.toDevice(_)).fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
+      .flatMap(
+        _.map(DeviceDB.toDevice(_))
+          .fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful)
+      )
 
   def findByUuids(ns: Namespace, ids: Seq[DeviceId]): Query[DeviceTable, DeviceDB, Seq] =
     devices.filter(d => (d.namespace === ns) && (d.id.inSet(ids)))
