@@ -78,7 +78,8 @@ class DeviceResourceSpec
   private def logDeviceSeen(uuid: DeviceId,
                             lastSeen: Instant = Instant.now(),
                             namespace: Namespace = defaultNs): Unit =
-    LogDeviceSeen.logDevice(namespace, uuid, lastSeen)
+    LogDeviceSeen
+      .logDevice(namespace, uuid, lastSeen)
       .recover { case Errors.MissingDevice =>
         println("could not log device seen, missing device")
       }

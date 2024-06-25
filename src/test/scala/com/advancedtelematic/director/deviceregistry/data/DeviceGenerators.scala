@@ -86,6 +86,7 @@ object DeviceGenerators {
 }
 
 object InvalidDeviceGenerators {
+
   import DeviceGenerators.*
   import DeviceIdGenerators.*
 

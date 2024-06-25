@@ -220,20 +220,16 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
           limit
         )
     ) { params =>
-      complete(
-        for {
+      complete(for {
         pr <- db.run(SearchDBIO.search(ns, params))
         taggedDevicesMap <- db.run(
           TaggedDeviceRepository.fetchForDevices(pr.values.map(_.uuid)).map { deviceTags =>
             deviceTags.groupBy(_._1).map { case (k, v) => (k, v.map(_._2)) }
           }
         )
-      } yield pr.copy(
-          values = pr.values.map { device =>
-            DeviceDB.toDevice(device, taggedDevicesMap.getOrElse(device.uuid, Seq.empty).toMap)
-          }
-        )
-      )
+      } yield pr.copy(values = pr.values.map { device =>
+        DeviceDB.toDevice(device, taggedDevicesMap.getOrElse(device.uuid, Seq.empty).toMap)
+      }))
 
     }
 

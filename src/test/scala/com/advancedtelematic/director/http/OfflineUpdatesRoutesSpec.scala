@@ -12,7 +12,12 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.ErrorRepresentation
-import com.advancedtelematic.libtuf.data.ClientDataType.{OfflineSnapshotRole, OfflineUpdatesRole, TufRole, ValidMetaPath}
+import com.advancedtelematic.libtuf.data.ClientDataType.{
+  OfflineSnapshotRole,
+  OfflineUpdatesRole,
+  TufRole,
+  ValidMetaPath
+}
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import eu.timepit.refined.api.Refined

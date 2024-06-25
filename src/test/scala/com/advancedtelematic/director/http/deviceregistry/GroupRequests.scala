@@ -99,7 +99,10 @@ trait GroupRequests {
         Map("filename" -> "vins.csv")
       )
     )
-    Post(DeviceRegistryResourceUri.uri(groupsApi).withQuery(Query("groupName" -> groupName.value)), multipartForm)
+    Post(
+      DeviceRegistryResourceUri.uri(groupsApi).withQuery(Query("groupName" -> groupName.value)),
+      multipartForm
+    )
   }
 
   def createStaticGroupOk(name: GroupName = genGroupName().sample.get): GroupId =
