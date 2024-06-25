@@ -1,6 +1,6 @@
 name := "director-v2"
 organization := "io.github.uptane"
-scalaVersion := "2.13.12"
+scalaVersion := "2.13.14"
 
 scalacOptions := Seq(
   "-unchecked",
@@ -35,7 +35,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpV,
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
-    "org.scalatest"     %% "scalatest" % scalaTestV % Test,
+    "org.scalatest" %% "scalatest" % scalaTestV % Test,
     "org.scalacheck" %% "scalacheck" % "1.18.0" % Test,
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
