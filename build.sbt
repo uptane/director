@@ -35,7 +35,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpV,
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
-    "org.scalatest"     %% "scalatest" % scalaTestV % Test,
+    "org.scalatest" %% "scalatest" % scalaTestV % Test,
     "org.scalacheck" %% "scalacheck" % "1.18.0" % Test,
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
@@ -57,7 +57,7 @@ libraryDependencies ++= {
 
     // Device registry specific dependencies
     "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "2.0.0",
-    "io.circe" %% "circe-testing" % "0.14.1",
+    "io.circe" %% "circe-testing" % "0.14.8",
     "tech.sparse" %% "toml-scala" % "0.2.2",
     "org.tpolecat" %% "atto-core" % "0.9.5",
     "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test
