@@ -3,7 +3,6 @@ package com.advancedtelematic.director.http
 import java.time.Instant
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directive, Directive0, Directive1, Route}
-import akka.pattern.StatusReply.Success
 import cats.data.Validated.{Invalid, Valid}
 import cats.implicits.*
 import com.advancedtelematic.director.data.AdminDataType.RegisterDevice
@@ -12,17 +11,14 @@ import com.advancedtelematic.director.data.DataType.AdminRoleName.AdminRoleNameP
 import com.advancedtelematic.director.data.DbDataType.Assignment
 import com.advancedtelematic.director.data.Messages.{DeviceManifestReported, *}
 import com.advancedtelematic.director.db.*
-import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
-import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
-import com.advancedtelematic.director.deviceregistry.messages.DeviceActivated
 import com.advancedtelematic.director.manifest.{DeviceManifestProcess, ManifestCompiler}
 import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates, RemoteSessions}
 import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.data.ErrorRepresentation.*
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeviceSeen,
   DeviceUpdateEvent,
   DeviceUpdateInFlight
 }
@@ -39,8 +35,9 @@ import slick.jdbc.MySQLProfile.api.*
 import scala.async.Async.*
 import scala.concurrent.{ExecutionContext, Future}
 import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
+import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient.RootRoleNotFound
 
-import scala.util.Failure
+import scala.util.{Failure, Success}
 
 object DeviceResource {
   import akka.http.scaladsl.server.Directives.*
@@ -130,7 +127,12 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
         get {
           path(IntNumber ~ ".root.json") { version =>
             logDevice(ns, device) {
-              complete(fetchRoot(ns, version.some))
+              onComplete(fetchRoot(ns, version.some)) {
+                case Success(root) => complete(root)
+                case Failure(RootRoleNotFound) =>
+                  complete(RootRoleNotFound.responseCode -> RootRoleNotFound.toErrorRepr)
+                case Failure(ex) => failWith(ex)
+              }
             }
           } ~
             path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") { offlineTargetName =>
