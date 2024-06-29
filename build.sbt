@@ -1,6 +1,6 @@
 name := "director-v2"
 organization := "io.github.uptane"
-scalaVersion := "2.13.12"
+scalaVersion := "2.13.14"
 
 scalacOptions := Seq(
   "-unchecked",
