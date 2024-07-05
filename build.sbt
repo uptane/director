@@ -57,7 +57,7 @@ libraryDependencies ++= {
 
     // Device registry specific dependencies
     "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "2.0.0",
-    "io.circe" %% "circe-testing" % "0.14.8",
+    "io.circe" %% "circe-testing" % "0.14.9",
     "tech.sparse" %% "toml-scala" % "0.2.2",
     "org.tpolecat" %% "atto-core" % "0.9.5",
     "org.scalatestplus" %% "scalacheck-1-16" % "3.2.14.0" % Test
