@@ -24,17 +24,7 @@ import com.advancedtelematic.director.db.deviceregistry.DbOps.PaginationResultOp
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceT,
-  DevicesQuery,
-  InstallationStatsLevel,
-  RenameTagId,
-  SearchParams,
-  SetDevice,
-  UpdateDevice,
-  UpdateHibernationStatusRequest,
-  UpdateTagValue
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceCountParams, DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
 import com.advancedtelematic.director.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
@@ -54,17 +44,17 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeleteDeviceRequest,
-  DeviceEventMessage
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 import slick.jdbc.MySQLProfile.api.*
 import Unmarshallers.nonNegativeLong
+
 import java.time.{Instant, OffsetDateTime}
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 
@@ -156,6 +146,21 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     pathPrefix(Segment / Segment).as(PackageId.apply)
 
   val eventJournal = new EventJournal()
+
+  val countParameters: Directive1[DeviceCountParams] =
+    parameters(
+      Symbol("recentSinceSecs").as[Long].?,
+      Symbol("offlineSinceSecs").as[Long].?,
+    ).tmap { case (recentSince, offlineSince) =>
+      DeviceCountParams(
+        recentSince.map(secs => Duration(secs, TimeUnit.SECONDS)),
+        offlineSince.map(secs => Duration(secs, TimeUnit.SECONDS)),
+      )
+    }
+
+  def countDevices(ns: Namespace, params: DeviceCountParams): Route = {
+    complete(db.run(SearchDBIO.countByStatus(ns, params)))
+  }
 
   def searchDevice(ns: Namespace): Route =
     parameters(
@@ -467,10 +472,13 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
         createDevice(ns, device)
       } ~
         get {
-          (path("count") & parameter(Symbol("expression").as[GroupExpression].?)) {
-            case None      => complete(Errors.InvalidGroupExpression(""))
-            case Some(exp) => countDynamicGroupCandidates(ns, exp)
+          (path("count") & countParameters) { params =>
+            countDevices(ns, params)
           } ~
+            (path("dynamic-group-count") & parameter(Symbol("expression").as[GroupExpression].?)) {
+              case None      => complete(Errors.InvalidGroupExpression(""))
+              case Some(exp) => countDynamicGroupCandidates(ns, exp)
+            } ~
             (path("stats") & parameters(
               Symbol("correlationId").as[CorrelationId],
               Symbol("reportLevel").as[InstallationStatsLevel].?

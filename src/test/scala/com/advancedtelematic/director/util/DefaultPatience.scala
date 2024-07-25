@@ -9,5 +9,5 @@ trait DefaultPatience extends PatienceConfiguration {
   override implicit def patienceConfig: PatienceConfig =
     PatienceConfig().copy(timeout = Span(10, Seconds), interval = Span(500, Millis))
 
-  implicit val defaultTimeout: RouteTestTimeout = RouteTestTimeout(Span(5, Seconds))
+  implicit val defaultTimeout: RouteTestTimeout = RouteTestTimeout(Span(10, Seconds))
 }

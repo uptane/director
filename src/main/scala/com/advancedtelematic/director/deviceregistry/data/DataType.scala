@@ -17,6 +17,8 @@ import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDire
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
 
+import scala.concurrent.duration.Duration
+
 object DataType {
 
   case class IndexedEvent(device: DeviceId,
@@ -106,6 +108,15 @@ object DataType {
     )
 
   }
+
+  final case class DeviceCountParams(recentSince: Option[Duration], offlineSince: Option[Duration])
+
+  final case class DeviceStatusCounts(recent: Long,
+                                      hibernated: Long,
+                                      offline: Long,
+                                      updatePending: Long,
+                                      updateInProgess: Long,
+                                      updateFailed: Long)
 
   final case class SearchParams(oemId: Option[DeviceOemId],
                                 grouped: Option[HibernationStatus],
