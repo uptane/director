@@ -14,22 +14,14 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.director.http.deviceregistry.Errors
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeletedDevice,
-  DeviceT,
-  HibernationStatus,
-  SearchParams
-}
+import com.advancedtelematic.director.http.deviceregistry.{ErrorHandlers, Errors}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeletedDevice, DeviceT, HibernationStatus, SearchParams}
 import com.advancedtelematic.director.deviceregistry.data.Device.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.*
-import DbOps.{
-  deviceTableToSlickOrder,
-  PaginationResultOps
-}
+import DbOps.{PaginationResultOps, deviceTableToSlickOrder}
 import GroupInfoRepository.groupInfos
 import GroupMemberRepository.groupMembers
 import SlickMappings.*
@@ -43,7 +35,7 @@ import cats.syntax.option.*
 import slick.jdbc.{PositionedParameters, SetParameter}
 import slick.lifted.Rep
 
-import java.sql.Timestamp
+import java.sql.{SQLSyntaxErrorException, Timestamp}
 import scala.annotation.unused
 import Schema.*
 
@@ -67,6 +59,7 @@ object DeviceRepository {
     val dbIO = devices += dbDevice
     dbIO
       .handleIntegrityErrors(Errors.ConflictingDevice(device.deviceName.some, device.deviceId.some))
+      .mapError(ErrorHandlers.sqlExceptionHandler)
       .andThen(GroupMemberRepository.addDeviceToDynamicGroups(ns, DeviceDB.toDevice(dbDevice), Map.empty))
       .map(_ => uuid)
       .transactionally

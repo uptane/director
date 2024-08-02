@@ -8,13 +8,7 @@
 
 package com.advancedtelematic.director.db.deviceregistry
 
-import com.advancedtelematic.director.deviceregistry.data.{
-  Group,
-  GroupExpression,
-  GroupName,
-  GroupType,
-  TagId
-}
+import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupType, TagId}
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 
@@ -26,14 +20,12 @@ import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.director.deviceregistry.data
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import DbOps.{
-  PaginationResultOps,
-  SortBySlickOrderedGroupConversion
-}
+import DbOps.{PaginationResultOps, SortBySlickOrderedGroupConversion}
 import SlickMappings.*
-import com.advancedtelematic.director.http.deviceregistry.Errors
+import com.advancedtelematic.director.http.deviceregistry.{ErrorHandlers, Errors}
 import slick.jdbc.MySQLProfile.api.*
 
+import java.sql.SQLSyntaxErrorException
 import scala.concurrent.{ExecutionContext, Future}
 
 object GroupInfoRepository {
@@ -89,6 +81,7 @@ object GroupInfoRepository {
              expression: Option[GroupExpression])(implicit ec: ExecutionContext): DBIO[GroupId] =
     (groupInfos += data.Group(id, groupName, namespace, Instant.now, groupType, expression))
       .handleIntegrityErrors(Errors.ConflictingGroup)
+      .mapError(ErrorHandlers.sqlExceptionHandler)
       .map(_ => id)
 
   def deleteGroup(id: GroupId)(implicit ec: ExecutionContext): DBIO[Unit] =
