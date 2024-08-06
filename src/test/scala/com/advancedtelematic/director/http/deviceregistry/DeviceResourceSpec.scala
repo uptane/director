@@ -14,7 +14,12 @@ import akka.http.scaladsl.model.Uri.Query
 import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
-import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
+import com.advancedtelematic.director.daemon.{
+  DeleteDeviceRequestListener,
+  DeviceMqttLifecycle,
+  EventType,
+  MqttLifecycleListener
+}
 import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
   DevicesCount,
   InstalledPackage
@@ -24,10 +29,12 @@ import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceStatusCounts,
   DeviceT,
+  MqttStatus,
   RenameTagId,
   TagInfo,
   UpdateHibernationStatusRequest
 }
+import org.scalatest.OptionValues.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
@@ -80,7 +87,8 @@ class DeviceResourceSpec
   private def logDeviceSeen(uuid: DeviceId,
                             lastSeen: Instant = Instant.now(),
                             namespace: Namespace = defaultNs): Unit =
-    LogDeviceSeen.logDevice(namespace, uuid, lastSeen)
+    LogDeviceSeen
+      .logDevice(namespace, uuid, lastSeen)
       .recover { case Errors.MissingDevice =>
         println("could not log device seen, missing device")
       }
@@ -146,6 +154,8 @@ class DeviceResourceSpec
             |  "deviceStatus" : "NotSeen",
             |  "notes" : null,
             |  "hibernated" : false,
+            |  "mqttStatus" : "NotSeen",
+            |  "mqttLastSeen" : null,
             |  "attributes": {}
             |}
             |""".stripMargin
@@ -255,6 +265,51 @@ class DeviceResourceSpec
         devicePost.lastSeen should not be None
         isRecent(devicePost.lastSeen) shouldBe true
         devicePost.deviceStatus should not be DeviceStatus.NotSeen
+      }
+    }
+  }
+
+  test("device gets mqtt status updated when lifcycle message is received") {
+    val mqttListener = new MqttLifecycleListener()
+
+    forAll { (devicePre: DeviceT) =>
+      val uuid: DeviceId = createDeviceOk(devicePre)
+      fetchDevice(uuid) ~> routes ~> check {
+        val devicePost: Device = responseAs[Device]
+
+        devicePost.mqttLastSeen shouldBe empty
+        devicePost.mqttStatus shouldBe MqttStatus.NotSeen
+      }
+
+      // json encoders truncate dates to seconds
+      val now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
+
+      mqttListener(
+        DeviceMqttLifecycle(uuid, EventType.Connected, payload = Json.Null, Instant.now)
+      ).futureValue
+
+      val lastOnlineDate = fetchDevice(uuid) ~> routes ~> check {
+        val devicePost: Device = responseAs[Device]
+
+        val ts = devicePost.mqttLastSeen.value
+
+        (ts.compareTo(now) >= 0) shouldBe true
+        devicePost.mqttStatus shouldBe MqttStatus.Online
+        ts
+      }
+
+      mqttListener(
+        DeviceMqttLifecycle(uuid, EventType.Disconnected, payload = Json.Null, Instant.now)
+      ).futureValue
+
+      fetchDevice(uuid) ~> routes ~> check {
+        val devicePost: Device = responseAs[Device]
+
+        isRecent(devicePost.mqttLastSeen) shouldBe true
+        devicePost.mqttLastSeen shouldNot be(empty)
+        devicePost.mqttStatus shouldBe MqttStatus.Offline
+
+        devicePost.mqttLastSeen.value shouldBe lastOnlineDate
       }
     }
   }

@@ -9,21 +9,19 @@
 package com.advancedtelematic.director.db.deviceregistry
 
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.director.http.deviceregistry.{ErrorHandlers, Errors}
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeletedDevice, DeviceT, HibernationStatus, SearchParams}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeletedDevice,
+  DeviceT,
+  HibernationStatus,
+  MqttStatus
+}
 import com.advancedtelematic.director.deviceregistry.data.Device.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.*
-import DbOps.{PaginationResultOps, deviceTableToSlickOrder}
-import GroupInfoRepository.groupInfos
-import GroupMemberRepository.groupMembers
 import SlickMappings.*
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
@@ -33,9 +31,8 @@ import slick.jdbc.MySQLProfile.api.*
 import scala.concurrent.ExecutionContext
 import cats.syntax.option.*
 import slick.jdbc.{PositionedParameters, SetParameter}
-import slick.lifted.Rep
 
-import java.sql.{SQLSyntaxErrorException, Timestamp}
+import java.sql.Timestamp
 import scala.annotation.unused
 import Schema.*
 
@@ -53,14 +50,18 @@ object DeviceRepository {
       device.deviceId,
       device.deviceType,
       createdAt = Instant.now(),
-      hibernated = device.hibernated.getOrElse(false)
+      hibernated = device.hibernated.getOrElse(false),
+      mqttStatus = MqttStatus.NotSeen,
+      mqttLastSeen = None
     )
 
     val dbIO = devices += dbDevice
     dbIO
       .handleIntegrityErrors(Errors.ConflictingDevice(device.deviceName.some, device.deviceId.some))
       .mapError(ErrorHandlers.sqlExceptionHandler)
-      .andThen(GroupMemberRepository.addDeviceToDynamicGroups(ns, DeviceDB.toDevice(dbDevice), Map.empty))
+      .andThen(
+        GroupMemberRepository.addDeviceToDynamicGroups(ns, DeviceDB.toDevice(dbDevice), Map.empty)
+      )
       .map(_ => uuid)
       .transactionally
   }
@@ -81,7 +82,10 @@ object DeviceRepository {
       .filter(d => d.namespace === ns && d.id === uuid)
       .result
       .headOption
-      .flatMap(_.map(DeviceDB.toDevice(_)).fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
+      .flatMap(
+        _.map(DeviceDB.toDevice(_))
+          .fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful)
+      )
 
   def filterExisting(ns: Namespace, deviceOemIds: Set[DeviceOemId]): DBIO[Seq[DeviceId]] =
     devices
@@ -129,7 +133,10 @@ object DeviceRepository {
       .filter(_.id === uuid)
       .result
       .headOption
-      .flatMap(_.map(DeviceDB.toDevice(_)).fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful))
+      .flatMap(
+        _.map(DeviceDB.toDevice(_))
+          .fold[DBIO[Device]](DBIO.failed(Errors.MissingDevice))(DBIO.successful)
+      )
 
   def findByUuids(ns: Namespace, ids: Seq[DeviceId]): Query[DeviceTable, DeviceDB, Seq] =
     devices.filter(d => (d.namespace === ns) && (d.id.inSet(ids)))
@@ -187,7 +194,7 @@ object DeviceRepository {
     implicit val setInstant: SetParameter[Instant] = (value: Instant, pos: PositionedParameters) =>
       pos.setTimestamp(Timestamp.from(value))
 
-    // Using raw sql because SQL will it's own instant mapping for the comparisons, instead of javaInstantMapping
+    // Using raw sql because slick will use it's own instant mapping for the comparisons, instead of javaInstantMapping
     val sql =
       sql"""
             select count(*) from #${devices.baseTableRow.tableName} WHERE
@@ -221,5 +228,13 @@ object DeviceRepository {
         case c if c == 0 =>
           DBIO.successful(status)
       }
+
+  def setMqttStatus(id: DeviceId, status: MqttStatus, lastSeen: Instant)(
+    implicit ec: ExecutionContext): DBIO[Unit] =
+    devices
+      .filter(_.id === id)
+      .map(r => (r.mqttStatus, r.mqttLastSeen))
+      .update(status -> lastSeen.some)
+      .handleSingleUpdateError(Errors.MissingDevice)
 
 }

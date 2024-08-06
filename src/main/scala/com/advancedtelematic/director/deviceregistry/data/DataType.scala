@@ -15,9 +15,12 @@ import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
-import io.circe.Json
+import enumeratum.EnumEntry
+import enumeratum.EnumEntry.Camelcase
+import io.circe.{Decoder, Encoder, Json}
 
 import scala.concurrent.duration.Duration
+import enumeratum.*
 
 object DataType {
 
@@ -167,4 +170,18 @@ object DataType {
   case class UpdateHibernationStatusRequest(status: HibernationStatus)
 
   case class ObservationPublishResult(publishedSuccessfully: Boolean, msg: DeviceMetricsObservation)
+
+  sealed trait MqttStatus extends EnumEntry with Camelcase
+
+  object MqttStatus extends Enum[MqttStatus] {
+
+    val values = findValues
+
+    case object Online extends MqttStatus
+    case object Offline extends MqttStatus
+    case object NotSeen extends MqttStatus
+  }
+
+  implicit val mqttStatusEncoder: Encoder[MqttStatus] = Circe.encoder(MqttStatus)
+  implicit val mqttStatusDecoder: Decoder[MqttStatus] = Circe.decoder(MqttStatus)
 }
