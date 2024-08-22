@@ -65,6 +65,13 @@ trait GroupRequests {
   def countDevicesInGroup(groupId: GroupId): HttpRequest =
     Get(DeviceRegistryResourceUri.uri(groupsApi, groupId.show, "count"))
 
+  def countDevicesPerGroup(groupIds: Set[GroupId]): HttpRequest =
+    Get(
+      DeviceRegistryResourceUri
+        .uri(groupsApi, "count")
+        .withQuery(Query("groupIds" -> groupIds.map(_.show).mkString(",")))
+    )
+
   def listGroups(sortBy: Option[GroupSortBy] = None,
                  limit: Option[Long] = None,
                  nameContains: Option[String] = None): HttpRequest = {
@@ -99,7 +106,10 @@ trait GroupRequests {
         Map("filename" -> "vins.csv")
       )
     )
-    Post(DeviceRegistryResourceUri.uri(groupsApi).withQuery(Query("groupName" -> groupName.value)), multipartForm)
+    Post(
+      DeviceRegistryResourceUri.uri(groupsApi).withQuery(Query("groupName" -> groupName.value)),
+      multipartForm
+    )
   }
 
   def createStaticGroupOk(name: GroupName = genGroupName().sample.get): GroupId =

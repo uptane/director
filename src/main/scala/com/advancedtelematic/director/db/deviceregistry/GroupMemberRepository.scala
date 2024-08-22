@@ -17,7 +17,14 @@ import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.director.http.deviceregistry.Errors.MemberAlreadyExists
 import com.advancedtelematic.director.deviceregistry.data.DataType.HibernationStatus
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.{Device, DeviceDB, GroupExpression, GroupExpressionAST, GroupType, TagId}
+import com.advancedtelematic.director.deviceregistry.data.{
+  Device,
+  DeviceDB,
+  GroupExpression,
+  GroupExpressionAST,
+  GroupType,
+  TagId
+}
 import DbOps.PaginationResultOps
 import com.advancedtelematic.director.http.deviceregistry.Errors
 import slick.jdbc.{PositionedParameters, SetParameter}
@@ -93,8 +100,14 @@ object GroupMemberRepository {
       .map(_.deviceUuid)
       .paginateResult(offset.orDefaultOffset, limit.orDefaultLimit)
 
-  def countDevicesInGroup(groupId: GroupId)(implicit ec: ExecutionContext): DBIO[Long] =
-    listDevicesInGroupAction(groupId, None, None).map(_.total)
+  def countDevicesInGroup(groupIds: Set[GroupId])(
+    implicit ec: ExecutionContext): DBIO[Map[GroupId, Long]] =
+    groupMembers
+      .filter(_.groupId.inSet(groupIds))
+      .groupBy(_.groupId)
+      .map { case (group, rows) => group -> rows.length }
+      .result
+      .map(_.map { case (group, size) => group -> size.toLong }.toMap)
 
   def deleteDynamicGroupsForDevice(deviceUuid: DeviceId)(
     implicit ec: ExecutionContext): DBIO[Unit] =
@@ -152,7 +165,11 @@ object GroupMemberRepository {
       _ <- GroupInfoRepository.updateSmartGroupExpression(groupId, newExpression)
       _ <- groupMembers.filter(_.groupId === groupId).delete
       devs <- Schema.devices.filter(_.namespace === namespace).result
-      _ <- DBIO.sequence(devs.map(DeviceDB.toDevice(_)).map(GroupMemberRepository.addDeviceToDynamicGroups(namespace, _)))
+      _ <- DBIO.sequence(
+        devs
+          .map(DeviceDB.toDevice(_))
+          .map(GroupMemberRepository.addDeviceToDynamicGroups(namespace, _))
+      )
     } yield ()
 
 }
