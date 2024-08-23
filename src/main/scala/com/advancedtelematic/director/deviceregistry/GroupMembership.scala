@@ -1,7 +1,11 @@
 package com.advancedtelematic.director.deviceregistry
 
 import akka.http.scaladsl.util.FastFuture
-import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, GroupInfoRepository, GroupMemberRepository, SearchDBIO}
+import com.advancedtelematic.director.db.deviceregistry.{
+  GroupInfoRepository,
+  GroupMemberRepository,
+  SearchDBIO
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
@@ -101,7 +105,12 @@ class GroupMembership(implicit val db: Database, ec: ExecutionContext) {
     }
 
   def countDevices(groupId: GroupId): Future[Long] =
-    db.run(GroupMemberRepository.countDevicesInGroup(groupId))
+    db.run(GroupMemberRepository.countDevicesInGroup(Set(groupId))).map { counts =>
+      counts.getOrElse(groupId, 0)
+    }
+
+  def countDevicesPerGroup(groupIds: Set[GroupId]): Future[Map[GroupId, Long]] =
+    db.run(GroupMemberRepository.countDevicesInGroup(groupIds))
 
   def removeGroupMember(groupId: GroupId, deviceId: DeviceId): Future[Unit] =
     runGroupOperation(groupId) { (g, m) =>

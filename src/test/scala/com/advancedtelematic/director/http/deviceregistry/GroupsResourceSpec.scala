@@ -14,24 +14,17 @@ import akka.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceT,
-  UpdateHibernationStatusRequest
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
-import com.advancedtelematic.director.deviceregistry.data.{
-  Group,
-  GroupExpression,
-  GroupName,
-  GroupSortBy
-}
+import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes.MalformedInput
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import io.circe.Json
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Gen
 import org.scalatest.EitherValues.*
@@ -130,6 +123,36 @@ class GroupsResourceSpec
       status shouldBe OK
       val responseGroups = responseAs[PaginationResult[Group]].values
       responseGroups.reverse.map(_.id).filter(groupIds.contains) shouldBe groupIds
+    }
+  }
+
+  test("gets group sizes for multiple groups") {
+    val groupIds = (1 to 3).map(_ => createStaticGroupOk()).sortBy(_.show)
+
+    groupIds.zipWithIndex.foreach { case (groupId, idx) =>
+      val deviceTs = genConflictFreeDeviceTs(idx+1).sample.get
+      val deviceIds = deviceTs.map(createDeviceOk)
+      deviceIds.foreach(deviceId => addDeviceToGroupOk(groupId, deviceId))
+    }
+
+    countDevicesPerGroup(groupIds.toSet) ~> routes ~> check {
+      status shouldBe OK
+      val json = responseAs[Json]
+      val groupSizes = json.hcursor.downField("values").as[Map[GroupId, Long]].value
+
+      groupSizes.size shouldBe groupIds.size
+
+      groupIds.zipWithIndex.foreach { case (groupId, idx) =>
+        groupSizes.get(groupId) should contain(idx + 1)
+      }
+    }
+  }
+
+  test("fails with bad request when requesting to count too many groups") {
+    val groupIds = (1 to 101).map { _ => GroupId.generate() }
+
+    countDevicesPerGroup(groupIds.toSet) ~> routes ~> check {
+      status shouldBe BadRequest
     }
   }
 
