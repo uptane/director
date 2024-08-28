@@ -4,7 +4,6 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives
-import akka.http.scaladsl.util.FastFuture
 import com.advancedtelematic.director.{Settings, VersionInfo}
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
 import com.advancedtelematic.libats.messaging.{BusListenerMetrics, MessageBus, MessageBusPublisher, MessageListenerSupport, MetricsBusMonitor}
@@ -20,6 +19,7 @@ import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSuppor
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.advancedtelematic.director.deviceregistry.daemon.{DeviceEventListener, DeviceUpdateEventListener, EcuReplacementListener}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import DeviceMqttLifecycle.messageLike
 
 import java.security.Security
 import scala.concurrent.duration.Duration
@@ -61,6 +61,7 @@ class DirectorDaemonBoot(override val globalConfig: Config,
     startMonitoredListener[DeviceEventMessage](new DeviceEventListener)
     startMonitoredListener[DeviceUpdateEvent](new DeviceUpdateEventListener(messageBus))
     startMonitoredListener[EcuReplacement](new EcuReplacementListener)
+    startMonitoredListener[DeviceMqttLifecycle](new MqttLifecycleListener)
 
     val routes = versionHeaders(version) {
       prometheusMetricsRoutes ~
