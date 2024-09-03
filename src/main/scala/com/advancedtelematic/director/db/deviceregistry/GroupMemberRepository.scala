@@ -157,6 +157,14 @@ object GroupMemberRepository {
       .map(_.groupId)
       .paginateResult(offset.orDefaultOffset, limit.orDefaultLimit)
 
+  def listGroupsForDevices(deviceUuids: Seq[DeviceId])(
+    implicit ec: ExecutionContext): DBIO[Map[DeviceId, Seq[GroupId]]] = {
+    val queryResult = groupMembers.filter(_.deviceUuid.inSet(deviceUuids)).result
+    queryResult.map(_.groupBy(_.deviceUuid).map { case (deviceId, groups) =>
+      deviceId -> groups.map(_.groupId)
+    })
+  }
+
   private[db] def replaceExpression(namespace: Namespace,
                                     groupId: GroupId,
                                     newExpression: GroupExpression)(
