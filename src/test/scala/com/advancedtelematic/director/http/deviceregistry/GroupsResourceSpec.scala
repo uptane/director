@@ -14,12 +14,20 @@ import akka.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceT,
+  UpdateHibernationStatusRequest
+}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
-import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
+import com.advancedtelematic.director.deviceregistry.data.{
+  Group,
+  GroupExpression,
+  GroupName,
+  GroupSortBy
+}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes.MalformedInput
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
@@ -30,6 +38,8 @@ import org.scalacheck.Gen
 import org.scalatest.EitherValues.*
 import org.scalatest.Inspectors.*
 import org.scalatest.time.{Millis, Seconds, Span}
+
+import java.util.UUID
 
 class GroupsResourceSpec
     extends DirectorSpec
@@ -130,7 +140,7 @@ class GroupsResourceSpec
     val groupIds = (1 to 3).map(_ => createStaticGroupOk()).sortBy(_.show)
 
     groupIds.zipWithIndex.foreach { case (groupId, idx) =>
-      val deviceTs = genConflictFreeDeviceTs(idx+1).sample.get
+      val deviceTs = genConflictFreeDeviceTs(idx + 1).sample.get
       val deviceIds = deviceTs.map(createDeviceOk)
       deviceIds.foreach(deviceId => addDeviceToGroupOk(groupId, deviceId))
     }
@@ -149,7 +159,7 @@ class GroupsResourceSpec
   }
 
   test("fails with bad request when requesting to count too many groups") {
-    val groupIds = (1 to 101).map { _ => GroupId.generate() }
+    val groupIds = (1 to 101).map(_ => GroupId.generate())
 
     countDevicesPerGroup(groupIds.toSet) ~> routes ~> check {
       status shouldBe BadRequest
@@ -437,6 +447,62 @@ class GroupsResourceSpec
     forAll(deviceIds) { id =>
       val device = fetchDeviceOk(id)
       device.hibernated shouldBe true
+    }
+  }
+
+  test("retrieve group membership for multiple devices") {
+    val groupId1 = createStaticGroupOk()
+    val groupId2 = createStaticGroupOk()
+    val deviceUuid1 = createDeviceOk(genDeviceT.sample.get)
+    val deviceUuid2 = createDeviceOk(genDeviceT.sample.get)
+
+    addDeviceToGroupOk(groupId1, deviceUuid1)
+    addDeviceToGroupOk(groupId1, deviceUuid2)
+    addDeviceToGroupOk(groupId2, deviceUuid1)
+
+    val devices = Seq[DeviceId](deviceUuid1, deviceUuid2)
+    Get(
+      DeviceRegistryResourceUri
+        .uri(groupsApi, "membership")
+        .withQuery(
+          Query(Map[String, String]("deviceUuids" -> devices.map(_.uuid.toString).mkString(",")))
+        )
+    ) ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val res = responseAs[Map[DeviceId, Seq[GroupId]]]
+      res.map { case (x, y) =>
+        println(x.uuid.toString + " -> " + y.map(_.uuid.toString).mkString(","))
+      }
+      res(deviceUuid1) should contain(groupId1)
+      res(deviceUuid1) should contain(groupId2)
+      res(deviceUuid2) should contain(groupId1)
+      res(deviceUuid2) should not contain groupId2
+    }
+  }
+
+  test("retrieve group membership with one invalid device") {
+    val groupId1 = createStaticGroupOk()
+    val groupId2 = createStaticGroupOk()
+    val deviceUuid1 = createDeviceOk(genDeviceT.sample.get)
+    val deviceUuid2 = createDeviceOk(genDeviceT.sample.get)
+
+    addDeviceToGroupOk(groupId1, deviceUuid1)
+    addDeviceToGroupOk(groupId1, deviceUuid2)
+    addDeviceToGroupOk(groupId2, deviceUuid1)
+
+    val unknownDeviceId = DeviceId(UUID.randomUUID())
+    val devices = Seq[String](deviceUuid1.uuid.toString, unknownDeviceId.uuid.toString)
+    Get(
+      DeviceRegistryResourceUri
+        .uri(groupsApi, "membership")
+        .withQuery(Query(Map[String, String]("deviceUuids" -> devices.mkString(","))))
+    ) ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val res = responseAs[Map[DeviceId, Seq[GroupId]]]
+      println(res)
+      res(deviceUuid1) should contain(groupId1)
+      res(deviceUuid1) should contain(groupId2)
+      res.keys should not contain unknownDeviceId
     }
   }
 

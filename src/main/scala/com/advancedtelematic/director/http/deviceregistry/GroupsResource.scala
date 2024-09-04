@@ -44,6 +44,8 @@ import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import GroupId.*
 import io.circe.syntax.*
 
+//import com.advancedtelematic.libats.http.UUIDKeyAkka.UUIDKeyUnmarshallerOp
+
 class GroupsResource(namespaceExtractor: Directive1[Namespace],
                      deviceNamespaceAuthorizer: Directive1[DeviceId])(
   implicit ec: ExecutionContext,
@@ -60,6 +62,7 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
     AllowUUIDPath(GroupId)(namespaceExtractor, groupAllowed)
   }
 
+  implicit val deviceIdUnmarshaller: Unmarshaller[String, DeviceId] = DeviceId.unmarshaller
   implicit val groupIdUnmarshaller: Unmarshaller[String, GroupId] = GroupId.unmarshaller
 
   implicit val groupTypeUnmarshaller: FromStringUnmarshaller[GroupType] =
@@ -196,6 +199,10 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
               }
           }
       } ~
+        (get & path("membership") & parameter("deviceUuids".as(CsvSeq[DeviceId]))) { deviceUuids =>
+          complete(db.run(GroupMemberRepository.listGroupsForDevices(deviceUuids)))
+        }
+        ~
         (get & path("count")) {
           countDevicesPerGroup
         } ~
