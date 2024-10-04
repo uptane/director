@@ -52,8 +52,8 @@ libraryDependencies ++= {
     "org.scala-lang.modules" %% "scala-async" % "1.0.1",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
     "org.mariadb.jdbc" % "mariadb-java-client" % "3.4.1",
-    "com.beachape" %% "enumeratum" % "1.7.4",
-    "com.beachape" %% "enumeratum-circe" % "1.7.4",
+    "com.beachape" %% "enumeratum" % "1.7.5",
+    "com.beachape" %% "enumeratum-circe" % "1.7.5",
 
     // Device registry specific dependencies
     "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "2.0.0",
