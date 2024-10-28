@@ -16,11 +16,11 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
     "namespace",
     List(
       TableResource(
-        "devices",
+        "provisioned_devices",
         readTable(
-          "devices",
+          "provisioned_devices",
           ns =>
-            sql"""select * from devices where namespace = $ns order by created_at DESC LIMIT #$DEFAULT_LIMIT"""
+            sql"""select * from provisioned_devices where namespace = $ns order by created_at DESC LIMIT #$DEFAULT_LIMIT"""
         )
       ),
       TableResource(
@@ -70,8 +70,8 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
     "device-id",
     List(
       TableResource(
-        "devices",
-        readTable("devices", id => sql"""select * from devices where id = $id""")
+        "provisioned_devices",
+        readTable("devices", id => sql"""select * from provisioned_devices where id = $id""")
       ),
       TableResource(
         "ecus",
@@ -112,6 +112,10 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
       TableResource(
         "device_type",
         readTable("DeviceType", id => sql"""select * from DeviceType where id = $id""")
+      ),
+      TableResource(
+        "scheduled_updates",
+        readTable("scheduled_updates", id => sql"""select * from scheduled_updates where device_id = $id""")
       )
     )
   )

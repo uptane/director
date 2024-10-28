@@ -6,56 +6,29 @@ import java.util.UUID
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.PathMatcher
 import cats.implicits.*
-import com.advancedtelematic.director.data.DataType.{
-  AdminRoleName,
-  ScheduledUpdate,
-  ScheduledUpdateId
-}
+import com.advancedtelematic.director.data.DataType.{AdminRoleName, ScheduledUpdate, ScheduledUpdateId}
 import com.advancedtelematic.director.data.DataType.ScheduledUpdate.Status
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.UptaneDataType.{Hashes, TargetImage}
-import com.advancedtelematic.libats.data.DataType.{
-  Checksum,
-  CorrelationId,
-  HashMethod,
-  Namespace,
-  ValidChecksum
-}
+import com.advancedtelematic.libats.codecs.CirceValidatedGeneric
+import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, Namespace, ValidChecksum}
 import com.advancedtelematic.libats.data.UUIDKey.{UUIDKey, UUIDKeyObj, UuidKeyObjTimeBased}
 import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 import com.advancedtelematic.libats.messaging_datatype.Messages.EcuAndHardwareId
 import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{
-  ClientHashes,
-  MetaPath,
-  TufRole,
-  ValidMetaPath
-}
+import com.advancedtelematic.libtuf.data.ClientDataType.{ClientHashes, MetaPath, TufRole, ValidMetaPath}
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
-import com.advancedtelematic.libtuf.data.TufDataType.{
-  HardwareIdentifier,
-  JsonSignedPayload,
-  KeyType,
-  RepoId,
-  SignedPayload,
-  TargetFilename,
-  TargetName,
-  TufKey
-}
-import com.advancedtelematic.libtuf.data.ValidatedString.{
-  ValidatedString,
-  ValidatedStringValidation
-}
+import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, JsonSignedPayload, KeyType, RepoId, SignedPayload, TargetFilename, TargetName, TufKey}
+import com.advancedtelematic.libtuf.data.ValidatedString.{ValidatedString, ValidatedStringValidation}
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
 import eu.timepit.refined.api.Refined
-import io.circe.{Codec, Encoder, Json}
+import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
 import com.advancedtelematic.libats.data.RefinedUtils.*
 import com.advancedtelematic.libtuf.data.TufCodecs
-import enumeratum.EnumEntry.{Camelcase, Uppercase}
-import io.circe.syntax.EncoderOps
+import enumeratum.EnumEntry.Camelcase
 
 import scala.annotation.nowarn
 

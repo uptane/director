@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory
 
 import java.time.Instant
 import scala.util.{Failure, Success, Try}
+import com.advancedtelematic.director.data.Codecs.*
 
 object ManifestCompiler {
   private val _log = LoggerFactory.getLogger(this.getClass)
@@ -74,12 +75,11 @@ object ManifestCompiler {
     and checking what is installed on the device. We then do the same again here, to match against the
     scheduled updates ecu targets.
 
-    We cannot rely on processed assignments because scheduled updates might not have generated assignments yet.
+    We cannot rely on processed assignments **only** because scheduled updates might not have generated assignments yet.
+    Processed assignments still need to be checked in case the assignment was processed, but not installed, for example,
+    if the update as cancelled.
 
     We cannot rely on correlation id, because we might not have an assignment, which contains the correlation id.
-
-    We could first match using the processed assignments and then `ecu_version_manifests`, but that seems more
-    complex than this needs to be, since the end result would be the same.
 
     Here we use knownStatus.ecuStatus rather than `ecu_version_manifests` as we don't have the manifest
     at this point, but knownStatus.ecuStatus is populated based on matching `ecu_version_manifests` so
@@ -90,13 +90,12 @@ object ManifestCompiler {
       _log
         .atInfo()
         .addKeyValue("scheduledUpdatesMtuIds", knownState.scheduledUpdates.map(_.updateId).asJson)
-        .addKeyValue("deviceId", knownState.deviceId)
-        .addKeyValue("ecuStatus", knownState.ecuStatus.keys.asJson)
+        .addKeyValue("deviceId", knownState.deviceId.asJson)
         .log("calculating scheduled updates changes")
     else
       _log
         .atDebug()
-        .addKeyValue("deviceId", knownState.deviceId)
+        .addKeyValue("deviceId", knownState.deviceId.asJson)
         .log("no scheduled updates")
 
     val newScheduledUpdates = knownState.scheduledUpdates.map { su =>
@@ -109,7 +108,7 @@ object ManifestCompiler {
       if (scheduledUpdateEcuTargets.isEmpty) {
         _log
           .atWarn()
-          .addKeyValue("deviceId", knownState.deviceId)
+          .addKeyValue("deviceId", knownState.deviceId.asJson)
           .addKeyValue("scheduledUpdateId", su.id.asJson)
           .log("no ecu targets for scheduled update")
       }
@@ -117,16 +116,24 @@ object ManifestCompiler {
       val totalTargetsForScheduledUpdate =
         knownState.scheduledUpdatesEcuTargetIds.get(su.updateId).toList.flatten.size
 
-      val alreadyProcessed = knownState.ecuStatus.values.flatten.count { ecuTargetId =>
+      val processedInEcuStatus = knownState.ecuStatus.values.flatten.filter { ecuTargetId =>
         scheduledUpdateEcuTargets.exists { ecuTarget =>
           knownState.ecuTargets.get(ecuTargetId).exists(_.matches(ecuTarget))
         }
       }
 
+      val processedInAssignment = knownState.processedAssignments
+        .map(_.ecuTargetId)
+        .filter(scheduledUpdateEcuTargets.map(_.id).contains)
+
+      val alreadyProcessedIds = (processedInEcuStatus ++ processedInAssignment).toSet
+
       val updated =
-        if ((alreadyProcessed > 0) && (alreadyProcessed == totalTargetsForScheduledUpdate))
+        if (
+          alreadyProcessedIds.nonEmpty && (alreadyProcessedIds.size == totalTargetsForScheduledUpdate)
+        )
           su.copy(status = ScheduledUpdate.Status.Completed)
-        else if (alreadyProcessed > 0)
+        else if (alreadyProcessedIds.nonEmpty)
           su.copy(status = ScheduledUpdate.Status.PartiallyCompleted)
         else
           su
@@ -135,7 +142,9 @@ object ManifestCompiler {
         .atInfo()
         .addKeyValue("deviceId", knownState.deviceId.asJson)
         .addKeyValue("totalTargetsForScheduledUpdate", totalTargetsForScheduledUpdate)
-        .addKeyValue("alreadyProcessed", alreadyProcessed)
+        .addKeyValue("alreadyProcessedCount", alreadyProcessedIds.size)
+        .addKeyValue("processedAsAssignment", processedInAssignment.asJson)
+        .addKeyValue("processedInEcuStatus", processedInEcuStatus.asJson)
         .addKeyValue("scheduledUpdateEcuTargets", scheduledUpdateEcuTargets.map(_.id).asJson)
         .addKeyValue("result", updated.asJson)
         .log(s"updating scheduled updates for ${su.id}")
@@ -165,7 +174,7 @@ object ManifestCompiler {
 
   private def compileManifest(
     ns: Namespace,
-    manifest: DeviceManifest): DeviceKnownState => (DeviceKnownState, List[DeviceUpdateEvent]) =
+    manifest: DeviceManifest): DeviceKnownState => (DeviceKnownState, List[DeviceUpdateCompleted]) =
     (knownStatus: DeviceKnownState) => {
       _log.debug(s"current device state: $knownStatus")
 
@@ -180,24 +189,26 @@ object ManifestCompiler {
       }
 
       val newEcuTargets = manifest.ecu_version_manifests.values
-        .map { ecuManifest =>
+        .flatMap { ecuManifest =>
           val installedImage = ecuManifest.signed.installed_image
-          val existingEcuTarget = findEcuTargetByImage(knownStatus.ecuTargets, installedImage)
+          val existingEcuTarget = findEcuTargetsByImage(knownStatus.ecuTargets, installedImage)
 
           if (existingEcuTarget.isEmpty) {
             _log.debug(s"$installedImage not found in ${knownStatus.ecuTargets}")
-            EcuTarget(
-              ns,
-              EcuTargetId.generate(),
-              installedImage.filepath,
-              installedImage.fileinfo.length,
-              Checksum(HashMethod.SHA256, installedImage.fileinfo.hashes.sha256),
-              installedImage.fileinfo.hashes.sha256,
-              uri = None,
-              userDefinedCustom = None
+            List(
+              EcuTarget(
+                ns,
+                EcuTargetId.generate(),
+                installedImage.filepath,
+                installedImage.fileinfo.length,
+                Checksum(HashMethod.SHA256, installedImage.fileinfo.hashes.sha256),
+                installedImage.fileinfo.hashes.sha256,
+                uri = None,
+                userDefinedCustom = None
+              )
             )
           } else
-            existingEcuTarget.get
+            existingEcuTarget
 
         }
         .map(e => e.id -> e)
@@ -205,8 +216,18 @@ object ManifestCompiler {
 
       val statusInManifest = manifest.ecu_version_manifests.view
         .mapValues { ecuManifest =>
-          val newTargetO = findEcuTargetByImage(newEcuTargets, ecuManifest.signed.installed_image)
-          newTargetO.map(_.id)
+          val newTargetO = findEcuTargetsByImage(newEcuTargets, ecuManifest.signed.installed_image)
+
+          if (newTargetO.length > 1)
+            _log
+              .atError()
+              .addKeyValue("deviceId", knownStatus.deviceId.asJson)
+              .addKeyValue("matchingTargets", newTargetO.asJson)
+              .log(
+                "too many ecu targets match the reported image for ecu. This can cause problems when determining what is installed on the device"
+              )
+
+          newTargetO.headOption.map(_.id)
         }
         .filter(_._2.isDefined)
 
@@ -270,7 +291,11 @@ object ManifestCompiler {
         case Right(report) if !report.result.success =>
           val _report = manifest.installation_report.map(_.report.result).map(_.asJson.noSpaces)
           val desc = s"Device reported installation error: ${_report}"
-          _log.info(s"${knownStatus.deviceId} Received error installation report: $desc")
+          _log
+            .atInfo()
+            .addKeyValue("deviceId", knownStatus.deviceId.asJson)
+            .addKeyValue("report", desc.asJson)
+            .log(s"${knownStatus.deviceId} Received error installation report: $desc")
 
           val cancelled = assignmentsProcessedInManifest.isEmpty
           val cancelledAssignments = knownStatus.currentAssignments.map(
@@ -394,14 +419,14 @@ object ManifestCompiler {
     } else
       List.empty
 
-  private def findEcuTargetByImage(ecuTargets: Map[EcuTargetId, EcuTarget],
-                                   image: Image): Option[EcuTarget] =
-    ecuTargets.values.find { ecuTarget =>
+  private def findEcuTargetsByImage(ecuTargets: Map[EcuTargetId, EcuTarget],
+                                    image: Image): Seq[EcuTarget] =
+    ecuTargets.values.filter { ecuTarget =>
       val imagePath = image.filepath
       val imageChecksum = image.fileinfo.hashes.sha256
 
       ecuTarget.filename == imagePath && ecuTarget.checksum.hash == imageChecksum
-    }
+    }.toSeq
 
   private def resultMsgFromInstallationReport(
     namespace: Namespace,

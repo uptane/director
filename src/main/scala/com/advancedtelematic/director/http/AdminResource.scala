@@ -52,7 +52,7 @@ case class RemoteSessionRequest(remoteSessions: RemoteSessionsPayload, previousV
 class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient)(
   implicit val db: Database,
   val ec: ExecutionContext,
-  messageBusPublisher: MessageBusPublisher)
+  messageBusPublisher:MessageBusPublisher)
     extends NamespaceRepoId
     with RepoNamespaceRepositorySupport
     with RootFetching
