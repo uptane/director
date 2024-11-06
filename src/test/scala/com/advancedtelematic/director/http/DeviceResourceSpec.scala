@@ -5,25 +5,61 @@ import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.daemon.UpdateSchedulerDaemon
 import com.advancedtelematic.director.data.AdminDataType
-import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, MultiTargetUpdate, QueueResponse, RegisterDevice, TargetUpdate}
+import com.advancedtelematic.director.data.AdminDataType.{
+  EcuInfoResponse,
+  MultiTargetUpdate,
+  QueueResponse,
+  RegisterDevice,
+  TargetUpdate
+}
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.*
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom, InstallationReport, InstallationReportEntity, MissingInstallationReport, OperationResult}
+import com.advancedtelematic.director.data.DeviceRequest.{
+  DeviceManifest,
+  EcuManifest,
+  EcuManifestCustom,
+  InstallationItem,
+  InstallationReport,
+  InstallationReportEntity,
+  MissingInstallationReport,
+  OperationResult
+}
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.data.Messages.DeviceManifestReported
 import com.advancedtelematic.director.data.UptaneDataType.{FileInfo, Hashes, Image}
-import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepositorySupport, UpdateSchedulerDBIO}
+import com.advancedtelematic.director.db.{
+  AssignmentsRepositorySupport,
+  EcuRepositorySupport,
+  UpdateSchedulerDBIO
+}
 import com.advancedtelematic.director.manifest.ResultCodes
 import com.advancedtelematic.director.util.*
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, HashMethod, MultiTargetUpdateId, Namespace, ResultCode, ResultDescription}
+import com.advancedtelematic.libats.data.DataType.{
+  CorrelationId,
+  HashMethod,
+  MultiTargetUpdateId,
+  Namespace,
+  ResultCode,
+  ResultDescription
+}
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceSeen, DeviceUpdateCompleted, *}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeviceSeen,
+  DeviceUpdateCompleted,
+  *
+}
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{RootRole, SnapshotRole, TargetsRole, TimestampRole, TufRole}
+import com.advancedtelematic.libtuf.data.ClientDataType.{
+  RootRole,
+  SnapshotRole,
+  TargetsRole,
+  TimestampRole,
+  TufRole
+}
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -1608,11 +1644,50 @@ class DeviceResourceSpec
     scheduledUpdate.status shouldBe ScheduledUpdate.Status.Completed
   }
 
+  testWithRepo(
+    "a failed installation report originating from a scheduled update concludes the scheduled update"
+  ) { implicit ns =>
+    val dev = registerAdminDeviceWithSecondariesOk()
+    val currentUpdate = GenTargetUpdateRequest.generate
+    val newUpdate = GenTargetUpdateRequest.generate
+
+    val deviceManifest = buildPrimaryManifest(dev.primary, dev.primaryKey, currentUpdate.to)
+    putManifestOk(dev.deviceId, deviceManifest)
+
+    val mtu = MultiTargetUpdate(Map(dev.primary.hardwareId -> newUpdate))
+
+    createScheduledUpdateOk(dev.deviceId, mtu)
+
+    val scheduledUpdate = updateSchedulerIO.run().futureValue.loneElement
+
+    val newManifest = buildPrimaryManifest(
+      dev.primary,
+      dev.primaryKey,
+      currentUpdate.to,
+      InstallationReport(
+        MultiTargetUpdateId(scheduledUpdate.updateId.uuid),
+        InstallationResult(
+          success = false,
+          code = ResultCode("download_failed"),
+          ResultDescription("download failed")
+        ),
+        Seq.empty,
+        None
+      ).some
+    )
+
+    putManifestOk(dev.deviceId, newManifest)
+
+    val apiScheduledUpdate = listScheduledUpdatesOK(dev.deviceId).values.loneElement
+    apiScheduledUpdate.status shouldBe ScheduledUpdate.Status.Completed
+  }
+
   testWithRepo("partially installing a scheduled update sets status to PartiallyCompleted") {
     implicit ns =>
       val dev = registerAdminDeviceWithSecondariesOk()
       val currentUpdate = GenTargetUpdateRequest.generate
-      val newUpdate = GenTargetUpdateRequest.generate
+      val newUpdatePrimary = GenTargetUpdateRequest.generate
+      val newUpdateSecondary = GenTargetUpdateRequest.generate
       val secondarySerial = dev.secondaries.keys.head
       val secondaryKey = dev.secondaryKeys(secondarySerial)
 
@@ -1627,9 +1702,14 @@ class DeviceResourceSpec
 
       val mtu = MultiTargetUpdate(
         Map(
-          dev.secondaries.values.head.hardwareId -> newUpdate,
-          dev.primary.hardwareId -> newUpdate
+          dev.secondaries.values.head.hardwareId -> newUpdatePrimary,
+          dev.primary.hardwareId -> newUpdateSecondary
         )
+      )
+
+      println("WWWWWWWWWWWWWW")
+      println(
+        s"newUpdate=${newUpdatePrimary.to.target.value} primaryEcu=${dev.primary.ecuSerial.value} secondaryEcu=${secondarySerial.value}"
       )
 
       createScheduledUpdateOk(dev.deviceId, mtu)
@@ -1641,7 +1721,7 @@ class DeviceResourceSpec
         dev.primaryKey,
         secondarySerial,
         secondaryKey,
-        Map(dev.primary.ecuSerial -> currentUpdate.to, secondarySerial -> newUpdate.to)
+        Map(dev.primary.ecuSerial -> currentUpdate.to, secondarySerial -> newUpdateSecondary.to)
       )
 
       putManifestOk(dev.deviceId, newManifest)
@@ -1654,7 +1734,7 @@ class DeviceResourceSpec
         dev.primaryKey,
         secondarySerial,
         secondaryKey,
-        Map(dev.primary.ecuSerial -> newUpdate.to, secondarySerial -> newUpdate.to)
+        Map(dev.primary.ecuSerial -> newUpdatePrimary.to, secondarySerial -> newUpdateSecondary.to)
       )
 
       putManifestOk(dev.deviceId, newManifest2)
