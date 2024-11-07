@@ -130,7 +130,7 @@ object ManifestCompiler {
 
       val updated =
         if (
-          alreadyProcessedIds.nonEmpty && (alreadyProcessedIds.size == totalTargetsForScheduledUpdate)
+          alreadyProcessedIds.nonEmpty && (alreadyProcessedIds.size >= totalTargetsForScheduledUpdate)
         )
           su.copy(status = ScheduledUpdate.Status.Completed)
         else if (alreadyProcessedIds.nonEmpty)
