@@ -20,12 +20,12 @@ object ManifestProcess {
       sys.exit(1)
     }
 
-    val manifestFile = Paths.get(args(1))
+    val manifestFile = Paths.get(args(0))
 
     val deviceManifest =
       io.circe.jawn.parsePath(manifestFile).flatMap(_.as[DeviceManifest]).valueOr(throw _)
 
-    val deviceStatusFile = Paths.get(args(2))
+    val deviceStatusFile = Paths.get(args(1))
 
     val deviceKnownState =
       io.circe.jawn.parsePath(deviceStatusFile).flatMap(_.as[DeviceKnownState]).valueOr(throw _)
