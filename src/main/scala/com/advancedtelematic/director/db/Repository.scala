@@ -62,6 +62,7 @@ import io.circe.syntax.EncoderOps
 import slick.jdbc.GetResult
 
 import scala.concurrent.{ExecutionContext, Future}
+import cats.syntax.show.*
 
 protected trait DatabaseSupport {
   implicit val ec: ExecutionContext
@@ -721,6 +722,22 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
       case Some(r) => FastFuture.successful(r)
       case None    => FastFuture.failed(Errors.MissingAdminRole(repoId, name))
     }
+
+  def findLatestExpireDate(repoId: RepoId): Future[Option[Instant]] = {
+    implicit val getInstant = GetResult[Option[Instant]] { pr =>
+      Option(pr.rs.getTimestamp(1)).map(_.toInstant)
+    }
+
+    val sql =
+      sql"""
+            select max(ar0.expires_at) from #${Schema.adminRoles.baseTableRow.tableName} ar0 join
+            (select max(version) version, repo_id, name from #${Schema.adminRoles.baseTableRow.tableName} group by repo_id, name) ar
+            USING (name, version, repo_id)
+            where ar0.repo_id = '${repoId.show}'
+      """.as[Option[Instant]].headOption
+
+    db.run(sql).map(_.flatten)
+  }
 
   def persistAction(signedRole: DbAdminRole): DBIO[Unit] =
     adminRoles
