@@ -24,7 +24,18 @@ import com.advancedtelematic.director.db.deviceregistry.DbOps.PaginationResultOp
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceCountParams, DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceCountParams,
+  DeviceT,
+  DevicesQuery,
+  InstallationStatsLevel,
+  RenameTagId,
+  SearchParams,
+  SetDevice,
+  UpdateDevice,
+  UpdateHibernationStatusRequest,
+  UpdateTagValue
+}
 import com.advancedtelematic.director.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
@@ -44,13 +55,17 @@ import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeleteDeviceRequest,
+  DeviceEventMessage
+}
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 import slick.jdbc.MySQLProfile.api.*
 import Unmarshallers.nonNegativeLong
+import com.advancedtelematic.director.db.DeleteDeviceDBIO
 
 import java.time.{Instant, OffsetDateTime}
 import java.util.concurrent.TimeUnit
@@ -148,19 +163,16 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
   val eventJournal = new EventJournal()
 
   val countParameters: Directive1[DeviceCountParams] =
-    parameters(
-      Symbol("recentSinceSecs").as[Long].?,
-      Symbol("offlineSinceSecs").as[Long].?,
-    ).tmap { case (recentSince, offlineSince) =>
-      DeviceCountParams(
-        recentSince.map(secs => Duration(secs, TimeUnit.SECONDS)),
-        offlineSince.map(secs => Duration(secs, TimeUnit.SECONDS)),
-      )
+    parameters(Symbol("recentSinceSecs").as[Long].?, Symbol("offlineSinceSecs").as[Long].?).tmap {
+      case (recentSince, offlineSince) =>
+        DeviceCountParams(
+          recentSince.map(secs => Duration(secs, TimeUnit.SECONDS)),
+          offlineSince.map(secs => Duration(secs, TimeUnit.SECONDS))
+        )
     }
 
-  def countDevices(ns: Namespace, params: DeviceCountParams): Route = {
+  def countDevices(ns: Namespace, params: DeviceCountParams): Route =
     complete(db.run(SearchDBIO.countByStatus(ns, params)))
-  }
 
   def searchDevice(ns: Namespace): Route =
     parameters(
@@ -225,20 +237,16 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
           limit
         )
     ) { params =>
-      complete(
-        for {
+      complete(for {
         pr <- db.run(SearchDBIO.search(ns, params))
         taggedDevicesMap <- db.run(
           TaggedDeviceRepository.fetchForDevices(pr.values.map(_.uuid)).map { deviceTags =>
             deviceTags.groupBy(_._1).map { case (k, v) => (k, v.map(_._2)) }
           }
         )
-      } yield pr.copy(
-          values = pr.values.map { device =>
-            DeviceDB.toDevice(device, taggedDevicesMap.getOrElse(device.uuid, Seq.empty).toMap)
-          }
-        )
-      )
+      } yield pr.copy(values = pr.values.map { device =>
+        DeviceDB.toDevice(device, taggedDevicesMap.getOrElse(device.uuid, Seq.empty).toMap)
+      }))
 
     }
 
@@ -266,8 +274,12 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
   }
 
   def deleteDevice(ns: Namespace, uuid: DeviceId): Route = {
-    val f = messageBus.publish(DeleteDeviceRequest(ns, uuid, Instant.now()))
-    onSuccess(f)(complete(StatusCodes.Accepted))
+    val f = for {
+      _ <- db.run(DeleteDeviceDBIO.deleteDeviceIO(ns, uuid))
+      _ <- messageBus.publishSafe(DeleteDeviceRequest(ns, uuid, Instant.now()))
+    } yield StatusCodes.Accepted
+
+    complete(f)
   }
 
   def fetchDevice(uuid: DeviceId): Route =

@@ -166,21 +166,6 @@ object DeviceRepository {
     dbIO.transactionally
   }
 
-  def delete(ns: Namespace, uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Unit] = {
-    val dbIO = for {
-      device <- exists(ns, uuid)
-      _ <- EventJournal.archiveIndexedEvents(uuid)
-      _ <- EventJournal.deleteEvents(uuid)
-      _ <- GroupMemberRepository.removeDeviceFromAllGroups(uuid)
-      _ <- PublicCredentialsRepository.delete(uuid)
-      _ <- SystemInfoRepository.delete(uuid)
-      _ <- TaggedDeviceRepository.delete(uuid)
-      _ <- devices.filter(d => d.namespace === ns && d.id === uuid).delete
-      _ <- deletedDevices += DeletedDevice(ns, device.uuid, device.deviceId)
-    } yield ()
-
-    dbIO.transactionally
-  }
 
   def deviceNamespace(uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Namespace] =
     devices

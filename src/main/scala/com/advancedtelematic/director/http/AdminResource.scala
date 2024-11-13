@@ -273,7 +273,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                   else {
                     complete {
                       deviceRegistration
-                        .registerAndPublish(
+                        .register(
                           ns,
                           repoId,
                           regDev.deviceId.get,

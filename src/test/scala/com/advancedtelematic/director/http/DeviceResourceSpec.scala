@@ -33,6 +33,11 @@ import com.advancedtelematic.director.db.{
   EcuRepositorySupport,
   UpdateSchedulerDBIO
 }
+import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuReplacementRepository}
+import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepositorySupport, UpdateSchedulerDBIO}
+import com.advancedtelematic.director.deviceregistry.data.{DeviceGenerators, DeviceStatus}
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
+import com.advancedtelematic.director.http.deviceregistry.DeviceRequests
 import com.advancedtelematic.director.manifest.ResultCodes
 import com.advancedtelematic.director.util.*
 import com.advancedtelematic.libats.data.DataType.{
@@ -70,6 +75,8 @@ import org.scalatest.OptionValues.*
 import io.circe.syntax.*
 import org.scalatest.EitherValues.*
 
+import scala.concurrent.Future
+
 class DeviceResourceSpec
     extends DirectorSpec
     with ResourceSpec
@@ -81,7 +88,8 @@ class DeviceResourceSpec
     with Inspectors
     with ProvisionedDevicesRequests
     with AssignmentsRepositorySupport
-    with ScheduledUpdatesResources {
+    with ScheduledUpdatesResources
+    with DeviceRequests {
 
   override implicit val msgPub = new MockMessageBus
 
@@ -94,13 +102,16 @@ class DeviceResourceSpec
     db.run(sql.asUpdate).futureValue
   }
 
+  private def findReplacedEcus(id: DeviceId): Future[Seq[EcuReplacement]] =
+    db.run(EcuReplacementRepository.fetchForDevice(id)).map(_.sortBy(_.eventTime).reverse.toList)
+
   testWithNamespace("accepts a device registering ecus") { implicit ns =>
     createRepoOk()
     registerDeviceOk()
   }
 
   testWithRepo("a device can replace its ecus") { implicit ns =>
-    val deviceId = DeviceId.generate()
+    val deviceId = createDeviceInNamespaceOk(DeviceGenerators.genDeviceT.generate, ns)
     val ecus = GenRegisterEcu.generate
     val primaryEcu = ecus.ecu_serial
     val req = RegisterDevice(deviceId.some, primaryEcu, Seq(ecus))
@@ -117,14 +128,14 @@ class DeviceResourceSpec
       status shouldBe StatusCodes.OK
     }
 
-    val ecuReplaced =
-      msgPub.findReceived[EcuReplacement](deviceId.show).value.asInstanceOf[EcuReplaced]
+    val ecuReplaced = findReplacedEcus(deviceId).futureValue.loneElement.asInstanceOf[EcuReplaced]
     ecuReplaced.former shouldBe EcuAndHardwareId(primaryEcu, ecus.hardware_identifier.value)
     ecuReplaced.current shouldBe EcuAndHardwareId(primaryEcu2, ecus2.hardware_identifier.value)
   }
 
   testWithRepo("a device can replace its primary ecu only") { implicit ns =>
-    val deviceId = DeviceId.generate()
+    val deviceT = DeviceGenerators.genDeviceT.generate
+    val deviceId = createDeviceInNamespaceOk(deviceT, ns)
     val ecus = GenRegisterEcu.generate
     val primaryEcu = ecus.ecu_serial
     val secondaryEcu = GenRegisterEcu.generate
@@ -142,14 +153,13 @@ class DeviceResourceSpec
       status shouldBe StatusCodes.OK
     }
 
-    val ecuReplaced =
-      msgPub.findReceived[EcuReplacement](deviceId.show).value.asInstanceOf[EcuReplaced]
+    val ecuReplaced = findReplacedEcus(deviceId).futureValue.map(_.asInstanceOf[EcuReplaced]).head
     ecuReplaced.former shouldBe EcuAndHardwareId(primaryEcu, ecus.hardware_identifier.value)
     ecuReplaced.current shouldBe EcuAndHardwareId(primaryEcu2, ecus2.hardware_identifier.value)
   }
 
   testWithRepo("a device can replace its primary ecu and one secondary ecu") { implicit ns =>
-    val deviceId = DeviceId.generate()
+    val deviceId = createDeviceInNamespaceOk(genDeviceT.generate, ns)
     val (primary, secondary) = (GenRegisterEcu.generate, GenRegisterEcu.generate)
     val (primary2, secondary2) = (GenRegisterEcu.generate, GenRegisterEcu.generate)
     val req = RegisterDevice(deviceId.some, primary.ecu_serial, Seq(primary, secondary))
@@ -164,7 +174,8 @@ class DeviceResourceSpec
     }
 
     val secondaryReplacement :: primaryReplacement :: _ =
-      msgPub.findReceivedAll[EcuReplacement](deviceId.show).map(_.asInstanceOf[EcuReplaced])
+      findReplacedEcus(deviceId).futureValue.map(_.asInstanceOf[EcuReplaced])
+
     primaryReplacement.former shouldBe EcuAndHardwareId(
       primary.ecu_serial,
       primary.hardware_identifier.value
@@ -184,7 +195,7 @@ class DeviceResourceSpec
   }
 
   testWithRepo("a device can replace multiple secondary ecus") { implicit ns =>
-    val deviceId = DeviceId.generate()
+    val deviceId = createDeviceInNamespaceOk(genDeviceT.generate, ns)
     val primary = GenRegisterEcu.generate
     val (secondary, otherSecondary) = (GenRegisterEcu.generate, GenRegisterEcu.generate)
     val (secondary2, otherSecondary2) = (GenRegisterEcu.generate, GenRegisterEcu.generate)
@@ -202,7 +213,8 @@ class DeviceResourceSpec
     }
 
     val secondaryReplacement :: otherSecondaryReplacement :: _ =
-      msgPub.findReceivedAll[EcuReplacement](deviceId.show).map(_.asInstanceOf[EcuReplaced])
+      findReplacedEcus(deviceId).futureValue.map(_.asInstanceOf[EcuReplaced])
+
     Seq(secondaryReplacement.former, otherSecondaryReplacement.former) should contain only (
       EcuAndHardwareId(secondary.ecu_serial, secondary.hardware_identifier.value),
       EcuAndHardwareId(otherSecondary.ecu_serial, otherSecondary.hardware_identifier.value)
@@ -392,7 +404,7 @@ class DeviceResourceSpec
     "replacing ecus fails when device has running assignments and new ecu list does not include all ECUs with assignments"
   ) { implicit ns =>
     val targetUpdate = GenTargetUpdateRequest.generate
-    val deviceId = DeviceId.generate()
+    val deviceId = createDeviceInNamespaceOk(genDeviceT.generate, ns)
     val ecus = GenRegisterEcu.generate
     val ecus2 = GenRegisterEcu.generate
     val ecus3 = GenRegisterEcu.generate
@@ -418,8 +430,7 @@ class DeviceResourceSpec
       resp.code shouldBe ErrorCodes.ReplaceEcuAssignmentExists
     }
 
-    val replacements = msgPub.findReceivedAll[EcuReplacement](deviceId.show)
-    replacements.loneElement.asInstanceOf[EcuReplacementFailed].deviceUuid shouldBe deviceId
+    db.run(DeviceRepository.findByUuid(deviceId)).futureValue.deviceStatus shouldBe DeviceStatus.Error
   }
 
   testWithRepo("Previously used *secondary* ecus cannot be reused when replacing ecus") {

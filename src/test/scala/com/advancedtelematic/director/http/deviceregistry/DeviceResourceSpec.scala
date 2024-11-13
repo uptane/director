@@ -14,12 +14,12 @@ import akka.http.scaladsl.model.Uri.Query
 import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
-import com.advancedtelematic.director.daemon.{
-  DeleteDeviceRequestListener,
-  DeviceMqttLifecycle,
-  EventType,
-  MqttLifecycleListener
+import com.advancedtelematic.director.daemon.{DeviceMqttLifecycle, EventType, MqttLifecycleListener}
+import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
+  DevicesCount,
+  InstalledPackage
 }
+import com.advancedtelematic.director.db.DeleteDeviceDBIO
 import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
   DevicesCount,
   InstalledPackage
@@ -198,9 +198,9 @@ class DeviceResourceSpec
   test("GET devices not seen for the last hours") {
     forAll(sizeRange(20)) {
       (neverSeen: Seq[DeviceT], notSeenLately: Seq[DeviceT], seenLately: Seq[DeviceT]) =>
-        val neverSeenIds = neverSeen.map(createDeviceOk(_))
-        val notSeenLatelyIds = notSeenLately.map(createDeviceOk(_))
-        val seenLatelyIds = seenLately.map(createDeviceOk(_))
+        val neverSeenIds = neverSeen.map(createDeviceOk)
+        val notSeenLatelyIds = notSeenLately.map(createDeviceOk)
+        val seenLatelyIds = seenLately.map(createDeviceOk)
 
         seenLatelyIds.foreach(logDeviceSeen(_))
         val hours = Gen.chooseNum(1, 100000).sample.get
@@ -1045,8 +1045,6 @@ class DeviceResourceSpec
     }
   }
 
-  val listener = new DeleteDeviceRequestListener()
-
   test("DELETE device removes it from its group") {
     forAll { (devicePre: DeviceT, groupName: GroupName) =>
       val uuid = createDeviceOk(devicePre)
@@ -1059,7 +1057,7 @@ class DeviceResourceSpec
         devices.values.find(_ == uuid) shouldBe Some(uuid)
       }
 
-      listener.apply(DeleteDeviceRequest(defaultNs, uuid)).futureValue
+      db.run(DeleteDeviceDBIO.deleteDeviceIO(defaultNs, uuid)).futureValue
 
       eventually {
         fetchByGroupId(groupId, offset = 0, limit = 10) ~> routes ~> check {
@@ -1092,7 +1090,7 @@ class DeviceResourceSpec
 
     val uuid: DeviceId = deviceIds.head
 
-    listener.apply(DeleteDeviceRequest(defaultNs, uuid)).futureValue
+    db.run(DeleteDeviceDBIO.deleteDeviceIO(defaultNs, uuid)).futureValue
 
     eventually {
       (0 until groupNumber).foreach { i =>

@@ -1,6 +1,7 @@
 package com.advancedtelematic.director.db
 
 import akka.http.scaladsl.util.FastFuture
+import cats.implicits.toShow
 import com.advancedtelematic.director.data.AdminDataType.{
   EcuInfoImage,
   EcuInfoResponse,
@@ -8,24 +9,23 @@ import com.advancedtelematic.director.data.AdminDataType.{
 }
 import com.advancedtelematic.director.data.UptaneDataType.Hashes
 import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
+import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuReplacementRepository}
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.director.http.Errors.AssignmentExistsError
+import com.advancedtelematic.director.http.deviceregistry.Errors.MissingDevice
 import com.advancedtelematic.director.repo.DeviceRoleGeneration
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.EcuIdentifier
-import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  EcuReplacement,
-  EcuReplacementFailed
-}
 import com.advancedtelematic.libtuf.data.TufDataType.RepoId
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
-import slick.jdbc.MySQLProfile.api._
+import org.slf4j.LoggerFactory
+import slick.jdbc.MySQLProfile.api.*
 
-import scala.async.Async._
+import scala.async.Async.*
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class DeviceRegistration(keyserverClient: KeyserverClient)(
   implicit val db: Database,
@@ -33,6 +33,8 @@ class DeviceRegistration(keyserverClient: KeyserverClient)(
     extends ProvisionedDeviceRepositorySupport
     with EcuRepositorySupport {
   val roleGeneration = new DeviceRoleGeneration(keyserverClient)
+
+  private lazy val log = LoggerFactory.getLogger(this.getClass)
 
   def findDeviceEcuInfo(ns: Namespace, deviceId: DeviceId): Future[Vector[EcuInfoResponse]] =
     async {
@@ -45,11 +47,11 @@ class DeviceRegistration(keyserverClient: KeyserverClient)(
       }.toVector
     }
 
-  protected[db] def register(ns: Namespace,
-                             repoId: RepoId,
-                             deviceId: DeviceId,
-                             primaryEcuId: EcuIdentifier,
-                             ecus: Seq[RegisterEcu]): Future[DeviceCreateResult] =
+  private def registerAndRegenerateTargets(ns: Namespace,
+                                           repoId: RepoId,
+                                           deviceId: DeviceId,
+                                           primaryEcuId: EcuIdentifier,
+                                           ecus: Seq[RegisterEcu]): Future[DeviceCreateResult] =
     if (ecus.exists(_.ecu_serial == primaryEcuId)) {
       val _ecus = ecus.map(_.toEcu(ns, deviceId))
 
@@ -65,18 +67,39 @@ class DeviceRegistration(keyserverClient: KeyserverClient)(
     } else
       FastFuture.failed(Errors.PrimaryIsNotListedForDevice)
 
-  def registerAndPublish(ns: Namespace,
-                         repoId: RepoId,
-                         deviceId: DeviceId,
-                         primaryEcuId: EcuIdentifier,
-                         ecus: Seq[RegisterEcu])(
-    implicit messageBusPublisher: MessageBusPublisher): Future[DeviceCreateResult] =
-    register(ns, repoId, deviceId, primaryEcuId, ecus).andThen {
+  private def insertEcuReplacementOrError(
+    deviceCreateResult: Try[DeviceCreateResult]): Future[Unit] =
+    deviceCreateResult match {
       case Success(event: ProvisionedDeviceRepository.Updated) =>
-        event.asEcuReplacedSeq.foreach(messageBusPublisher.publishSafe(_))
+        val io = event.asEcuReplacedSeq.map { ecuReplaced =>
+          EcuReplacementRepository.insert(ecuReplaced)
+        }
+        db.run(DBIO.sequence(io)).map(_ => ())
       case Failure(AssignmentExistsError(deviceId)) =>
-        val failedReplacement: EcuReplacement = EcuReplacementFailed(deviceId)
-        messageBusPublisher.publishSafe(failedReplacement)
+        db.run(DeviceRepository.setDeviceStatus(deviceId, DeviceStatus.Error))
+      case Failure(ex) =>
+        FastFuture.failed(ex)
+      case Success(_) =>
+        FastFuture.successful(())
+    }
+
+  def register(ns: Namespace,
+               repoId: RepoId,
+               deviceId: DeviceId,
+               primaryEcuId: EcuIdentifier,
+               ecus: Seq[RegisterEcu]): Future[DeviceCreateResult] =
+    registerAndRegenerateTargets(ns, repoId, deviceId, primaryEcuId, ecus).transformWith {
+      createResult =>
+        insertEcuReplacementOrError(createResult)
+          .recover {
+            case MissingDevice =>
+              log.warn(
+                s"Trying to replace ECUs on a non-existing or deleted device: ${deviceId.show}."
+              )
+            case ex =>
+              log.warn("could not add journal events for ecu replacement", ex)
+          }
+          .transform(_ => createResult)
     }
 
 }
