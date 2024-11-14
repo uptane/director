@@ -131,6 +131,7 @@ object Schema {
     def createdAt = column[Instant]("created_at")(javaInstantMapping)
     def checksum = column[Checksum]("checksum")
     def length = column[Long]("length")
+    def deleted = column[Boolean]("deleted")
 
     def primKey = primaryKey("offline_targets_pk", (repoId, name, version))
 
@@ -147,7 +148,10 @@ object Schema {
 
   }
 
-  protected[db] val adminRoles = TableQuery[AdminRolesTable]
+  private val adminRoles = TableQuery[AdminRolesTable]
+  protected[db] val adminRoles2 = adminRoles
+  protected[db] val notDeletedAdminRoles = adminRoles.filter(_.deleted === false)
+  protected[db] val deletedAdminRoles = adminRoles.filter(_.deleted === true)
 
   class DeviceRolesTable(tag: Tag) extends Table[DbDeviceRole](tag, "device_roles") {
     def role = column[RoleType]("role")
