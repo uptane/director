@@ -42,7 +42,7 @@ import com.advancedtelematic.director.db.AdminRolesRepository.{
   FindLatestResult,
   NotDeleted
 }
-import com.advancedtelematic.director.db.Schema.{adminRoles2, notDeletedAdminRoles}
+import com.advancedtelematic.director.db.Schema.{adminRoles, notDeletedAdminRoles}
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   EcuAndHardwareId,
@@ -686,7 +686,7 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
   def findLatestOpt(repoId: RepoId,
                     role: RoleType,
                     name: AdminRoleName): Future[Option[FindLatestResult]] = db.run {
-    adminRoles2
+    adminRoles
       .filter(_.repoId === repoId)
       .filter(_.name === name)
       .filter(_.role === role)
@@ -743,14 +743,15 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
             select max(ar0.expires_at) from #${Schema.adminRoles.baseTableRow.tableName} ar0 join
             (select max(version) version, repo_id, name from #${Schema.adminRoles.baseTableRow.tableName} group by repo_id, name) ar
             USING (name, version, repo_id)
-            where ar0.repo_id = '${repoId.show}'
+            where ar0.repo_id = '${repoId.show}
+            AND deleted = 0'
       """.as[Option[Instant]].headOption
 
     db.run(sql).map(_.flatten)
   }
 
   def persistAction(signedRole: DbAdminRole): DBIO[Unit] =
-    adminRoles2
+    adminRoles
       .filter(_.repoId === signedRole.repoId)
       .filter(_.name === signedRole.name)
       .filter(_.role === signedRole.role)
@@ -759,7 +760,7 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
       .result
       .headOption
       .flatMap(ensureVersionBumpIsValid(signedRole))
-      .flatMap(_ => adminRoles2 += signedRole)
+      .flatMap(_ => adminRoles += signedRole)
       .map(_ => ())
 
   private def ensureVersionBumpIsValid(signedRole: DbAdminRole)(

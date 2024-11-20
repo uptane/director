@@ -148,10 +148,8 @@ object Schema {
 
   }
 
-  private val adminRoles = TableQuery[AdminRolesTable]
-  protected[db] val adminRoles2 = adminRoles
+  protected[db] val adminRoles = TableQuery[AdminRolesTable]
   protected[db] val notDeletedAdminRoles = adminRoles.filter(_.deleted === false)
-  protected[db] val deletedAdminRoles = adminRoles.filter(_.deleted === true)
 
   class DeviceRolesTable(tag: Tag) extends Table[DbDeviceRole](tag, "device_roles") {
     def role = column[RoleType]("role")
