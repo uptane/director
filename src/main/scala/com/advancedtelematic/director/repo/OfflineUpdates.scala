@@ -3,6 +3,7 @@ package com.advancedtelematic.director.repo
 import com.advancedtelematic.director.Settings
 import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.SignedPayloadToDbRole
+import com.advancedtelematic.director.db.AdminRolesRepository.{Deleted, NotDeleted}
 import com.advancedtelematic.director.db.AdminRolesRepositorySupport
 import com.advancedtelematic.director.http.Errors.TooManyOfflineRoles
 import com.advancedtelematic.libtuf.data.ClientDataType.{
@@ -70,14 +71,43 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(
       existing.content
   }
 
+  def delete(repoId: RepoId, offlineUpdatesName: AdminRoleName): Future[Unit] = async {
+    val oldSnapshots = await(
+      adminRolesRepository.findLatest(repoId, RoleType.OFFLINE_SNAPSHOT, DEFAULT_SNAPSHOTS_NAME)
+    )
+
+    val oldSnapshotsRoles = oldSnapshots
+      .toSignedRole[OfflineSnapshotRole]
+      .role
+      .meta
+
+    val newRolesMeta = oldSnapshotsRoles - offlineUpdatesName.asMetaPath
+
+    val newSnapshots =
+      OfflineSnapshotRole(newRolesMeta, oldSnapshots.expires, version = oldSnapshots.version + 1)
+
+    val signedSnapshots = await(sign(repoId, newSnapshots))
+
+    await(
+      adminRolesRepository.setDeleted(
+        repoId,
+        RoleType.OFFLINE_UPDATES,
+        offlineUpdatesName,
+        signedSnapshots.toDbAdminRole(repoId, DEFAULT_SNAPSHOTS_NAME)
+      )
+    )
+  }
+
   def set(repoId: RepoId,
           offlineUpdatesName: AdminRoleName,
           values: Map[TargetFilename, ClientTargetItem],
           expireAt: Option[Instant]): Future[SignedRole[OfflineUpdatesRole]] = async {
     val sizeOpt = await(
       adminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_SNAPSHOT, DEFAULT_SNAPSHOTS_NAME)
-    )
-      .map(_.toSignedRole[OfflineSnapshotRole].role.meta.size)
+    ).flatMap {
+      case NotDeleted(role) => Some(role)
+      case _                => None
+    }.map(_.toSignedRole[OfflineSnapshotRole].role.meta.size)
 
     if (sizeOpt.getOrElse(0) >= maxOfflineTargets)
       throw TooManyOfflineRoles(maxOfflineTargets)
@@ -88,14 +118,15 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(
 
     val expires = expireAt.getOrElse(nextExpires)
 
-    val newRole = if (existing.isEmpty) {
-      await(
-        keyserverClient.addOfflineUpdatesRole(repoId)
-      ) // If there is no previous updates, create the role first
-      OfflineUpdatesRole(values, expires = expires, version = 1)
-    } else {
-      val role = existing.get.toSignedRole[OfflineUpdatesRole].role
-      role.copy(targets = values, expires = expires, version = role.version + 1)
+    val newRole = existing match {
+      case Some(r) =>
+        val role = r.value.toSignedRole[OfflineUpdatesRole].role
+        role.copy(targets = values, expires = expires, version = role.version + 1)
+      case None =>
+        await(
+          keyserverClient.addOfflineUpdatesRole(repoId)
+        ) // If there is no previous updates, create the role first
+        OfflineUpdatesRole(values, expires = expires, version = 1)
     }
 
     await(signAndPersistWithSnapshot(repoId, offlineUpdatesName, newRole, expires))._1
@@ -115,7 +146,7 @@ class OfflineUpdates(keyserverClient: KeyserverClient)(
     val oldSnapshotsO = await(
       adminRolesRepository.findLatestOpt(repoId, RoleType.OFFLINE_SNAPSHOT, DEFAULT_SNAPSHOTS_NAME)
     )
-    val nextVersion = oldSnapshotsO.map(_.version).getOrElse(0) + 1
+    val nextVersion = oldSnapshotsO.map(_.value.version).getOrElse(0) + 1
 
     val allAdminRoles = await(adminRolesRepository.findAll(repoId, RoleType.OFFLINE_UPDATES))
 

@@ -37,6 +37,12 @@ import com.advancedtelematic.director.data.DataType.{
   ScheduledUpdateId,
   StatusInfo
 }
+import com.advancedtelematic.director.db.AdminRolesRepository.{
+  Deleted,
+  FindLatestResult,
+  NotDeleted
+}
+import com.advancedtelematic.director.db.Schema.{adminRoles2, notDeletedAdminRoles}
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   EcuAndHardwareId,
@@ -661,28 +667,48 @@ trait AdminRolesRepositorySupport extends DatabaseSupport {
   lazy val adminRolesRepository = new AdminRolesRepository()
 }
 
+object AdminRolesRepository {
+
+  sealed trait FindLatestResult {
+    def value: DbAdminRole
+  }
+
+  case class Deleted(value: DbAdminRole) extends FindLatestResult
+  case class NotDeleted(value: DbAdminRole) extends FindLatestResult
+}
+
 protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: ExecutionContext) {
 
-  import Schema.adminRoles
   import SlickMapping.adminRoleNameMapper
 
   private val AlreadyExists = EntityAlreadyExists[(Namespace, DbAdminRole)]()
 
   def findLatestOpt(repoId: RepoId,
                     role: RoleType,
-                    name: AdminRoleName): Future[Option[DbAdminRole]] = db.run {
-    adminRoles
+                    name: AdminRoleName): Future[Option[FindLatestResult]] = db.run {
+    adminRoles2
       .filter(_.repoId === repoId)
       .filter(_.name === name)
       .filter(_.role === role)
       .sortBy(_.version.reverse)
       .take(1)
+      .map { row =>
+        (row, row.deleted)
+      }
       .result
       .headOption
+      .map {
+        case Some((role, deleted)) if deleted =>
+          Option(Deleted(role))
+        case Some((role, deleted)) if !deleted =>
+          Option(NotDeleted(role))
+        case _ =>
+          None
+      }
   }
 
   def findAll(repoId: RepoId, role: RoleType): Future[Seq[DbAdminRole]] = db.run {
-    adminRoles
+    notDeletedAdminRoles
       .filter(_.repoId === repoId)
       .filter(_.role === role)
       .result
@@ -692,7 +718,7 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
                     role: RoleType,
                     name: AdminRoleName,
                     version: Int): Future[DbAdminRole] = db.run {
-    adminRoles
+    notDeletedAdminRoles
       .filter(_.repoId === repoId)
       .filter(_.role === role)
       .filter(_.name === name)
@@ -703,8 +729,8 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
 
   def findLatest(repoId: RepoId, role: RoleType, name: AdminRoleName): Future[DbAdminRole] =
     findLatestOpt(repoId, role, name).flatMap {
-      case Some(r) => FastFuture.successful(r)
-      case None    => FastFuture.failed(Errors.MissingAdminRole(repoId, name))
+      case Some(NotDeleted(role)) => FastFuture.successful(role)
+      case _                      => FastFuture.failed(Errors.MissingAdminRole(repoId, name))
     }
 
   def findLatestExpireDate(repoId: RepoId): Future[Option[Instant]] = {
@@ -724,7 +750,7 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
   }
 
   def persistAction(signedRole: DbAdminRole): DBIO[Unit] =
-    adminRoles
+    adminRoles2
       .filter(_.repoId === signedRole.repoId)
       .filter(_.name === signedRole.name)
       .filter(_.role === signedRole.role)
@@ -733,7 +759,7 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
       .result
       .headOption
       .flatMap(ensureVersionBumpIsValid(signedRole))
-      .flatMap(_ => adminRoles += signedRole)
+      .flatMap(_ => adminRoles2 += signedRole)
       .map(_ => ())
 
   private def ensureVersionBumpIsValid(signedRole: DbAdminRole)(
@@ -749,6 +775,24 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
       .sequence(values.map(persistAction))
       .handleIntegrityErrors(AlreadyExists)
       .map(_ => ())
+      .transactionally
+  }
+
+  def setDeleted(repoId: RepoId,
+                 roleType: RoleType,
+                 offlineUpdatesName: AdminRoleName,
+                 newSnapshotsRole: DbAdminRole): Future[Unit] = db.run {
+    DBIO
+      .seq(
+        notDeletedAdminRoles
+          .filter(_.repoId === repoId)
+          .filter(_.name === offlineUpdatesName)
+          .filter(_.role === roleType)
+          .map(_.deleted)
+          .update(true)
+          .map(_ => ()),
+        persistAction(newSnapshotsRole)
+      )
       .transactionally
   }
 

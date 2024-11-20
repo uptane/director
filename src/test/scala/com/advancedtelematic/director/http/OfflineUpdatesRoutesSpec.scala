@@ -12,7 +12,12 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.ErrorRepresentation
-import com.advancedtelematic.libtuf.data.ClientDataType.{OfflineSnapshotRole, OfflineUpdatesRole, TufRole, ValidMetaPath}
+import com.advancedtelematic.libtuf.data.ClientDataType.{
+  OfflineSnapshotRole,
+  OfflineUpdatesRole,
+  TufRole,
+  ValidMetaPath
+}
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import eu.timepit.refined.api.Refined
@@ -311,6 +316,71 @@ class OfflineUpdatesRoutesSpec
     Post(apiUri(s"admin/repo/offline-updates/lockbox16"), req).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.BadRequest
       responseAs[ErrorRepresentation].code shouldBe ErrorCodes.TooManyOfflineRoles
+    }
+  }
+
+  testWithRepo("DELETE removes the role from offline-snapshots.json") { implicit ns =>
+    val clientTarget0 = GenOfflineUpdateRequest.generate
+
+    Post(apiUri(s"admin/repo/offline-updates/emea"), clientTarget0).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    Get(apiUri("admin/repo/offline-updates/emea.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    Delete(apiUri("admin/repo/offline-updates/emea")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    Get(apiUri("admin/repo/offline-updates/emea.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.NotFound
+    }
+
+    Get(apiUri("admin/repo/offline-snapshot.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
+      val metaPath = Refined.unsafeApply[String, ValidMetaPath]("emea.json")
+      val metaItem = resp.signed.meta.get(metaPath)
+      metaItem shouldBe empty
+    }
+
+  }
+
+  testWithRepo("DELETE and POST creates the role with an increased version number") { implicit ns =>
+    val clientTarget0 = GenOfflineUpdateRequest.generate
+
+    Post(apiUri(s"admin/repo/offline-updates/emea"), clientTarget0).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    val previousRoleVersion =
+      Get(apiUri("admin/repo/offline-updates/emea.json")).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[SignedPayload[OfflineUpdatesRole]].signed.version
+      }
+
+    Delete(apiUri("admin/repo/offline-updates/emea")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    Post(apiUri(s"admin/repo/offline-updates/emea"), clientTarget0).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    Get(apiUri("admin/repo/offline-snapshot.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
+      val metaPath = Refined.unsafeApply[String, ValidMetaPath]("emea.json")
+      val metaItem = resp.signed.meta.get(metaPath)
+      metaItem should not be empty
+    }
+
+    Get(apiUri("admin/repo/offline-updates/emea.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val version = responseAs[SignedPayload[OfflineUpdatesRole]].signed.version
+      version shouldBe previousRoleVersion + 1
     }
   }
 
