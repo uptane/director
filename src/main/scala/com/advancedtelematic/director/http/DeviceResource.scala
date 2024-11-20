@@ -54,6 +54,7 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
     with RepoNamespaceRepositorySupport
     with DbDeviceRoleRepositorySupport
     with NamespaceRepoId
+    with AdminRolesRepositorySupport
     with RootFetching {
 
   import akka.http.scaladsl.server.Directives.*

@@ -55,6 +55,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
   messageBusPublisher:MessageBusPublisher)
     extends NamespaceRepoId
     with RepoNamespaceRepositorySupport
+    with AdminRolesRepositorySupport
     with RootFetching
     with EcuRepositorySupport
     with ProvisionedDeviceRepositorySupport
