@@ -7,6 +7,7 @@ import com.advancedtelematic.libtuf.data.TufDataType.{RepoId, SignedPayload}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.concurrent.Future
 
 trait RootFetching {
@@ -21,7 +22,8 @@ trait RootFetching {
 
     for {
       repoId <- repoNamespaceRepo.findFor(ns)
-      latestExpire <- adminRolesRepository.findLatestExpireDate(repoId)
+      latestExpiringRole <- adminRolesRepository.findLatestExpireDate(repoId)
+      latestExpire = latestExpiringRole.map(_.plus(180, ChronoUnit.DAYS))
       root <- fetchFn(repoId, latestExpire)
     } yield root
   }
