@@ -1718,11 +1718,6 @@ class DeviceResourceSpec
         )
       )
 
-      println("WWWWWWWWWWWWWW")
-      println(
-        s"newUpdate=${newUpdatePrimary.to.target.value} primaryEcu=${dev.primary.ecuSerial.value} secondaryEcu=${secondarySerial.value}"
-      )
-
       createScheduledUpdateOk(dev.deviceId, mtu)
 
       updateSchedulerIO.run().futureValue
@@ -1813,4 +1808,47 @@ class DeviceResourceSpec
     assignedMsg.correlationId shouldBe MultiTargetUpdateId(mtuId.uuid)
   }
 
+
+  testWithRepo(
+    "reporting an update that was present in a cancelled scheduled update keeps scheduled update untouched"
+  ) { implicit ns =>
+    val dev = registerAdminDeviceWithSecondariesOk()
+    val currentUpdate = GenTargetUpdateRequest.generate
+    val newUpdate = GenTargetUpdateRequest.generate
+    val secondarySerial = dev.secondaries.keys.head
+    val secondaryKey = dev.secondaryKeys(secondarySerial)
+
+    val deviceManifest = buildSecondaryManifest(
+      dev.primary.ecuSerial,
+      dev.primaryKey,
+      secondarySerial,
+      secondaryKey,
+      Map(dev.primary.ecuSerial -> currentUpdate.to, secondarySerial -> currentUpdate.to)
+    )
+    putManifestOk(dev.deviceId, deviceManifest)
+
+    val mtu = MultiTargetUpdate(
+      Map(dev.secondaries.values.head.hardwareId -> newUpdate, dev.primary.hardwareId -> newUpdate)
+    )
+
+    val id = createScheduledUpdateOk(dev.deviceId, mtu)
+
+    cancelScheduledUpdateOK(dev.deviceId, id)
+
+    val scheduledUpdate0 = listScheduledUpdatesOK(dev.deviceId).values.loneElement
+    scheduledUpdate0.status shouldBe ScheduledUpdate.Status.Cancelled
+
+    val newManifest = buildSecondaryManifest(
+      dev.primary.ecuSerial,
+      dev.primaryKey,
+      secondarySerial,
+      secondaryKey,
+      Map(dev.primary.ecuSerial -> newUpdate.to, secondarySerial -> newUpdate.to)
+    )
+
+    putManifestOk(dev.deviceId, newManifest)
+
+    val scheduledUpdate = listScheduledUpdatesOK(dev.deviceId).values.loneElement
+    scheduledUpdate.status shouldBe ScheduledUpdate.Status.Cancelled
+  }
 }

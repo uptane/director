@@ -1,8 +1,14 @@
 package com.advancedtelematic.director.http
 
-import org.scalatest.OptionValues.*
-import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
+import cats.syntax.show.*
+import com.advancedtelematic.director.data.AdminDataType.MultiTargetUpdate
+import com.advancedtelematic.director.data.ClientDataType.CreateScheduledUpdateRequest
+import com.advancedtelematic.director.data.Codecs.*
+import com.advancedtelematic.director.data.DataType.ScheduledUpdateId.*
+import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId}
+import com.advancedtelematic.director.data.GeneratorOps.*
+import com.advancedtelematic.director.data.Generators.GenTargetUpdateRequest
 import com.advancedtelematic.director.util.{
   DirectorSpec,
   NamespacedTests,
@@ -10,22 +16,15 @@ import com.advancedtelematic.director.util.{
   ResourceSpec
 }
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
-import org.scalactic.source.Position
-import cats.syntax.show.*
-import com.advancedtelematic.director.data.ClientDataType.CreateScheduledUpdateRequest
 import com.advancedtelematic.libats.data.{ErrorRepresentation, PaginationResult}
-import com.advancedtelematic.director.data.Codecs.*
-import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
+import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
-import ScheduledUpdateId.*
-import com.advancedtelematic.director.data.AdminDataType.MultiTargetUpdate
-import com.advancedtelematic.director.data.Generators.GenTargetUpdateRequest
+import org.scalactic.source.Position
+import org.scalatest.LoneElement.*
+import org.scalatest.OptionValues.*
 
 import java.time.Instant
-import com.advancedtelematic.director.data.GeneratorOps.*
-import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
-import io.circe.Json
 
 trait ScheduledUpdatesResources {
   self: DirectorSpec & ResourceSpec & NamespacedTests =>
@@ -62,6 +61,13 @@ trait ScheduledUpdatesResources {
     Get(apiUri(s"admin/devices/${deviceId.show}/scheduled-updates")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       responseAs[PaginationResult[ScheduledUpdate]]
+    }
+
+  def cancelScheduledUpdateOK(deviceId: DeviceId, id: ScheduledUpdateId)(
+    implicit ns: Namespace,
+    pos: Position): Unit =
+    Delete(apiUri(s"admin/devices/${deviceId.show}/scheduled-updates/${id.show}")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
     }
 
 }
