@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import scala.util.{Failure, Success, Try}
 import com.advancedtelematic.director.data.Codecs.*
+import com.advancedtelematic.director.data.DataType.ScheduledUpdate.Status.{Cancelled, Completed}
 
 object ManifestCompiler {
   private val _log = LoggerFactory.getLogger(this.getClass)
