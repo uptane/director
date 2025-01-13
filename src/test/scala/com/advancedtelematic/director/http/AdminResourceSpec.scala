@@ -268,9 +268,7 @@ class AdminResourceSpec
         responseAs[SignedPayload[TargetsRole]].signed.version shouldBe 1
       }
 
-      Put(
-        apiUri(s"admin/devices/${dev.deviceId.show}/targets.json")
-      ).namespaced ~> routes ~> check {
+      Put(apiUri(s"admin/devices/${dev.deviceId.show}/targets.json")).namespaced ~> routes ~> check {
         status shouldBe StatusCodes.Accepted
       }
 

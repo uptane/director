@@ -152,8 +152,8 @@ object DeviceRepository {
   def findByDeviceUuids(ns: Namespace, deviceIds: Seq[DeviceId]): DBIO[Seq[DeviceDB]] =
     findByUuids(ns, deviceIds).result
 
-  def updateLastSeen(uuid: DeviceId, when: Instant)(
-    implicit ec: ExecutionContext): DBIO[Boolean] = {
+  def updateLastSeen(uuid: DeviceId,
+                     when: Instant)(implicit ec: ExecutionContext): DBIO[Boolean] = {
     val sometime = Some(when)
 
     val dbIO = for {
