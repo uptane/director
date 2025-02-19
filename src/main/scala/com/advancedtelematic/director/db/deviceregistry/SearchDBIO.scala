@@ -249,6 +249,7 @@ object SearchDBIO {
         pr.rs.getLong("update_pending"),
         pr.rs.getLong("update_in_progress"),
         pr.rs.getLong("update_failed"),
+        pr.rs.getLong("update_scheduled")
       )
     }
 
@@ -260,6 +261,7 @@ object SearchDBIO {
           sum(update_pending) update_pending,
           sum(update_in_progress) update_in_progress,
           sum(update_failed) update_failed,
+          sum(update_scheduled) update_scheduled,
           count(*) total
       from (
               select hibernated,
@@ -267,7 +269,8 @@ object SearchDBIO {
                   IF(TIMESTAMPDIFF(SECOND, created_at, NOW()) < $recentSince, 1, 0) recent,
                   IF(device_status = ${DeviceStatus.UpdatePending.toString},1,0) update_pending,
                   IF(device_status = ${DeviceStatus.Outdated.toString}, 1, 0) update_in_progress,
-                  IF(device_status = ${DeviceStatus.Error.toString}, 1, 0) update_failed
+                  IF(device_status = ${DeviceStatus.Error.toString}, 1, 0) update_failed,
+                  IF(device_status = ${DeviceStatus.UpdateScheduled.toString}, 1, 0) update_scheduled
               from Device
               where namespace = ${ns.get}
           ) s1;

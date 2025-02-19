@@ -64,7 +64,7 @@ class DeviceResourceSpec
     extends DirectorSpec
     with ResourceSpec
     with ResourcePropSpec
-    with DeviceRequests
+    with RegistryDeviceRequests
     with GroupRequests
     with Eventually {
 

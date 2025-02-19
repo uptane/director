@@ -37,7 +37,7 @@ import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuRe
 import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepositorySupport, UpdateSchedulerDBIO}
 import com.advancedtelematic.director.deviceregistry.data.{DeviceGenerators, DeviceStatus}
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
-import com.advancedtelematic.director.http.deviceregistry.DeviceRequests
+import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
 import com.advancedtelematic.director.manifest.ResultCodes
 import com.advancedtelematic.director.util.*
 import com.advancedtelematic.libats.data.DataType.{
@@ -52,11 +52,7 @@ import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeviceSeen,
-  DeviceUpdateCompleted,
-  *
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.*
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{
   RootRole,
@@ -86,10 +82,10 @@ class DeviceResourceSpec
     with DeviceManifestSpec
     with RepositorySpec
     with Inspectors
+    with RegistryDeviceRequests
     with ProvisionedDevicesRequests
     with AssignmentsRepositorySupport
-    with ScheduledUpdatesResources
-    with DeviceRequests {
+    with ScheduledUpdatesResources {
 
   override implicit val msgPub = new MockMessageBus
 

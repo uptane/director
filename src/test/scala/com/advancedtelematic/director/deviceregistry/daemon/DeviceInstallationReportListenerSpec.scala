@@ -5,7 +5,7 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceInstal
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.director.deviceregistry.data.{DeviceStatus, InstallationReportGenerators}
 import com.advancedtelematic.director.http.LogDeviceSeen
-import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourcePropSpec}
+import com.advancedtelematic.director.http.deviceregistry.{RegistryDeviceRequests, ResourcePropSpec}
 import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.data.DataType.ResultCode
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.deviceUpdateCompletedCodec
@@ -17,7 +17,7 @@ import java.time.Instant
 class DeviceInstallationReportListenerSpec
     extends DirectorSpec
     with ResourcePropSpec
-    with DeviceRequests {
+    with RegistryDeviceRequests {
 
   import InstallationReportGenerators.*
   import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*

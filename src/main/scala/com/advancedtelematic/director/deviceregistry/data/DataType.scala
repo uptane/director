@@ -119,7 +119,8 @@ object DataType {
                                       offline: Long,
                                       updatePending: Long,
                                       updateInProgess: Long,
-                                      updateFailed: Long)
+                                      updateFailed: Long,
+                                      updateScheduled: Long)
 
   final case class SearchParams(oemId: Option[DeviceOemId],
                                 grouped: Option[HibernationStatus],

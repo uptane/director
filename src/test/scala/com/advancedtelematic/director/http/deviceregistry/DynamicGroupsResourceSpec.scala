@@ -21,7 +21,7 @@ class DynamicGroupsResourceSpec
     extends DirectorSpec
     with ResourceSpec
     with Eventually
-    with DeviceRequests
+    with RegistryDeviceRequests
     with GroupRequests {
 
   implicit class DeviceIdToExpression(value: DeviceOemId) {
