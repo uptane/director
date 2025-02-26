@@ -21,7 +21,7 @@ import org.scalacheck.{Arbitrary, Gen}
 class PublicCredentialsResourceSpec
     extends DirectorSpec
     with ResourcePropSpec
-    with DeviceRequests
+    with RegistryDeviceRequests
     with PublicCredentialsRequests {
 
   import Device.*

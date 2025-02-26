@@ -44,7 +44,7 @@ import java.util.UUID
 class GroupsResourceSpec
     extends DirectorSpec
     with ResourceSpec
-    with DeviceRequests
+    with RegistryDeviceRequests
     with GroupRequests {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 

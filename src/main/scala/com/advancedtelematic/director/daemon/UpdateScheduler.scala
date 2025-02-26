@@ -4,6 +4,8 @@ import cats.implicits.*
 import cats.implicits.catsSyntaxOptionId
 import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId, StatusInfo}
 import com.advancedtelematic.director.db.{ScheduledUpdatesRepositorySupport, UpdateSchedulerDBIO}
+import com.advancedtelematic.director.deviceregistry.daemon.DeviceUpdateStatus
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
 import com.advancedtelematic.libats.data.DataType.{MultiTargetUpdateId, Namespace}
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
@@ -87,7 +89,7 @@ class UpdateSchedulerDaemon()(
 
 }
 
-class UpdateScheduler()(implicit db: Database, ec: ExecutionContext)
+class UpdateScheduler()(implicit db: Database, ec: ExecutionContext, msgBus: MessageBusPublisher)
     extends ScheduledUpdatesRepositorySupport {
 
   private val dbio = new UpdateSchedulerDBIO()
@@ -95,17 +97,25 @@ class UpdateScheduler()(implicit db: Database, ec: ExecutionContext)
   def create(ns: Namespace,
              deviceId: DeviceId,
              updateId: UpdateId,
-             scheduleAt: Instant): Future[ScheduledUpdateId] =
-    dbio.validateAndPersist(
-      ScheduledUpdate(
-        ns,
-        ScheduledUpdateId.generate(),
-        deviceId,
-        updateId,
-        scheduleAt,
-        ScheduledUpdate.Status.Scheduled
+             scheduleAt: Instant): Future[ScheduledUpdateId] = {
+    val scheduledUpdateId = ScheduledUpdateId.generate()
+
+    for {
+      id <- dbio.validateAndPersist(
+        ScheduledUpdate(
+          ns,
+          scheduledUpdateId,
+          deviceId,
+          updateId,
+          scheduleAt,
+          ScheduledUpdate.Status.Scheduled
+        )
       )
-    )
+      _ <- msgBus.publishSafe(
+        DeviceUpdateStatus(ns, deviceId, DeviceStatus.UpdateScheduled, Instant.now())
+      )
+    } yield id
+  }
 
   def cancel(ns: Namespace, scheduledUpdateId: ScheduledUpdateId): Future[Unit] =
     scheduledUpdatesRepository.setStatus(

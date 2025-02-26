@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory
 class InstallationReportSpec
     extends DirectorSpec
     with ResourcePropSpec
-    with DeviceRequests
+    with RegistryDeviceRequests
     with ScalaFutures
     with Eventually {
 

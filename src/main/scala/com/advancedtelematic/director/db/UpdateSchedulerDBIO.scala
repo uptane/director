@@ -4,6 +4,10 @@ import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import cats.implicits.*
 import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId, StatusInfo}
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
+import com.advancedtelematic.director.db.Schema
 import com.advancedtelematic.director.data.DbDataType.{Assignment, EcuTargetId}
 import com.advancedtelematic.director.http.Errors.UpdateScheduleError
 import com.advancedtelematic.libats.data.DataType.MultiTargetUpdateId
@@ -191,7 +195,10 @@ class UpdateSchedulerDBIO()(implicit val db: Database, val ec: ExecutionContext)
         case None =>
           findEcuSerialsForUpdate(scheduledUpdate.deviceId, scheduledUpdate.updateId).flatMap {
             case Valid(_) =>
-              scheduledUpdatesRepository.persistAction(scheduledUpdate)
+              for {
+                id <- scheduledUpdatesRepository.persistAction(scheduledUpdate)
+                _ <- DeviceRepository.setDeviceStatusAction(scheduledUpdate.deviceId, DeviceStatus.UpdateScheduled)
+              } yield id
             case Invalid(errors) =>
               DBIO.failed(UpdateScheduleError(scheduledUpdate.deviceId, errors))
           }

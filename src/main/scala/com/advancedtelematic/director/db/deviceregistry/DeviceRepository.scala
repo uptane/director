@@ -193,6 +193,10 @@ object DeviceRepository {
 
   def setDeviceStatus(uuid: DeviceId, status: DeviceStatus)(
     implicit ec: ExecutionContext): DBIO[Unit] =
+    setDeviceStatusAction(uuid, status)
+
+  protected[db] def setDeviceStatusAction(uuid: DeviceId, status: DeviceStatus)(
+    implicit ec: ExecutionContext): DBIO[Unit] =
     devices
       .filter(_.id === uuid)
       .map(_.deviceStatus)

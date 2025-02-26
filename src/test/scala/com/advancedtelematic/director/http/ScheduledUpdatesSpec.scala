@@ -9,12 +9,9 @@ import com.advancedtelematic.director.data.DataType.ScheduledUpdateId.*
 import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId}
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.GenTargetUpdateRequest
-import com.advancedtelematic.director.util.{
-  DirectorSpec,
-  NamespacedTests,
-  RepositorySpec,
-  ResourceSpec
-}
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
+import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
+import com.advancedtelematic.director.util.{DirectorSpec, NamespacedTests, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
@@ -27,7 +24,7 @@ import org.scalatest.OptionValues.*
 import java.time.Instant
 
 trait ScheduledUpdatesResources {
-  self: DirectorSpec & ResourceSpec & NamespacedTests =>
+  self: DirectorSpec & ResourceSpec & NamespacedTests & RegistryDeviceRequests =>
 
   def createScheduledUpdateOk(deviceId: DeviceId, hardwareId: HardwareIdentifier)(
     implicit ns: Namespace,
@@ -39,6 +36,11 @@ trait ScheduledUpdatesResources {
   def createScheduledUpdateOk(deviceId: DeviceId, mtu: MultiTargetUpdate)(
     implicit ns: Namespace,
     pos: Position): ScheduledUpdateId = {
+
+    val deviceT = genDeviceT.generate.copy(uuid = Some(deviceId))
+
+    createDeviceInNamespaceOk(deviceT, ns)
+
     val mtuId = Post(apiUri("multi_target_updates"), mtu).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Created
       responseAs[UpdateId]
@@ -78,6 +80,7 @@ class ScheduledUpdatesSpec
     with AdminResources
     with RepositorySpec
     with ProvisionedDevicesRequests
+    with RegistryDeviceRequests
     with ScheduledUpdatesResources {
 
   testWithRepo("creates and lists a scheduled update") { implicit ns =>
@@ -94,6 +97,9 @@ class ScheduledUpdatesSpec
 
   testWithRepo("returns error if device already has a scheduled update") { implicit ns =>
     val regDev = registerAdminDeviceOk()
+
+    val deviceT = genDeviceT.generate.copy(uuid = Some(regDev.deviceId))
+    createDeviceInNamespaceOk(deviceT, ns)
 
     val mtu = MultiTargetUpdate(Map(regDev.primary.hardwareId -> GenTargetUpdateRequest.generate))
 

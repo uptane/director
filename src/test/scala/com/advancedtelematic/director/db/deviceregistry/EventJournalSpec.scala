@@ -22,7 +22,7 @@ import EventJournalSpec.EventPayload
 import com.advancedtelematic.director.db.DeleteDeviceDBIO
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceEventListener
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.director.http.deviceregistry.{DeviceRequests, ResourcePropSpec}
+import com.advancedtelematic.director.http.deviceregistry.{RegistryDeviceRequests, ResourcePropSpec}
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import io.circe.generic.semiauto.*
 import io.circe.testing.ArbitraryInstances
@@ -60,7 +60,7 @@ class EventJournalSpec
     extends DirectorSpec
     with ResourcePropSpec
     with ResourceSpec
-    with DeviceRequests
+    with RegistryDeviceRequests
     with ScalaFutures
     with Eventually
     with ArbitraryInstances {
