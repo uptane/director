@@ -146,4 +146,9 @@ trait GroupRequests {
         .withQuery(Query("groupName" -> newGroupName.value))
     )
 
+  def getDeviceStats(groupId: GroupId): HttpRequest = {
+    val uri = DeviceRegistryResourceUri.uri(groupsApi, groupId.show, "device-stats")
+    Get(uri)
+  }
+
 }
