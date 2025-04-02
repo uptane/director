@@ -54,6 +54,8 @@ test:
     - mysql -v -h db -u root -proot < db_user.sql
   script:
     - sbt test
+  tags:
+    - torizon-cloud-team
 
 build docker image:
   stage: build image
@@ -63,3 +65,5 @@ build docker image:
   extends: .sbt-docker-publish
   variables:
     SERVICE_NAME: director-v2
+  tags:
+    - torizon-cloud-team
