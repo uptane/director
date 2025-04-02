@@ -24,6 +24,7 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{
   ClientTargetItem,
+  RemoteCommandsPayload,
   RemoteSessionsPayload,
   RootRole
 }
@@ -47,7 +48,9 @@ import scala.concurrent.{ExecutionContext, Future}
 case class OfflineUpdateRequest(values: Map[TargetFilename, ClientTargetItem],
                                 expiresAt: Option[Instant])
 
-case class RemoteSessionRequest(remoteSessions: RemoteSessionsPayload, previousVersion: Int)
+case class RemoteSessionRequest(remoteSessions: RemoteSessionsPayload)
+
+case class RemoteCommandRequest(remoteCommands: RemoteCommandsPayload)
 
 class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient)(
   implicit val db: Database,
@@ -251,12 +254,20 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
             }
           }
         },
-        (path("remote-sessions") & UserRepoId(ns)) { repoId =>
-          (post & entity(as[RemoteSessionRequest])) { req =>
-            val f = remoteSessions.set(repoId, req.remoteSessions, req.previousVersion)
-            complete(f.map(_.content))
+        (path("remote-commands") & UserRepoId(ns)) { repoId =>
+          (post & entity(as[RemoteCommandRequest])) { req =>
+            val f = remoteSessions
+              .setRemoteCommands(repoId, req.remoteCommands)
+              .map(_ => StatusCodes.Accepted)
+            complete(f)
           }
-        },
+        } ~
+          (path("remote-sessions") & UserRepoId(ns)) { repoId =>
+            (post & entity(as[RemoteSessionRequest])) { req =>
+              val f = remoteSessions.setRemoteSessions(repoId, req.remoteSessions)
+              complete(f.map(_.content))
+            }
+          },
         (path("remote-sessions.json") & UserRepoId(ns)) { repoId =>
           get {
             val f = remoteSessions.find(repoId)

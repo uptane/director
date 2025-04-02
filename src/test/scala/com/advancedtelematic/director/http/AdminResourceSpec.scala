@@ -118,7 +118,7 @@ trait AdminResources {
       status shouldBe StatusCodes.Created
     }
 
-  def createMtu(mtu: MultiTargetUpdate)(implicit ns: Namespace, pos: Position): RouteTestResult =
+  def createMtu(mtu: MultiTargetUpdate)(implicit ns: Namespace): RouteTestResult =
     Post(apiUri("multi_target_updates"), mtu).namespaced ~> routes
 
   def createMtuOk()(implicit ns: Namespace, pos: Position): UpdateId = {
