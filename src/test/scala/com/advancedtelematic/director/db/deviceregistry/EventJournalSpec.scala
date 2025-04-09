@@ -17,7 +17,10 @@ import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.DataType.{CampaignId, CorrelationId, MultiTargetUpdateId}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeleteDeviceRequest,
+  DeviceEventMessage
+}
 import EventJournalSpec.EventPayload
 import com.advancedtelematic.director.db.DeleteDeviceDBIO
 import com.advancedtelematic.director.deviceregistry.daemon.DeviceEventListener

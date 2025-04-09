@@ -40,14 +40,10 @@ object GroupInfoRepository {
     def createdAt = column[Instant]("created_at")(javaInstantMapping)
     def updatedAt = column[Instant]("updated_at")(javaInstantMapping)
 
-    def * = (
-      id,
-      groupName,
-      namespace,
-      createdAt,
-      groupType,
-      expression
-    ) <> ((Group.apply _).tupled, Group.unapply)
+    def * = (id, groupName, namespace, createdAt, groupType, expression) <> (
+      (Group.apply _).tupled,
+      Group.unapply
+    )
 
   }
   // scalastyle:on

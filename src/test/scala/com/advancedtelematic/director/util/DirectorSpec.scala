@@ -45,7 +45,7 @@ abstract class DirectorSpec
 
   def testWithNamespace(testName: String, testArgs: Tag*)(testFun: Namespace => Any)(
     implicit pos: Position): Unit =
-    test(testName, testArgs *)(withRandomNamespace(testFun))(pos = pos)
+    test(testName, testArgs*)(withRandomNamespace(testFun))(pos = pos)
 
 }
 

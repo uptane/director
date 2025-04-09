@@ -11,6 +11,13 @@ import com.advancedtelematic.director.deviceregistry.daemon.{
 import com.advancedtelematic.director.{Settings, VersionInfo}
 import com.advancedtelematic.libats.http.VersionDirectives.*
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
+import com.advancedtelematic.libats.messaging.{
+  BusListenerMetrics,
+  MessageBus,
+  MessageBusPublisher,
+  MessageListenerSupport,
+  MetricsBusMonitor
+}
 import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSupport
 import com.advancedtelematic.libats.messaging.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
@@ -24,6 +31,13 @@ import com.advancedtelematic.metrics.MetricsSupport
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
+import com.advancedtelematic.libats.http.VersionDirectives.*
+import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSupport
+import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
+import com.advancedtelematic.director.deviceregistry.daemon.{
+  DeviceEventListener,
+  DeviceUpdateEventListener,
+}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import DeviceMqttLifecycle.messageLike
 

@@ -23,9 +23,9 @@ Global / bloopAggregateSourceDependencies := true
 libraryDependencies ++= {
   val akkaV = "2.8.5"
   val akkaHttpV = "10.5.2"
-  val tufV = "3.2.8"
-  val scalaTestV = "3.2.17"
-  val bouncyCastleV = "1.76"
+  val tufV = "3.2.10"
+  val scalaTestV = "3.2.19"
+  val bouncyCastleV = "1.80"
   val libatsV = "2.6.6"
 
   Seq(
@@ -35,7 +35,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpV,
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
-    "org.scalatest"     %% "scalatest" % scalaTestV % Test,
+    "org.scalatest" %% "scalatest" % scalaTestV % Test,
     "org.scalacheck" %% "scalacheck" % "1.18.0" % Test,
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
@@ -51,16 +51,16 @@ libraryDependencies ++= {
     "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleV,
     "org.scala-lang.modules" %% "scala-async" % "1.0.1",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
-    "org.mariadb.jdbc" % "mariadb-java-client" % "3.2.0",
-    "com.beachape" %% "enumeratum" % "1.7.3",
-    "com.beachape" %% "enumeratum-circe" % "1.7.3",
+    "org.mariadb.jdbc" % "mariadb-java-client" % "3.5.2",
+    "com.beachape" %% "enumeratum" % "1.7.6",
+    "com.beachape" %% "enumeratum-circe" % "1.7.5",
 
     // Device registry specific dependencies
     "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "2.0.0",
-    "io.circe" %% "circe-testing" % "0.14.1",
+    "io.circe" %% "circe-testing" % "0.14.12",
     "tech.sparse" %% "toml-scala" % "0.2.2",
     "org.tpolecat" %% "atto-core" % "0.9.5",
-    "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test
+    "org.scalatestplus" %% "scalacheck-1-16" % "3.2.14.0" % Test
   )
 }
 

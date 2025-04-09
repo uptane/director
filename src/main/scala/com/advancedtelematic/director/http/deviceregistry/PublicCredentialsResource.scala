@@ -12,12 +12,18 @@ import akka.http.scaladsl.marshalling.Marshaller.*
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.{Directive1, Route}
 import akka.http.scaladsl.util.FastFuture
-import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, PublicCredentialsRepository}
+import com.advancedtelematic.director.db.deviceregistry.{
+  DeviceRepository,
+  PublicCredentialsRepository
+}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.CredentialsType
 import com.advancedtelematic.director.deviceregistry.data.CredentialsType.CredentialsType
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
-import com.advancedtelematic.director.deviceregistry.messages.{DeviceCreated, DevicePublicCredentialsSet}
+import com.advancedtelematic.director.deviceregistry.messages.{
+  DeviceCreated,
+  DevicePublicCredentialsSet
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId

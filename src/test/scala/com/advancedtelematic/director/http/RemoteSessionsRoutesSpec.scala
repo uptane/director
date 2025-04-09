@@ -10,7 +10,12 @@ import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libtuf.crypt.TufCrypto
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{RemoteSessionsPayload, RemoteSessionsRole, RootRole, SshSessionProperties}
+import com.advancedtelematic.libtuf.data.ClientDataType.{
+  RemoteSessionsPayload,
+  RemoteSessionsRole,
+  RootRole,
+  SshSessionProperties
+}
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{RoleType, SignedPayload}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*

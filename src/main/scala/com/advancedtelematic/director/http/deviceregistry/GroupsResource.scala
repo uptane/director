@@ -19,7 +19,11 @@ import akka.stream.scaladsl.Framing.FramingException
 import akka.stream.scaladsl.{Framing, Sink, Source}
 import akka.util.ByteString
 import cats.syntax.either.*
-import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, GroupInfoRepository, GroupMemberRepository}
+import com.advancedtelematic.director.db.deviceregistry.{
+  DeviceRepository,
+  GroupInfoRepository,
+  GroupMemberRepository
+}
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.UpdateHibernationStatusRequest

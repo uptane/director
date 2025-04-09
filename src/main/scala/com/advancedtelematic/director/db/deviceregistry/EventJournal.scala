@@ -77,12 +77,10 @@ object EventJournal {
 
     def pk = primaryKey("indexed_event_pk", (deviceUuid, eventId))
 
-    def * = (
-      deviceUuid,
-      eventId,
-      eventType,
-      correlationId
-    ).shaped <> (IndexedEvent.tupled, IndexedEvent.unapply)
+    def * = (deviceUuid, eventId, eventType, correlationId).shaped <> (
+      IndexedEvent.tupled,
+      IndexedEvent.unapply
+    )
 
   }
 
@@ -97,12 +95,10 @@ object EventJournal {
 
     def pk = primaryKey("indexed_event_pk", (deviceUuid, eventId))
 
-    def * = (
-      deviceUuid,
-      eventId,
-      eventType,
-      correlationId
-    ).shaped <> (IndexedEvent.tupled, IndexedEvent.unapply)
+    def * = (deviceUuid, eventId, eventType, correlationId).shaped <> (
+      IndexedEvent.tupled,
+      IndexedEvent.unapply
+    )
 
   }
 
