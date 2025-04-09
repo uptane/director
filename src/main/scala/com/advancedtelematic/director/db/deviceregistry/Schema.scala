@@ -35,7 +35,7 @@ object Schema {
     def notes = column[Option[String]]("notes")
     def hibernated = column[Boolean]("hibernated")
     def mqttLastSeen = column[Option[Instant]]("mqtt_last_seen")(javaInstantMapping.optionType)
-    def mqttStatus =  column[MqttStatus]("mqtt_status")
+    def mqttStatus = column[MqttStatus]("mqtt_status")
 
     def * =
       (
@@ -51,7 +51,7 @@ object Schema {
         notes,
         hibernated,
         mqttStatus,
-        mqttLastSeen,
+        mqttLastSeen
       ).shaped <> ((DeviceDB.apply _).tupled, DeviceDB.unapply)
 
     def pk = primaryKey("uuid", id)

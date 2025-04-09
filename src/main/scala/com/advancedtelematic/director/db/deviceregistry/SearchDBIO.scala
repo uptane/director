@@ -1,13 +1,20 @@
 package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.director.db
-import com.advancedtelematic.director.db.deviceregistry.DbOps.{PaginationResultOps, deviceTableToSlickOrder}
+import com.advancedtelematic.director.db.deviceregistry.DbOps.{
+  deviceTableToSlickOrder,
+  PaginationResultOps
+}
 import com.advancedtelematic.director.db.deviceregistry.GroupInfoRepository.groupInfos
 import com.advancedtelematic.director.db.deviceregistry.GroupMemberRepository.groupMembers
 import com.advancedtelematic.director.db.deviceregistry.Schema.*
 import com.advancedtelematic.director.db.deviceregistry.SlickMappings.*
 import com.advancedtelematic.director.deviceregistry.data.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceCountParams, DeviceStatusCounts, SearchParams}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceCountParams,
+  DeviceStatusCounts,
+  SearchParams
+}
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.libats.data.DataType.Namespace

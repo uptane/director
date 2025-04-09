@@ -6,7 +6,7 @@ import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives
 import com.advancedtelematic.director.deviceregistry.daemon.{
   DeviceEventListener,
-  DeviceUpdateEventListener,
+  DeviceUpdateEventListener
 }
 import com.advancedtelematic.director.{Settings, VersionInfo}
 import com.advancedtelematic.libats.http.VersionDirectives.*
@@ -22,7 +22,7 @@ import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSuppor
 import com.advancedtelematic.libats.messaging.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceEventMessage,
-  DeviceUpdateEvent,
+  DeviceUpdateEvent
 }
 import com.advancedtelematic.libats.slick.db.{BootMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.DbHealthResource
@@ -36,7 +36,7 @@ import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSuppor
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.advancedtelematic.director.deviceregistry.daemon.{
   DeviceEventListener,
-  DeviceUpdateEventListener,
+  DeviceUpdateEventListener
 }
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import DeviceMqttLifecycle.messageLike

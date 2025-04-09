@@ -129,15 +129,19 @@ object Errors {
     StatusCodes.BadRequest,
     "Request parameters have invalid format"
   )
+
 }
 
 object ErrorHandlers {
+
   val sqlExceptionHandler: PartialFunction[Throwable, Throwable] = {
-    case e: SQLSyntaxErrorException => if (e.getMessage().contains("Incorrect string value")) {
-      Errors.InvalidParameterFormat
-    } else {
-      e
-    }
+    case e: SQLSyntaxErrorException =>
+      if (e.getMessage().contains("Incorrect string value")) {
+        Errors.InvalidParameterFormat
+      } else {
+        e
+      }
     case e => e
   }
+
 }

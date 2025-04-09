@@ -42,16 +42,27 @@ import slick.jdbc.MySQLProfile.api.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class LastSeenTable(`10mins`: Long, `1hour`: Long, `1day`: Long, `1week`: Long, `1month`: Long, `1year`: Long)
+case class LastSeenTable(`10mins`: Long,
+                         `1hour`: Long,
+                         `1day`: Long,
+                         `1week`: Long,
+                         `1month`: Long,
+                         `1year`: Long)
 
 case class DeviceGroupStats(status: Map[DeviceStatus, Long], lastSeen: LastSeenTable)
 
 object DeviceGroupStats {
   implicit val deviceGroupStatusKeyEncoder: KeyEncoder[DeviceStatus] = KeyEncoder(_.toString)
-  implicit val deviceGroupStatusKeyDecoder: KeyDecoder[DeviceStatus] = KeyDecoder.instance(str => Try(DeviceStatus.withName(str)).toOption)
 
-  implicit val lastSeenTableCodec: Codec[LastSeenTable] = io.circe.generic.semiauto.deriveCodec[LastSeenTable]
-  implicit val deviceGroupStatsCodec: Codec[DeviceGroupStats] = io.circe.generic.semiauto.deriveCodec[DeviceGroupStats]
+  implicit val deviceGroupStatusKeyDecoder: KeyDecoder[DeviceStatus] =
+    KeyDecoder.instance(str => Try(DeviceStatus.withName(str)).toOption)
+
+  implicit val lastSeenTableCodec: Codec[LastSeenTable] =
+    io.circe.generic.semiauto.deriveCodec[LastSeenTable]
+
+  implicit val deviceGroupStatsCodec: Codec[DeviceGroupStats] =
+    io.circe.generic.semiauto.deriveCodec[DeviceGroupStats]
+
 }
 
 import Unmarshallers.nonNegativeLong

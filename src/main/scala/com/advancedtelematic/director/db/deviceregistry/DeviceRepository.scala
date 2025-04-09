@@ -233,8 +233,8 @@ object DeviceRepository {
       .update(status -> lastSeen.some)
       .handleSingleUpdateError(Errors.MissingDevice)
 
-  def getDeviceGroupStats(groupId: GroupId)(
-    implicit ec: ExecutionContext): DBIO[DeviceGroupStats] = {
+  def getDeviceGroupStats(
+    groupId: GroupId)(implicit ec: ExecutionContext): DBIO[DeviceGroupStats] = {
 
     implicit val getDeviceStatus = GetResult[DeviceStatus] { r =>
       DeviceStatus.withName(r.nextString())
