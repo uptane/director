@@ -18,7 +18,6 @@ import com.advancedtelematic.director.data.DeviceRequest.{
   DeviceManifest,
   EcuManifest,
   EcuManifestCustom,
-  InstallationItem,
   InstallationReport,
   InstallationReportEntity,
   MissingInstallationReport,
@@ -28,11 +27,6 @@ import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.data.Messages.DeviceManifestReported
 import com.advancedtelematic.director.data.UptaneDataType.{FileInfo, Hashes, Image}
-import com.advancedtelematic.director.db.{
-  AssignmentsRepositorySupport,
-  EcuRepositorySupport,
-  UpdateSchedulerDBIO
-}
 import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuReplacementRepository}
 import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, EcuRepositorySupport, UpdateSchedulerDBIO}
 import com.advancedtelematic.director.deviceregistry.data.{DeviceGenerators, DeviceStatus}
@@ -87,7 +81,7 @@ class DeviceResourceSpec
     with AssignmentsRepositorySupport
     with ScheduledUpdatesResources {
 
-  override implicit val msgPub = new MockMessageBus
+  override implicit val msgPub: MockMessageBus = new MockMessageBus()
 
   val updateSchedulerIO = new UpdateSchedulerDBIO()
 

@@ -45,7 +45,7 @@ object GroupExpressionAST {
       this match {
         case TagContains(tid, _) if tid == tagId  => None
         case TagCharAt(tid, _, _) if tid == tagId => None
-        case Not(exp)                             => exp.dropDeviceTag(tagId).map(Not)
+        case Not(exp)                             => exp.dropDeviceTag(tagId).map(Not.apply)
         case Or(cond)                             => filterList(tagId, cond, Or.apply)
         case And(cond)                            => filterList(tagId, cond, And.apply)
         case e                                    => Some(e)

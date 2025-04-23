@@ -23,7 +23,6 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
-import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import slick.jdbc.GetResult
 import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.Rep

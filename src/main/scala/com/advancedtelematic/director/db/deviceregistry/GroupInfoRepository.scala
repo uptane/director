@@ -31,7 +31,6 @@ import SlickMappings.*
 import com.advancedtelematic.director.http.deviceregistry.{ErrorHandlers, Errors}
 import slick.jdbc.MySQLProfile.api.*
 
-import java.sql.SQLSyntaxErrorException
 import scala.concurrent.{ExecutionContext, Future}
 
 object GroupInfoRepository {

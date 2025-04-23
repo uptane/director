@@ -5,7 +5,6 @@ import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import cats.implicits.*
 import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId, StatusInfo}
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
-import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 import com.advancedtelematic.director.db.Schema
 import com.advancedtelematic.director.data.DbDataType.{Assignment, EcuTargetId}

@@ -16,8 +16,6 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.{
   PackageListItemCount
 }
 import com.advancedtelematic.director.deviceregistry.data.{CredentialsType, GroupType, PackageId}
-import slick.ast.BaseTypedType
-import slick.jdbc.JdbcType
 import slick.jdbc.MySQLProfile.api.*
 
 object SlickMappings {

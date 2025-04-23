@@ -1,6 +1,5 @@
 package com.advancedtelematic.director.db.deviceregistry
 
-import com.advancedtelematic.director.db.deviceregistry.Schema.DeviceTable
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy

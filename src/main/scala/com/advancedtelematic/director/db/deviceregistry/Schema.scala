@@ -10,7 +10,6 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
-import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant

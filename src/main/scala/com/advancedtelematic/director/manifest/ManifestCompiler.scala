@@ -1,11 +1,6 @@
 package com.advancedtelematic.director.manifest
 
 import cats.syntax.option.*
-import com.advancedtelematic.director.data.Codecs.{
-  ecuManifestCustomCodec,
-  scheduledUpdateCodec,
-  scheduledUpdateStatusDecoder
-}
 import com.advancedtelematic.director.data.DataType.ScheduledUpdate
 import com.advancedtelematic.director.data.DbDataType.{
   Assignment,
@@ -21,7 +16,6 @@ import com.advancedtelematic.libats.data.DataType.{
   Checksum,
   CorrelationId,
   HashMethod,
-  MultiTargetUpdateId,
   Namespace,
   ResultCode,
   ResultDescription
@@ -30,8 +24,7 @@ import com.advancedtelematic.libats.data.EcuIdentifier
 import com.advancedtelematic.libats.messaging_datatype.DataType.{
   DeviceId,
   EcuInstallationReport,
-  InstallationResult,
-  UpdateId
+  InstallationResult
 }
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
@@ -44,7 +37,6 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import scala.util.{Failure, Success, Try}
 import com.advancedtelematic.director.data.Codecs.*
-import com.advancedtelematic.director.data.DataType.ScheduledUpdate.Status.{Cancelled, Completed}
 
 object ManifestCompiler {
   private val _log = LoggerFactory.getLogger(this.getClass)

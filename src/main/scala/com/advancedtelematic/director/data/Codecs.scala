@@ -21,7 +21,6 @@ import com.advancedtelematic.director.data.DbDataType.{
   EcuTarget,
   ProcessedAssignment
 }
-import com.advancedtelematic.libats.codecs.CirceValidatedGeneric
 import io.circe.syntax.*
 
 object Codecs {

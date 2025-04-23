@@ -19,10 +19,9 @@ import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.concurrent.ScalaFutures
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.PackageIdGenerators.*
-import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
+import com.advancedtelematic.director.util.DirectorSpec
 
 class PackageListsResourceSpec extends DirectorSpec with ResourcePropSpec with RegistryDeviceRequests {
 

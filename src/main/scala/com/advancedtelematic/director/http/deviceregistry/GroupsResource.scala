@@ -138,7 +138,7 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
     val deviceIds = byteSource
       .via(Framing.delimiter(ByteString("\n"), DEVICE_OEM_ID_MAX_BYTES, allowTruncation = true))
       .map(_.utf8String)
-      .map(DeviceOemId)
+      .map(DeviceOemId.apply)
       .runWith(Sink.seq)
 
     val deviceUuids = deviceIds
@@ -227,46 +227,47 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
               }
           }
       } ~
-        (get & path("membership") & parameter("deviceUuids".as(CsvSeq[DeviceId]))) { deviceUuids =>
-          complete(db.run(GroupMemberRepository.listGroupsForDevices(deviceUuids)))
-        }
-        ~
-        (get & path("count")) {
-          countDevicesPerGroup
-        } ~
-        GroupIdPath { groupId =>
-          (get & pathEndOrSingleSlash) {
-            getGroup(groupId)
-          } ~
-            path("hibernation") {
-              updateGroupHibernationStatus(ns, groupId)
+        concat(
+          (get & path("membership") & parameter("deviceUuids".as(CsvSeq[DeviceId]))) { deviceUuids =>
+            complete(db.run(GroupMemberRepository.listGroupsForDevices(deviceUuids)))
+          },
+          (get & path("count")) {
+            countDevicesPerGroup
+          },
+          GroupIdPath { groupId =>
+            (get & pathEndOrSingleSlash) {
+              getGroup(groupId)
             } ~
-            pathPrefix("devices") {
-              get {
-                getDevicesInGroup(groupId)
+              path("hibernation") {
+                updateGroupHibernationStatus(ns, groupId)
               } ~
-                deviceNamespaceAuthorizer { deviceUuid =>
-                  post {
-                    addDeviceToGroup(groupId, deviceUuid)
-                  } ~
-                    delete {
-                      removeDeviceFromGroup(groupId, deviceUuid)
-                    }
-                }
-            } ~
-            delete {
-              deleteGroup(groupId)
-            } ~
-            (put & path("rename") & parameter(Symbol("groupName").as[GroupName])) { groupName =>
-              renameGroup(groupId, groupName)
-            } ~
-            (get & path("count") & pathEnd) {
-              countDevices(groupId)
-            } ~
-            (get & path("device-stats")) {
-              findStats(groupId)
-            }
-        }
+              pathPrefix("devices") {
+                get {
+                  getDevicesInGroup(groupId)
+                } ~
+                  deviceNamespaceAuthorizer { deviceUuid =>
+                    post {
+                      addDeviceToGroup(groupId, deviceUuid)
+                    } ~
+                      delete {
+                        removeDeviceFromGroup(groupId, deviceUuid)
+                      }
+                  }
+              } ~
+              delete {
+                deleteGroup(groupId)
+              } ~
+              (put & path("rename") & parameter(Symbol("groupName").as[GroupName])) { groupName =>
+                renameGroup(groupId, groupName)
+              } ~
+              (get & path("count") & pathEnd) {
+                countDevices(groupId)
+              } ~
+              (get & path("device-stats")) {
+                findStats(groupId)
+              }
+          }
+        )
     }
 
 }
