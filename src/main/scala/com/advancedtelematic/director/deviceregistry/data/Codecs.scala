@@ -93,4 +93,7 @@ object Codecs {
     com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPublishResult
   ] = io.circe.generic.semiauto.deriveCodec[ObservationPublishResult]
 
+  implicit val deviceStatusCountsCodec: Codec[DeviceStatusCounts] =
+    io.circe.generic.semiauto.deriveCodec[DeviceStatusCounts]
+
 }

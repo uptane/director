@@ -21,7 +21,7 @@ default:
     paths:
       - .ivy2/
       - .sbt/
-  image: registry.gitlab.com/torizon-platform/ci-container-build/scala:10a8d21
+  image: registry.gitlab.com/toradex/torizon-cloud/ci-container-build/scala:10a8d21
   services:
     - name: mariadb:10.4
       alias: db
@@ -32,10 +32,10 @@ default:
     - name: docker:dind
 
 include:
-  - project: torizon-platform/ci-container-build
+  - project: toradex/torizon-cloud/ci-container-build
     file: gitlab-ci-templates/gitlab-sbt-docker-publish.yaml
     ref: master
-  - project: 'torizon-platform/deploy-env'
+  - project: 'toradex/torizon-cloud/deploy-env'
     ref: master
     file: '/gitlab/deploy-core-service.yml'
 
@@ -54,6 +54,8 @@ test:
     - mysql -v -h db -u root -proot < db_user.sql
   script:
     - sbt test
+  tags:
+    - torizon-cloud-team
 
 build docker image:
   stage: build image
@@ -63,3 +65,5 @@ build docker image:
   extends: .sbt-docker-publish
   variables:
     SERVICE_NAME: director-v2
+  tags:
+    - torizon-cloud-team

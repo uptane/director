@@ -65,6 +65,13 @@ trait GroupRequests {
   def countDevicesInGroup(groupId: GroupId): HttpRequest =
     Get(DeviceRegistryResourceUri.uri(groupsApi, groupId.show, "count"))
 
+  def countDevicesPerGroup(groupIds: Set[GroupId]): HttpRequest =
+    Get(
+      DeviceRegistryResourceUri
+        .uri(groupsApi, "count")
+        .withQuery(Query("groupIds" -> groupIds.map(_.show).mkString(",")))
+    )
+
   def listGroups(sortBy: Option[GroupSortBy] = None,
                  limit: Option[Long] = None,
                  nameContains: Option[String] = None): HttpRequest = {
@@ -138,5 +145,10 @@ trait GroupRequests {
         .uri(groupsApi, groupId.show, "rename")
         .withQuery(Query("groupName" -> newGroupName.value))
     )
+
+  def getDeviceStats(groupId: GroupId): HttpRequest = {
+    val uri = DeviceRegistryResourceUri.uri(groupsApi, groupId.show, "device-stats")
+    Get(uri)
+  }
 
 }

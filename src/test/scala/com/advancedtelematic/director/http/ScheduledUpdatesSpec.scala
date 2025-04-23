@@ -1,34 +1,30 @@
 package com.advancedtelematic.director.http
 
-import org.scalatest.OptionValues.*
-import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
-import com.advancedtelematic.director.util.{
-  DirectorSpec,
-  NamespacedTests,
-  RepositorySpec,
-  ResourceSpec
-}
-import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
-import org.scalactic.source.Position
 import cats.syntax.show.*
-import com.advancedtelematic.director.data.ClientDataType.CreateScheduledUpdateRequest
-import com.advancedtelematic.libats.data.{ErrorRepresentation, PaginationResult}
-import com.advancedtelematic.director.data.Codecs.*
-import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
-import ScheduledUpdateId.*
 import com.advancedtelematic.director.data.AdminDataType.MultiTargetUpdate
+import com.advancedtelematic.director.data.ClientDataType.CreateScheduledUpdateRequest
+import com.advancedtelematic.director.data.Codecs.*
+import com.advancedtelematic.director.data.DataType.ScheduledUpdateId.*
+import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId}
+import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.GenTargetUpdateRequest
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
+import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
+import com.advancedtelematic.director.util.{DirectorSpec, NamespacedTests, RepositorySpec, ResourceSpec}
+import com.advancedtelematic.libats.data.DataType.Namespace
+import com.advancedtelematic.libats.data.{ErrorRepresentation, PaginationResult}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
+import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import org.scalactic.source.Position
+import org.scalatest.LoneElement.*
+import org.scalatest.OptionValues.*
 
 import java.time.Instant
-import com.advancedtelematic.director.data.GeneratorOps.*
-import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
-import io.circe.Json
 
 trait ScheduledUpdatesResources {
-  self: DirectorSpec & ResourceSpec & NamespacedTests =>
+  self: DirectorSpec & ResourceSpec & NamespacedTests & RegistryDeviceRequests =>
 
   def createScheduledUpdateOk(deviceId: DeviceId, hardwareId: HardwareIdentifier)(
     implicit ns: Namespace,
@@ -40,6 +36,11 @@ trait ScheduledUpdatesResources {
   def createScheduledUpdateOk(deviceId: DeviceId, mtu: MultiTargetUpdate)(
     implicit ns: Namespace,
     pos: Position): ScheduledUpdateId = {
+
+    val deviceT = genDeviceT.generate.copy(uuid = Some(deviceId))
+
+    createDeviceInNamespaceOk(deviceT, ns)
+
     val mtuId = Post(apiUri("multi_target_updates"), mtu).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.Created
       responseAs[UpdateId]
@@ -64,6 +65,13 @@ trait ScheduledUpdatesResources {
       responseAs[PaginationResult[ScheduledUpdate]]
     }
 
+  def cancelScheduledUpdateOK(deviceId: DeviceId, id: ScheduledUpdateId)(
+    implicit ns: Namespace,
+    pos: Position): Unit =
+    Delete(apiUri(s"admin/devices/${deviceId.show}/scheduled-updates/${id.show}")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
 }
 
 class ScheduledUpdatesSpec
@@ -72,6 +80,7 @@ class ScheduledUpdatesSpec
     with AdminResources
     with RepositorySpec
     with ProvisionedDevicesRequests
+    with RegistryDeviceRequests
     with ScheduledUpdatesResources {
 
   testWithRepo("creates and lists a scheduled update") { implicit ns =>
@@ -88,6 +97,9 @@ class ScheduledUpdatesSpec
 
   testWithRepo("returns error if device already has a scheduled update") { implicit ns =>
     val regDev = registerAdminDeviceOk()
+
+    val deviceT = genDeviceT.generate.copy(uuid = Some(regDev.deviceId))
+    createDeviceInNamespaceOk(deviceT, ns)
 
     val mtu = MultiTargetUpdate(Map(regDev.primary.hardwareId -> GenTargetUpdateRequest.generate))
 

@@ -100,8 +100,14 @@ object GroupMemberRepository {
       .map(_.deviceUuid)
       .paginateResult(offset.orDefaultOffset, limit.orDefaultLimit)
 
-  def countDevicesInGroup(groupId: GroupId)(implicit ec: ExecutionContext): DBIO[Long] =
-    listDevicesInGroupAction(groupId, None, None).map(_.total)
+  def countDevicesInGroup(groupIds: Set[GroupId])(
+    implicit ec: ExecutionContext): DBIO[Map[GroupId, Long]] =
+    groupMembers
+      .filter(_.groupId.inSet(groupIds))
+      .groupBy(_.groupId)
+      .map { case (group, rows) => group -> rows.length }
+      .result
+      .map(_.map { case (group, size) => group -> size.toLong }.toMap)
 
   def deleteDynamicGroupsForDevice(deviceUuid: DeviceId)(
     implicit ec: ExecutionContext): DBIO[Unit] =
@@ -150,6 +156,14 @@ object GroupMemberRepository {
       .filter(_.deviceUuid === deviceUuid)
       .map(_.groupId)
       .paginateResult(offset.orDefaultOffset, limit.orDefaultLimit)
+
+  def listGroupsForDevices(deviceUuids: Seq[DeviceId])(
+    implicit ec: ExecutionContext): DBIO[Map[DeviceId, Seq[GroupId]]] = {
+    val queryResult = groupMembers.filter(_.deviceUuid.inSet(deviceUuids)).result
+    queryResult.map(_.groupBy(_.deviceUuid).map { case (deviceId, groups) =>
+      deviceId -> groups.map(_.groupId)
+    })
+  }
 
   private[db] def replaceExpression(namespace: Namespace,
                                     groupId: GroupId,

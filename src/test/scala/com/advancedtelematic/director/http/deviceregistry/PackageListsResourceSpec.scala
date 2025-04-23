@@ -24,7 +24,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.PackageIdGenerators.*
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 
-class PackageListsResourceSpec extends DirectorSpec with ResourcePropSpec with DeviceRequests {
+class PackageListsResourceSpec extends DirectorSpec with ResourcePropSpec with RegistryDeviceRequests {
 
   private val genNonConflictingDeviceTs = Gen.choose(0, 20).flatMap(genConflictFreeDeviceTs)
 

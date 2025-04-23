@@ -10,10 +10,16 @@ package com.advancedtelematic.director.http.deviceregistry
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes.*
+import akka.http.scaladsl.model.Uri.Query
 import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
-import com.advancedtelematic.director.daemon.DeleteDeviceRequestListener
+import com.advancedtelematic.director.daemon.{DeviceMqttLifecycle, EventType, MqttLifecycleListener}
+import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
+  DevicesCount,
+  InstalledPackage
+}
+import com.advancedtelematic.director.db.DeleteDeviceDBIO
 import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
   DevicesCount,
   InstalledPackage
@@ -21,11 +27,14 @@ import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
 import com.advancedtelematic.director.db.deviceregistry.{InstalledPackages, TaggedDeviceRepository}
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceStatusCounts,
   DeviceT,
+  MqttStatus,
   RenameTagId,
   TagInfo,
   UpdateHibernationStatusRequest
 }
+import org.scalatest.OptionValues.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
@@ -55,7 +64,7 @@ class DeviceResourceSpec
     extends DirectorSpec
     with ResourceSpec
     with ResourcePropSpec
-    with DeviceRequests
+    with RegistryDeviceRequests
     with GroupRequests
     with Eventually {
 
@@ -145,6 +154,8 @@ class DeviceResourceSpec
             |  "deviceStatus" : "NotSeen",
             |  "notes" : null,
             |  "hibernated" : false,
+            |  "mqttStatus" : "NotSeen",
+            |  "mqttLastSeen" : null,
             |  "attributes": {}
             |}
             |""".stripMargin
@@ -187,9 +198,9 @@ class DeviceResourceSpec
   test("GET devices not seen for the last hours") {
     forAll(sizeRange(20)) {
       (neverSeen: Seq[DeviceT], notSeenLately: Seq[DeviceT], seenLately: Seq[DeviceT]) =>
-        val neverSeenIds = neverSeen.map(createDeviceOk(_))
-        val notSeenLatelyIds = notSeenLately.map(createDeviceOk(_))
-        val seenLatelyIds = seenLately.map(createDeviceOk(_))
+        val neverSeenIds = neverSeen.map(createDeviceOk)
+        val notSeenLatelyIds = notSeenLately.map(createDeviceOk)
+        val seenLatelyIds = seenLately.map(createDeviceOk)
 
         seenLatelyIds.foreach(logDeviceSeen(_))
         val hours = Gen.chooseNum(1, 100000).sample.get
@@ -254,6 +265,51 @@ class DeviceResourceSpec
         devicePost.lastSeen should not be None
         isRecent(devicePost.lastSeen) shouldBe true
         devicePost.deviceStatus should not be DeviceStatus.NotSeen
+      }
+    }
+  }
+
+  test("device gets mqtt status updated when lifcycle message is received") {
+    val mqttListener = new MqttLifecycleListener()
+
+    forAll { (devicePre: DeviceT) =>
+      val uuid: DeviceId = createDeviceOk(devicePre)
+      fetchDevice(uuid) ~> routes ~> check {
+        val devicePost: Device = responseAs[Device]
+
+        devicePost.mqttLastSeen shouldBe empty
+        devicePost.mqttStatus shouldBe MqttStatus.NotSeen
+      }
+
+      // json encoders truncate dates to seconds
+      val now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
+
+      mqttListener(
+        DeviceMqttLifecycle(uuid, EventType.Connected, payload = Json.Null, Instant.now)
+      ).futureValue
+
+      val lastOnlineDate = fetchDevice(uuid) ~> routes ~> check {
+        val devicePost: Device = responseAs[Device]
+
+        val ts = devicePost.mqttLastSeen.value
+
+        (ts.compareTo(now) >= 0) shouldBe true
+        devicePost.mqttStatus shouldBe MqttStatus.Online
+        ts
+      }
+
+      mqttListener(
+        DeviceMqttLifecycle(uuid, EventType.Disconnected, payload = Json.Null, Instant.now)
+      ).futureValue
+
+      fetchDevice(uuid) ~> routes ~> check {
+        val devicePost: Device = responseAs[Device]
+
+        isRecent(devicePost.mqttLastSeen) shouldBe true
+        devicePost.mqttLastSeen shouldNot be(empty)
+        devicePost.mqttStatus shouldBe MqttStatus.Offline
+
+        devicePost.mqttLastSeen.value shouldBe lastOnlineDate
       }
     }
   }
@@ -989,8 +1045,6 @@ class DeviceResourceSpec
     }
   }
 
-  val listener = new DeleteDeviceRequestListener()
-
   test("DELETE device removes it from its group") {
     forAll { (devicePre: DeviceT, groupName: GroupName) =>
       val uuid = createDeviceOk(devicePre)
@@ -1003,7 +1057,7 @@ class DeviceResourceSpec
         devices.values.find(_ == uuid) shouldBe Some(uuid)
       }
 
-      listener.apply(DeleteDeviceRequest(defaultNs, uuid)).futureValue
+      db.run(DeleteDeviceDBIO.deleteDeviceIO(defaultNs, uuid)).futureValue
 
       eventually {
         fetchByGroupId(groupId, offset = 0, limit = 10) ~> routes ~> check {
@@ -1036,7 +1090,7 @@ class DeviceResourceSpec
 
     val uuid: DeviceId = deviceIds.head
 
-    listener.apply(DeleteDeviceRequest(defaultNs, uuid)).futureValue
+    db.run(DeleteDeviceDBIO.deleteDeviceIO(defaultNs, uuid)).futureValue
 
     eventually {
       (0 until groupNumber).foreach { i =>
@@ -1072,12 +1126,12 @@ class DeviceResourceSpec
 
   test("counts devices that satisfy a dynamic group expression") {
     val testDevices = Map(
-      validatedDeviceType.from("device1").toOption.get -> DeviceOemId("abc123"),
-      validatedDeviceType.from("device2").toOption.get -> DeviceOemId("123abc456"),
-      validatedDeviceType.from("device3").toOption.get -> DeviceOemId("123aba456")
+      validatedDeviceType.from("device1").value -> DeviceOemId("abc123"),
+      validatedDeviceType.from("device2").value -> DeviceOemId("123abc456"),
+      validatedDeviceType.from("device3").value -> DeviceOemId("123aba456")
     )
     testDevices
-      .map(t => (Gen.const(t._1), Gen.const(t._2)))
+      .map { case (deviceName, oemId) => (Gen.const(deviceName), Gen.const(oemId)) }
       .map((genDeviceTWith _).tupled(_))
       .map(_.sample.get)
       .map(createDeviceOk)
@@ -1089,6 +1143,29 @@ class DeviceResourceSpec
     countDevicesForExpression(expression.some) ~> routes ~> check {
       status shouldBe OK
       responseAs[Int] shouldBe 1
+    }
+  }
+
+  test("counts devices by recent and offline") {
+    val uuid = createDeviceOk(genDeviceT.generate.copy(hibernated = true.some))
+
+    logDeviceSeen(uuid, Instant.now().minusSeconds(10))
+
+    Get(
+      DeviceRegistryResourceUri
+        .uri(api, "count")
+        .withQuery(Query("recentSinceSecs" -> "0", "offlineSinceSecs" -> "0"))
+    ) ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+
+      val counts = responseAs[DeviceStatusCounts]
+
+      counts.hibernated shouldBe 1
+      counts.recent shouldBe 0
+      counts.offline should be > 0L
+      counts.updateFailed shouldBe 0
+      counts.updatePending shouldBe 0
+      counts.updateInProgess shouldBe 0
     }
   }
 

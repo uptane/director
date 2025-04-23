@@ -72,17 +72,18 @@ class RemoteSessions(keyserverClient: KeyserverClient)(
 
     val expireAt = nextExpires
 
-    val newRole = if (existing.isEmpty) {
-      await(keyserverClient.addRemoteSessionsRole(repoId))
-      RemoteSessionsRole(remoteSessions, expireAt, version = 1)
-    } else {
-      val role = existing.get.toSignedRole[RemoteSessionsRole].role
-      val newRole = role.copy(
-        remoteSessions,
-        expireAt,
-        version = previousVersion + 1
-      ) // persist will check this bump is valid and does not conflict
-      newRole
+    val newRole = existing match {
+      case Some(r) =>
+        val role = r.value.toSignedRole[RemoteSessionsRole].role
+        val newRole = role.copy(
+          remoteSessions,
+          expireAt,
+          version = previousVersion + 1
+        ) // persist will check this bump is valid and does not conflict
+        newRole
+      case None =>
+        await(keyserverClient.addRemoteSessionsRole(repoId))
+        RemoteSessionsRole(remoteSessions, expireAt, version = 1)
     }
 
     val signedRole = await(sign(repoId, newRole))

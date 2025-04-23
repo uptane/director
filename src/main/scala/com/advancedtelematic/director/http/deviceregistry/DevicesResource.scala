@@ -25,6 +25,7 @@ import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceCountParams,
   DeviceT,
   DevicesQuery,
   InstallationStatsLevel,
@@ -64,7 +65,11 @@ import io.circe.Json
 import io.circe.syntax.EncoderOps
 import slick.jdbc.MySQLProfile.api.*
 import Unmarshallers.nonNegativeLong
+import com.advancedtelematic.director.db.DeleteDeviceDBIO
+
 import java.time.{Instant, OffsetDateTime}
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 
@@ -156,6 +161,18 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     pathPrefix(Segment / Segment).as(PackageId.apply)
 
   val eventJournal = new EventJournal()
+
+  val countParameters: Directive1[DeviceCountParams] =
+    parameters(Symbol("recentSinceSecs").as[Long].?, Symbol("offlineSinceSecs").as[Long].?).tmap {
+      case (recentSince, offlineSince) =>
+        DeviceCountParams(
+          recentSince.map(secs => Duration(secs, TimeUnit.SECONDS)),
+          offlineSince.map(secs => Duration(secs, TimeUnit.SECONDS))
+        )
+    }
+
+  def countDevices(ns: Namespace, params: DeviceCountParams): Route =
+    complete(db.run(SearchDBIO.countByStatus(ns, params)))
 
   def searchDevice(ns: Namespace): Route =
     parameters(
@@ -257,8 +274,12 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
   }
 
   def deleteDevice(ns: Namespace, uuid: DeviceId): Route = {
-    val f = messageBus.publish(DeleteDeviceRequest(ns, uuid, Instant.now()))
-    onSuccess(f)(complete(StatusCodes.Accepted))
+    val f = for {
+      _ <- db.run(DeleteDeviceDBIO.deleteDeviceIO(ns, uuid))
+      _ <- messageBus.publishSafe(DeleteDeviceRequest(ns, uuid, Instant.now()))
+    } yield StatusCodes.Accepted
+
+    complete(f)
   }
 
   def fetchDevice(uuid: DeviceId): Route =
@@ -463,10 +484,13 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
         createDevice(ns, device)
       } ~
         get {
-          (path("count") & parameter(Symbol("expression").as[GroupExpression].?)) {
-            case None      => complete(Errors.InvalidGroupExpression(""))
-            case Some(exp) => countDynamicGroupCandidates(ns, exp)
+          (path("count") & countParameters) { params =>
+            countDevices(ns, params)
           } ~
+            (path("dynamic-group-count") & parameter(Symbol("expression").as[GroupExpression].?)) {
+              case None      => complete(Errors.InvalidGroupExpression(""))
+              case Some(exp) => countDynamicGroupCandidates(ns, exp)
+            } ~
             (path("stats") & parameters(
               Symbol("correlationId").as[CorrelationId],
               Symbol("reportLevel").as[InstallationStatsLevel].?

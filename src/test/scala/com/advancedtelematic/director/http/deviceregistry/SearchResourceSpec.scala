@@ -28,7 +28,7 @@ import io.circe.Json
 import java.time.{Duration, Instant}
 
 trait SearchRequests {
-  self: DirectorSpec & ResourceSpec & DeviceRequests =>
+  self: DirectorSpec & ResourceSpec & RegistryDeviceRequests =>
 
   def listDevices(sortBy: Option[DeviceSortBy] = None,
                   sortDirection: Option[SortDirection] = None): HttpRequest = {
@@ -65,7 +65,7 @@ trait SearchRequests {
 class SearchResourceSpec
     extends DirectorSpec
     with ResourceSpec
-    with DeviceRequests
+    with RegistryDeviceRequests
     with SearchRequests
     with AdminResources
     with RepositorySpec

@@ -9,26 +9,25 @@
 package com.advancedtelematic.director.db.deviceregistry
 
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
+import com.advancedtelematic.director.http.deviceregistry.{
+  DeviceGroupStats,
+  ErrorHandlers,
+  Errors,
+  LastSeenTable
+}
 import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
-import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeletedDevice,
   DeviceT,
   HibernationStatus,
-  SearchParams
+  MqttStatus
 }
 import com.advancedtelematic.director.deviceregistry.data.Device.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
-import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.*
-import DbOps.{deviceTableToSlickOrder, PaginationResultOps}
-import GroupInfoRepository.groupInfos
-import GroupMemberRepository.groupMembers
 import SlickMappings.*
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
@@ -37,12 +36,13 @@ import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.ExecutionContext
 import cats.syntax.option.*
-import slick.jdbc.{PositionedParameters, SetParameter}
-import slick.lifted.Rep
+import slick.jdbc.{GetResult, PositionedParameters, SetParameter}
 
 import java.sql.Timestamp
+import java.util.UUID
 import scala.annotation.unused
 import Schema.*
+import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 
 object DeviceRepository {
 
@@ -58,12 +58,15 @@ object DeviceRepository {
       device.deviceId,
       device.deviceType,
       createdAt = Instant.now(),
-      hibernated = device.hibernated.getOrElse(false)
+      hibernated = device.hibernated.getOrElse(false),
+      mqttStatus = MqttStatus.NotSeen,
+      mqttLastSeen = None
     )
 
     val dbIO = devices += dbDevice
     dbIO
       .handleIntegrityErrors(Errors.ConflictingDevice(device.deviceName.some, device.deviceId.some))
+      .mapError(ErrorHandlers.sqlExceptionHandler)
       .andThen(
         GroupMemberRepository.addDeviceToDynamicGroups(ns, DeviceDB.toDevice(dbDevice), Map.empty)
       )
@@ -171,22 +174,6 @@ object DeviceRepository {
     dbIO.transactionally
   }
 
-  def delete(ns: Namespace, uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Unit] = {
-    val dbIO = for {
-      device <- exists(ns, uuid)
-      _ <- EventJournal.archiveIndexedEvents(uuid)
-      _ <- EventJournal.deleteEvents(uuid)
-      _ <- GroupMemberRepository.removeDeviceFromAllGroups(uuid)
-      _ <- PublicCredentialsRepository.delete(uuid)
-      _ <- SystemInfoRepository.delete(uuid)
-      _ <- TaggedDeviceRepository.delete(uuid)
-      _ <- devices.filter(d => d.namespace === ns && d.id === uuid).delete
-      _ <- deletedDevices += DeletedDevice(ns, device.uuid, device.deviceId)
-    } yield ()
-
-    dbIO.transactionally
-  }
-
   def deviceNamespace(uuid: DeviceId)(implicit ec: ExecutionContext): DBIO[Namespace] =
     devices
       .filter(_.id === uuid)
@@ -199,7 +186,7 @@ object DeviceRepository {
     implicit val setInstant: SetParameter[Instant] = (value: Instant, pos: PositionedParameters) =>
       pos.setTimestamp(Timestamp.from(value))
 
-    // Using raw sql because SQL will it's own instant mapping for the comparisons, instead of javaInstantMapping
+    // Using raw sql because slick will use it's own instant mapping for the comparisons, instead of javaInstantMapping
     val sql =
       sql"""
             select count(*) from #${devices.baseTableRow.tableName} WHERE
@@ -212,6 +199,10 @@ object DeviceRepository {
   }
 
   def setDeviceStatus(uuid: DeviceId, status: DeviceStatus)(
+    implicit ec: ExecutionContext): DBIO[Unit] =
+    setDeviceStatusAction(uuid, status)
+
+  protected[db] def setDeviceStatusAction(uuid: DeviceId, status: DeviceStatus)(
     implicit ec: ExecutionContext): DBIO[Unit] =
     devices
       .filter(_.id === uuid)
@@ -233,5 +224,63 @@ object DeviceRepository {
         case c if c == 0 =>
           DBIO.successful(status)
       }
+
+  def setMqttStatus(id: DeviceId, status: MqttStatus, lastSeen: Instant)(
+    implicit ec: ExecutionContext): DBIO[Unit] =
+    devices
+      .filter(_.id === id)
+      .map(r => (r.mqttStatus, r.mqttLastSeen))
+      .update(status -> lastSeen.some)
+      .handleSingleUpdateError(Errors.MissingDevice)
+
+  def getDeviceGroupStats(
+    groupId: GroupId)(implicit ec: ExecutionContext): DBIO[DeviceGroupStats] = {
+
+    implicit val getDeviceStatus = GetResult[DeviceStatus] { r =>
+      DeviceStatus.withName(r.nextString())
+    }
+
+    val statusQuery = sql"""
+      SELECT
+        device_status,
+        COUNT(*) as status_count
+      FROM Device d
+      INNER JOIN GroupMembers gm ON d.uuid = gm.device_uuid
+      WHERE gm.group_id = ${groupId.uuid.toString}
+      GROUP BY device_status
+    """.as[(DeviceStatus, Long)]
+
+    implicit val getLastSeenTable = GetResult[LastSeenTable] { r =>
+      LastSeenTable(
+        r.rs.getLong("seen_10mins"),
+        r.rs.getLong("seen_1hour"),
+        r.rs.getLong("seen_1day"),
+        r.rs.getLong("seen_1week"),
+        r.rs.getLong("seen_1month"),
+        r.rs.getLong("seen_1year")
+      )
+    }
+
+    val lastSeenQuery = sql"""
+      SELECT
+        SUM(CASE WHEN last_seen IS NOT NULL AND TIMESTAMPDIFF(MINUTE, last_seen, NOW()) <= 10 THEN 1 ELSE 0 END) as seen_10mins,
+        SUM(CASE WHEN last_seen IS NOT NULL AND TIMESTAMPDIFF(MINUTE, last_seen, NOW()) <= 60 THEN 1 ELSE 0 END) as seen_1hour,
+        SUM(CASE WHEN last_seen IS NOT NULL AND TIMESTAMPDIFF(MINUTE, last_seen, NOW()) <= 1440 THEN 1 ELSE 0 END) as seen_1day,
+        SUM(CASE WHEN last_seen IS NOT NULL AND TIMESTAMPDIFF(MINUTE, last_seen, NOW()) <= 10080 THEN 1 ELSE 0 END) as seen_1week,
+        SUM(CASE WHEN last_seen IS NOT NULL AND TIMESTAMPDIFF(MINUTE, last_seen, NOW()) <= 43200 THEN 1 ELSE 0 END) as seen_1month,
+        SUM(CASE WHEN last_seen IS NOT NULL AND TIMESTAMPDIFF(MINUTE, last_seen, NOW()) <= 525600 THEN 1 ELSE 0 END) as seen_1year
+      FROM Device d
+      INNER JOIN GroupMembers gm ON d.uuid = gm.device_uuid
+      WHERE gm.group_id = ${groupId.uuid.toString}
+    """.as[LastSeenTable]
+
+    statusQuery.flatMap { statusRows =>
+      val status = statusRows.toMap
+      lastSeenQuery.map { rows =>
+        val lastSeen = rows.headOption.getOrElse(LastSeenTable(0L, 0L, 0L, 0L, 0L, 0L))
+        DeviceGroupStats(status, lastSeen)
+      }
+    }
+  }
 
 }

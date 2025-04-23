@@ -23,7 +23,10 @@ import com.advancedtelematic.director.deviceregistry.data.{
 import com.advancedtelematic.libats.data.ErrorCode
 import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, RawError}
 
+import java.sql.SQLSyntaxErrorException
+
 object Errors {
+
   import akka.http.scaladsl.model.StatusCodes
 
   object Codes {
@@ -39,6 +42,7 @@ object Errors {
     val MalformedInput = ErrorCode("malformed_input")
     val CannotRemoveDeviceTag = ErrorCode("cannot_remove_device_tag")
     val CannotSerializeEcuReplacement = ErrorCode("cannot_serialize_ecu_replacement")
+    val InvalidParameterFormat = ErrorCode("invalid_parameter_format")
   }
 
   def InvalidGroupExpression(err: String) = RawError(
@@ -119,4 +123,25 @@ object Errors {
 
   val MissingPackageListItem = MissingEntity[PackageListItem]()
   val ConflictingPackageListItem = EntityAlreadyExists[PackageListItem]()
+
+  val InvalidParameterFormat = RawError(
+    Codes.InvalidParameterFormat,
+    StatusCodes.BadRequest,
+    "Request parameters have invalid format"
+  )
+
+}
+
+object ErrorHandlers {
+
+  val sqlExceptionHandler: PartialFunction[Throwable, Throwable] = {
+    case e: SQLSyntaxErrorException =>
+      if (e.getMessage().contains("Incorrect string value")) {
+        Errors.InvalidParameterFormat
+      } else {
+        e
+      }
+    case e => e
+  }
+
 }

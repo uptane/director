@@ -1,5 +1,8 @@
 package com.advancedtelematic.director.http
 
+import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
+import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
+import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
@@ -14,6 +17,8 @@ import com.advancedtelematic.director.db.{
   DbDeviceRoleRepositorySupport,
   RepoNamespaceRepositorySupport
 }
+import com.advancedtelematic.director.deviceregistry.daemon.DeviceUpdateStatus
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
 import com.advancedtelematic.director.util.*
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, MultiTargetUpdateId, Namespace}
@@ -126,6 +131,7 @@ class AssignmentsResourceSpec
     with RepositorySpec
     with ProvisionedDevicesRequests
     with DeviceManifestSpec
+    with RegistryDeviceRequests
     with Inspectors {
 
   override implicit val msgPub = new MockMessageBus
@@ -295,6 +301,9 @@ class AssignmentsResourceSpec
     val regDev0 = registerAdminDeviceOk()
     val regDev1 = registerAdminDeviceOk(regDev0.primary.hardwareId.some)
 
+    val deviceT = genDeviceT.generate.copy(uuid = Some(regDev0.deviceId))
+    createDeviceInNamespaceOk(deviceT, ns)
+
     val mtu = MultiTargetUpdate(Map(regDev0.primary.hardwareId -> GenTargetUpdateRequest.generate))
     val scheduledUpdate = createMtu(mtu) ~> check {
       response.status shouldBe StatusCodes.Created
@@ -321,7 +330,7 @@ class AssignmentsResourceSpec
       response.affected.loneElement shouldBe regDev1.deviceId
 
       val (deviceId, errors) = response.notAffected.loneElement
-      val (ecuId, error) = errors.loneElement
+      val (_, error) = errors.loneElement
       deviceId shouldBe regDev0.deviceId
       error.code shouldBe ErrorCodes.DeviceHasScheduledUpdate
     }
@@ -576,6 +585,27 @@ class AssignmentsResourceSpec
         val res = responseAs[Map[DeviceId, Seq[QueueResponse]]]
         res.size shouldBe 50
       }
+  }
+
+  testWithRepo("publishes DeviceUpdateStatus when creating scheduled update") { implicit ns =>
+    val regDev = registerAdminDeviceOk()
+    val deviceT = genDeviceT.generate.copy(uuid = Some(regDev.deviceId))
+    createDeviceInNamespaceOk(deviceT, ns)
+
+    val mtu = MultiTargetUpdate(Map(regDev.primary.hardwareId -> GenTargetUpdateRequest.generate))
+    val scheduledUpdate = createMtu(mtu) ~> check {
+      response.status shouldBe StatusCodes.Created
+      responseAs[UpdateId]
+    }
+
+    updateScheduler.create(ns, regDev.deviceId, scheduledUpdate, Instant.now).futureValue
+
+    val msg = msgPub.findReceived[DeviceUpdateStatus] { (msg: DeviceUpdateStatus) =>
+      msg.device == regDev.deviceId &&
+      msg.status == DeviceStatus.UpdateScheduled
+    }
+
+    msg shouldBe defined
   }
 
 }

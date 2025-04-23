@@ -6,7 +6,7 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.ObservationPu
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators
 import com.advancedtelematic.director.http.deviceregistry.{
   DeviceRegistryResourceUri,
-  DeviceRequests
+  RegistryDeviceRequests
 }
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
@@ -132,7 +132,7 @@ object TestPayloads {
 
 }
 
-class DeviceMonitoringResourceSpec extends DirectorSpec with ResourceSpec with DeviceRequests {
+class DeviceMonitoringResourceSpec extends DirectorSpec with ResourceSpec with RegistryDeviceRequests {
 
   import DeviceGenerators.*
   import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
@@ -193,7 +193,7 @@ class BadMessageBus extends MockMessageBus {
 class DeviceMonitoringResourceSpecBadMsgPub
     extends DirectorSpec
     with ResourceSpec
-    with DeviceRequests {
+    with RegistryDeviceRequests {
 
   import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
   import DeviceGenerators.*

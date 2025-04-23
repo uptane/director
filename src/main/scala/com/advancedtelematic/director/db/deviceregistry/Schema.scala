@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.director.deviceregistry.data.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.DeletedDevice
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeletedDevice, MqttStatus}
 import com.advancedtelematic.director.deviceregistry.data.Device.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
 import SlickMappings.*
@@ -34,6 +34,8 @@ object Schema {
     def deviceStatus = column[DeviceStatus]("device_status")
     def notes = column[Option[String]]("notes")
     def hibernated = column[Boolean]("hibernated")
+    def mqttLastSeen = column[Option[Instant]]("mqtt_last_seen")(javaInstantMapping.optionType)
+    def mqttStatus = column[MqttStatus]("mqtt_status")
 
     def * =
       (
@@ -47,7 +49,9 @@ object Schema {
         activatedAt,
         deviceStatus,
         notes,
-        hibernated
+        hibernated,
+        mqttStatus,
+        mqttLastSeen
       ).shaped <> ((DeviceDB.apply _).tupled, DeviceDB.unapply)
 
     def pk = primaryKey("uuid", id)

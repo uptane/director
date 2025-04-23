@@ -11,6 +11,7 @@ package com.advancedtelematic.director.http.deviceregistry
 import akka.http.scaladsl.marshalling.Marshaller.*
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.*
+
 import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.Materializer
@@ -27,6 +28,7 @@ import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.UpdateHibernationStatusRequest
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
@@ -34,11 +36,40 @@ import com.advancedtelematic.director.deviceregistry.{AllowUUIDPath, GroupMember
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
-import io.circe.{Decoder, Encoder}
+import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
+
+case class LastSeenTable(`10mins`: Long,
+                         `1hour`: Long,
+                         `1day`: Long,
+                         `1week`: Long,
+                         `1month`: Long,
+                         `1year`: Long)
+
+case class DeviceGroupStats(status: Map[DeviceStatus, Long], lastSeen: LastSeenTable)
+
+object DeviceGroupStats {
+  implicit val deviceGroupStatusKeyEncoder: KeyEncoder[DeviceStatus] = KeyEncoder(_.toString)
+
+  implicit val deviceGroupStatusKeyDecoder: KeyDecoder[DeviceStatus] =
+    KeyDecoder.instance(str => Try(DeviceStatus.withName(str)).toOption)
+
+  implicit val lastSeenTableCodec: Codec[LastSeenTable] =
+    io.circe.generic.semiauto.deriveCodec[LastSeenTable]
+
+  implicit val deviceGroupStatsCodec: Codec[DeviceGroupStats] =
+    io.circe.generic.semiauto.deriveCodec[DeviceGroupStats]
+
+}
+
 import Unmarshallers.nonNegativeLong
+import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
+import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+import GroupId.*
+import io.circe.syntax.*
 
 class GroupsResource(namespaceExtractor: Directive1[Namespace],
                      deviceNamespaceAuthorizer: Directive1[DeviceId])(
@@ -55,6 +86,9 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
       db.run(GroupInfoRepository.groupInfoNamespace(groupId))
     AllowUUIDPath(GroupId)(namespaceExtractor, groupAllowed)
   }
+
+  implicit val deviceIdUnmarshaller: Unmarshaller[String, DeviceId] = DeviceId.unmarshaller
+  implicit val groupIdUnmarshaller: Unmarshaller[String, GroupId] = GroupId.unmarshaller
 
   implicit val groupTypeUnmarshaller: FromStringUnmarshaller[GroupType] =
     Unmarshaller.strict(GroupType.withName)
@@ -136,11 +170,26 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
     complete(db.run(io.transactionally))
   }
 
-  def renameGroup(groupId: GroupId, newGroupName: GroupName): Route =
+  private def renameGroup(groupId: GroupId, newGroupName: GroupName): Route =
     complete(db.run(GroupInfoRepository.renameGroup(groupId, newGroupName)))
 
-  def countDevices(groupId: GroupId): Route =
+  private def countDevices(groupId: GroupId): Route =
     complete(groupMembership.countDevices(groupId))
+
+  private def findStats(groupId: GroupId): Route =
+    complete(db.run(DeviceRepository.getDeviceGroupStats(groupId)))
+
+  val countDevicesPerGroup: Route =
+    parameter("groupIds".as(CsvSeq[GroupId])) { groupids =>
+      val groupIdsSet = groupids.toSet
+
+      if (groupids.length > 100)
+        reject(ValidationRejection("too many groupIds to filter, maximum is 100"))
+      else
+        complete(groupMembership.countDevicesPerGroup(groupIdsSet).map { res =>
+          Json.obj("values" -> res.asJson)
+        })
+    }
 
   def addDeviceToGroup(groupId: GroupId, deviceUuid: DeviceId): Route =
     complete(groupMembership.addGroupMember(groupId, deviceUuid))
@@ -178,6 +227,13 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
               }
           }
       } ~
+        (get & path("membership") & parameter("deviceUuids".as(CsvSeq[DeviceId]))) { deviceUuids =>
+          complete(db.run(GroupMemberRepository.listGroupsForDevices(deviceUuids)))
+        }
+        ~
+        (get & path("count")) {
+          countDevicesPerGroup
+        } ~
         GroupIdPath { groupId =>
           (get & pathEndOrSingleSlash) {
             getGroup(groupId)
@@ -206,6 +262,9 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
             } ~
             (get & path("count") & pathEnd) {
               countDevices(groupId)
+            } ~
+            (get & path("device-stats")) {
+              findStats(groupId)
             }
         }
     }

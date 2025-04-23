@@ -1,23 +1,27 @@
 package com.advancedtelematic.director.db
 
-import com.advancedtelematic.director.data.DbDataType.{DeviceKnownState, EcuTargetId}
+import com.advancedtelematic.director.data.DataType.ScheduledUpdate.Status
+import com.advancedtelematic.director.data.DbDataType.{Device, DeviceKnownState, EcuTargetId}
 import com.advancedtelematic.director.manifest.ManifestCompiler.ManifestCompileResult
 import com.advancedtelematic.libats.data.EcuIdentifier
+import com.advancedtelematic.libats.http.Errors.MissingEntity
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
+import SlickMapping.scheduledUpdatesMapper
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*
 import slick.jdbc.TransactionIsolation
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import com.advancedtelematic.libats.slick.db.SlickExtensions.DBIOSeqOps
 
 class CompiledManifestExecutor()(implicit val db: Database, val ec: ExecutionContext) {
 
   private val _log = LoggerFactory.getLogger(this.getClass)
 
-  private def findStateAction(deviceId: DeviceId): DBIO[DeviceKnownState] =
+  protected[director] def findStateAction(deviceId: DeviceId): DBIO[DeviceKnownState] =
     for {
       assignments <- Schema.assignments.filter(_.deviceId === deviceId).result
       processed <- Schema.processedAssignments.filter(_.deviceId === deviceId).result
@@ -25,8 +29,14 @@ class CompiledManifestExecutor()(implicit val db: Database, val ec: ExecutionCon
         .filter(_.deviceId === deviceId)
         .map(ecu => ecu.ecuSerial -> ecu.installedTarget)
         .result
-      device <- Schema.allProvisionedDevices.filter(_.id === deviceId).result.head
-      scheduledUpdates <- Schema.scheduledUpdates.filter(_.deviceId === deviceId).result
+      device <- Schema.allProvisionedDevices
+        .filter(_.id === deviceId)
+        .result
+        .failIfNotSingle(MissingEntity[Device]())
+      scheduledUpdates <- Schema.scheduledUpdates
+        .filter(_.deviceId === deviceId)
+        .filterNot(_.status.inSet(Set(Status.Completed, Status.Cancelled)))
+        .result
       hardwareUpdatesEcuTargetIds <- Schema.hardwareUpdates
         .filter(_.id.inSet(scheduledUpdates.map(_.updateId).toSet))
         .map(t => t.id -> t.toTarget)

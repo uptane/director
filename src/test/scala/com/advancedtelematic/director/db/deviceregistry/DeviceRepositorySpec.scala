@@ -8,9 +8,11 @@
 
 package com.advancedtelematic.director.db.deviceregistry
 
+import com.advancedtelematic.director.db.DeleteDeviceDBIO
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeletedDevice
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.{genDeviceId, genDeviceT}
 import com.advancedtelematic.director.deviceregistry.data.Namespaces
+import com.advancedtelematic.director.deviceregistry.data.Namespaces.defaultNs
 import com.advancedtelematic.director.util.{DirectorSpec, MysqlDatabaseSpec}
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.test.LongTest
@@ -23,7 +25,7 @@ import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.scalatest.LoneElement.*
 
-class ProvisionedDeviceRepositorySpec
+class DeviceRepositorySpec
     extends DirectorSpec
     with MysqlDatabaseSpec
     with Matchers
@@ -67,7 +69,7 @@ class ProvisionedDeviceRepositorySpec
     val deviceT = genDeviceT.sample.get
     val deviceUuid = db.run(DeviceRepository.create(Namespaces.defaultNs, deviceT)).futureValue
 
-    db.run(DeviceRepository.delete(Namespaces.defaultNs, deviceUuid)).futureValue
+    db.run(DeleteDeviceDBIO.deleteDeviceIO(defaultNs, deviceUuid)).futureValue
 
     val deletedDevices = db
       .run(

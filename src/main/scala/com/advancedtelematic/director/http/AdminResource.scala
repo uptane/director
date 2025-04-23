@@ -51,10 +51,11 @@ case class RemoteSessionRequest(remoteSessions: RemoteSessionsPayload, previousV
 
 class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient: KeyserverClient)(
   implicit val db: Database,
-  val ec: ExecutionContext,
-  messageBusPublisher: MessageBusPublisher)
+  msgBus: MessageBusPublisher,
+  val ec: ExecutionContext)
     extends NamespaceRepoId
     with RepoNamespaceRepositorySupport
+    with AdminRolesRepositorySupport
     with RootFetching
     with EcuRepositorySupport
     with ProvisionedDeviceRepositorySupport
@@ -138,7 +139,11 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
             (post & entity(as[OfflineUpdateRequest])) { req =>
               val f = offlineUpdates.set(repoId, offlineTargetName, req.values, req.expiresAt)
               complete(f.map(_.content))
-            }
+            } ~
+              delete {
+                val f = offlineUpdates.delete(repoId, offlineTargetName)
+                complete(f)
+              }
         } ~
         (path("offline-updates" / AdminRoleNamePathMatcher ~ ".json") & UserRepoId(ns)) {
           (offlineTargetName, repoId) =>
@@ -273,7 +278,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                   else {
                     complete {
                       deviceRegistration
-                        .registerAndPublish(
+                        .register(
                           ns,
                           repoId,
                           regDev.deviceId.get,

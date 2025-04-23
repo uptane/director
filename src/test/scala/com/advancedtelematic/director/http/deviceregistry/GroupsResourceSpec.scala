@@ -14,34 +14,36 @@ import akka.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceT,
-  UpdateHibernationStatusRequest
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, UpdateHibernationStatusRequest}
+import com.advancedtelematic.director.http.deviceregistry.DeviceGroupStats
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupGenerators.*
-import com.advancedtelematic.director.deviceregistry.data.{
-  Group,
-  GroupExpression,
-  GroupName,
-  GroupSortBy
-}
+import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupSortBy}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes.MalformedInput
 import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import io.circe.Json
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Gen
 import org.scalatest.EitherValues.*
 import org.scalatest.Inspectors.*
 import org.scalatest.time.{Millis, Seconds, Span}
 
+import java.time.Instant
+import java.util.UUID
+import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
+import DeviceStatus.*
+import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
+
+import java.time.temporal.ChronoUnit
+
 class GroupsResourceSpec
     extends DirectorSpec
     with ResourceSpec
-    with DeviceRequests
+    with RegistryDeviceRequests
     with GroupRequests {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
@@ -130,6 +132,36 @@ class GroupsResourceSpec
       status shouldBe OK
       val responseGroups = responseAs[PaginationResult[Group]].values
       responseGroups.reverse.map(_.id).filter(groupIds.contains) shouldBe groupIds
+    }
+  }
+
+  test("gets group sizes for multiple groups") {
+    val groupIds = (1 to 3).map(_ => createStaticGroupOk()).sortBy(_.show)
+
+    groupIds.zipWithIndex.foreach { case (groupId, idx) =>
+      val deviceTs = genConflictFreeDeviceTs(idx + 1).sample.get
+      val deviceIds = deviceTs.map(createDeviceOk)
+      deviceIds.foreach(deviceId => addDeviceToGroupOk(groupId, deviceId))
+    }
+
+    countDevicesPerGroup(groupIds.toSet) ~> routes ~> check {
+      status shouldBe OK
+      val json = responseAs[Json]
+      val groupSizes = json.hcursor.downField("values").as[Map[GroupId, Long]].value
+
+      groupSizes.size shouldBe groupIds.size
+
+      groupIds.zipWithIndex.foreach { case (groupId, idx) =>
+        groupSizes.get(groupId) should contain(idx + 1)
+      }
+    }
+  }
+
+  test("fails with bad request when requesting to count too many groups") {
+    val groupIds = (1 to 101).map(_ => GroupId.generate())
+
+    countDevicesPerGroup(groupIds.toSet) ~> routes ~> check {
+      status shouldBe BadRequest
     }
   }
 
@@ -414,6 +446,143 @@ class GroupsResourceSpec
     forAll(deviceIds) { id =>
       val device = fetchDeviceOk(id)
       device.hibernated shouldBe true
+    }
+  }
+
+  test("retrieve group membership for multiple devices") {
+    val groupId1 = createStaticGroupOk()
+    val groupId2 = createStaticGroupOk()
+    val deviceUuid1 = createDeviceOk(genDeviceT.sample.get)
+    val deviceUuid2 = createDeviceOk(genDeviceT.sample.get)
+
+    addDeviceToGroupOk(groupId1, deviceUuid1)
+    addDeviceToGroupOk(groupId1, deviceUuid2)
+    addDeviceToGroupOk(groupId2, deviceUuid1)
+
+    val devices = Seq[DeviceId](deviceUuid1, deviceUuid2)
+    Get(
+      DeviceRegistryResourceUri
+        .uri(groupsApi, "membership")
+        .withQuery(
+          Query(Map[String, String]("deviceUuids" -> devices.map(_.uuid.toString).mkString(",")))
+        )
+    ) ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val res = responseAs[Map[DeviceId, Seq[GroupId]]]
+      res.map { case (x, y) =>
+        println(x.uuid.toString + " -> " + y.map(_.uuid.toString).mkString(","))
+      }
+      res(deviceUuid1) should contain(groupId1)
+      res(deviceUuid1) should contain(groupId2)
+      res(deviceUuid2) should contain(groupId1)
+      res(deviceUuid2) should not contain groupId2
+    }
+  }
+
+  test("retrieve group membership with one invalid device") {
+    val groupId1 = createStaticGroupOk()
+    val groupId2 = createStaticGroupOk()
+    val deviceUuid1 = createDeviceOk(genDeviceT.sample.get)
+    val deviceUuid2 = createDeviceOk(genDeviceT.sample.get)
+
+    addDeviceToGroupOk(groupId1, deviceUuid1)
+    addDeviceToGroupOk(groupId1, deviceUuid2)
+    addDeviceToGroupOk(groupId2, deviceUuid1)
+
+    val unknownDeviceId = DeviceId(UUID.randomUUID())
+    val devices = Seq[String](deviceUuid1.uuid.toString, unknownDeviceId.uuid.toString)
+    Get(
+      DeviceRegistryResourceUri
+        .uri(groupsApi, "membership")
+        .withQuery(Query(Map[String, String]("deviceUuids" -> devices.mkString(","))))
+    ) ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val res = responseAs[Map[DeviceId, Seq[GroupId]]]
+      println(res)
+      res(deviceUuid1) should contain(groupId1)
+      res(deviceUuid1) should contain(groupId2)
+      res.keys should not contain unknownDeviceId
+    }
+  }
+
+  test("gets device stats for an empty group") {
+    val groupId = createStaticGroupOk()
+
+    getDeviceStats(groupId) ~> routes ~> check {
+      status shouldBe OK
+      val stats = responseAs[DeviceGroupStats]
+      stats.status.isEmpty shouldBe true
+      stats.lastSeen.`10mins` shouldBe 0
+      stats.lastSeen.`1hour` shouldBe 0
+      stats.lastSeen.`1day` shouldBe 0
+      stats.lastSeen.`1week` shouldBe 0
+      stats.lastSeen.`1month` shouldBe 0
+      stats.lastSeen.`1year` shouldBe 0
+    }
+  }
+
+  test("gets device stats for a group with devices in different states and last seen times") {
+    val groupId = createStaticGroupOk()
+
+    val notSeenDevices = Gen.listOfN(2, genDeviceT).sample.get
+    val errorDevices = Gen.listOfN(3, genDeviceT).sample.get
+    val upToDateDevices = Gen.listOfN(1, genDeviceT).sample.get
+    val updatePendingDevices = Gen.listOfN(4, genDeviceT).sample.get
+
+    notSeenDevices.foreach { device =>
+      val id = createDeviceOk(device)
+      addDeviceToGroupOk(groupId, id)
+      // NotSeen is default for new devices
+    }
+
+    errorDevices.foreach { device =>
+      val id = createDeviceOk(device)
+      addDeviceToGroupOk(groupId, id)
+
+      db.run(DeviceRepository.setDeviceStatus(id, DeviceStatus.Error)).futureValue
+      db.run(DeviceRepository.updateLastSeen(id, Instant.now().minus(5, ChronoUnit.MINUTES))).futureValue
+    }
+
+    upToDateDevices.foreach { device =>
+      val id = createDeviceOk(device)
+      addDeviceToGroupOk(groupId, id)
+      db.run(DeviceRepository.setDeviceStatus(id, DeviceStatus.UpToDate)).futureValue
+      db.run(DeviceRepository.updateLastSeen(id, Instant.now().minus(5, ChronoUnit.HOURS))).futureValue
+    }
+
+    updatePendingDevices.foreach { device =>
+      val id = createDeviceOk(device)
+      addDeviceToGroupOk(groupId, id)
+      db.run(DeviceRepository.setDeviceStatus(id, DeviceStatus.UpdatePending)).futureValue
+      db.run(DeviceRepository.updateLastSeen(id, Instant.now().minus(20, ChronoUnit.DAYS))).futureValue
+    }
+
+    getDeviceStats(groupId) ~> routes ~> check {
+      status shouldBe OK
+      val stats = responseAs[DeviceGroupStats]
+      
+      stats.status(DeviceStatus.NotSeen) shouldBe 2
+      stats.status(DeviceStatus.Error) shouldBe 3
+      stats.status(DeviceStatus.UpToDate) shouldBe 1
+      stats.status(DeviceStatus.UpdatePending) shouldBe 4
+      
+      stats.status.values.sum shouldBe (notSeenDevices.size + errorDevices.size +
+        upToDateDevices.size + updatePendingDevices.size)
+
+      stats.lastSeen.`10mins` shouldBe 3
+      stats.lastSeen.`1hour` shouldBe 3
+      stats.lastSeen.`1day` shouldBe 4
+      stats.lastSeen.`1week` shouldBe 4
+      stats.lastSeen.`1month` shouldBe 8
+      stats.lastSeen.`1year` shouldBe 8
+     }
+  }
+
+  test("getting device stats for non-existent group returns not found") {
+    val nonExistentGroupId = GroupId.generate()
+
+    getDeviceStats(nonExistentGroupId) ~> routes ~> check {
+      status shouldBe NotFound
     }
   }
 

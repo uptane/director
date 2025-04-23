@@ -16,11 +16,11 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
     "namespace",
     List(
       TableResource(
-        "devices",
+        "provisioned_devices",
         readTable(
-          "devices",
+          "provisioned_devices",
           ns =>
-            sql"""select * from devices where namespace = $ns order by created_at DESC LIMIT #$DEFAULT_LIMIT"""
+            sql"""select * from provisioned_devices where namespace = $ns order by created_at DESC LIMIT #$DEFAULT_LIMIT"""
         )
       ),
       TableResource(
@@ -70,8 +70,8 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
     "device-id",
     List(
       TableResource(
-        "devices",
-        readTable("devices", id => sql"""select * from devices where id = $id""")
+        "provisioned_devices",
+        readTable("devices", id => sql"""select * from provisioned_devices where id = $id""")
       ),
       TableResource(
         "ecus",
@@ -90,7 +90,7 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
         readTable(
           "admin_roles",
           id =>
-            sql"""select a.* from admin_roles a join repo_namespaces r using(repo_id) join devices d using (namespace) where d.id = $id  order by `role` ASC, version desc"""
+            sql"""select a.* from admin_roles a join repo_namespaces r using(repo_id) join provisioned_devices d using (namespace) where d.id = $id  order by `role` ASC, version desc"""
         )
       ),
       TableResource(
@@ -98,7 +98,7 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
         readTable(
           "assignments",
           id =>
-            sql"select a.* from assignments a join devices d on d.primary_ecu_id = a.ecu_serial where d.id = $id"
+            sql"select a.* from assignments a join provisioned_devices d on d.primary_ecu_id = a.ecu_serial where d.id = $id"
         )
       ),
       TableResource(
@@ -106,12 +106,19 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
         readTable(
           "processed_assignments",
           id =>
-            sql"select a.* from processed_assignments a join devices d on d.primary_ecu_id = a.ecu_serial where d.id = $id"
+            sql"select a.* from processed_assignments a join provisioned_devices d on d.primary_ecu_id = a.ecu_serial where d.id = $id"
         )
       ),
       TableResource(
         "device_type",
         readTable("DeviceType", id => sql"""select * from DeviceType where id = $id""")
+      ),
+      TableResource(
+        "scheduled_updates",
+        readTable(
+          "scheduled_updates",
+          id => sql"""select * from scheduled_updates where device_id = $id"""
+        )
       )
     )
   )

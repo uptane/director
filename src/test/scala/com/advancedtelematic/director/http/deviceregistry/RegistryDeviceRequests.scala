@@ -46,7 +46,7 @@ import java.time.{Instant, OffsetDateTime}
 
 // Default patience required here so the RouteTestTimeout implicit defined in DefaultPatience has priority over the
 // one defined by akka-testkit
-trait DeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
+trait RegistryDeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
 
   import StatusCodes.*
   import com.advancedtelematic.director.deviceregistry.data.Device.*
@@ -233,7 +233,7 @@ trait DeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =>
   def countDevicesForExpression(expression: Option[GroupExpression]): HttpRequest =
     Get(
       DeviceRegistryResourceUri
-        .uri(api, "count")
+        .uri(api, "dynamic-group-count")
         .withQuery(Query(expression.map("expression" -> _.value).toMap))
     )
 

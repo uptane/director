@@ -16,7 +16,7 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
 import com.advancedtelematic.director.http.deviceregistry.{
-  DeviceRequests,
+  RegistryDeviceRequests,
   ResourcePropSpec,
   SystemInfoResource
 }
@@ -36,7 +36,7 @@ import toml.Value.{Str, Tbl}
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.SimpleJsonGenerator.*
 
-class SystemInfoResourceSpec extends DirectorSpec with ResourcePropSpec with DeviceRequests {
+class SystemInfoResourceSpec extends DirectorSpec with ResourcePropSpec with RegistryDeviceRequests {
 
   import akka.http.scaladsl.model.StatusCodes.*
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*

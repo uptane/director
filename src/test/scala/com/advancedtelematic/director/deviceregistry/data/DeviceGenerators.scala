@@ -9,9 +9,8 @@
 package com.advancedtelematic.director.deviceregistry.data
 
 import java.time.Instant
-
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceT, MqttStatus}
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import Namespaces.defaultNs
 import org.scalacheck.{Arbitrary, Gen}
@@ -50,7 +49,18 @@ object DeviceGenerators {
       deviceType <- genDeviceType
       lastSeen <- Gen.option(genInstant)
       activated <- Gen.option(genInstant)
-    } yield Device(defaultNs, uuid, name, deviceId, deviceType, lastSeen, Instant.now(), activated)
+    } yield Device(
+      defaultNs,
+      uuid,
+      name,
+      deviceId,
+      deviceType,
+      lastSeen,
+      Instant.now(),
+      activated,
+      mqttStatus = MqttStatus.NotSeen,
+      mqttLastSeen = None,
+    )
 
   val genDevice: Gen[Device] = genDeviceWith(genDeviceName, genDeviceId)
 

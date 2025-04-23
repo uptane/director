@@ -37,6 +37,12 @@ import com.advancedtelematic.director.data.DataType.{
   ScheduledUpdateId,
   StatusInfo
 }
+import com.advancedtelematic.director.db.AdminRolesRepository.{
+  Deleted,
+  FindLatestResult,
+  NotDeleted
+}
+import com.advancedtelematic.director.db.Schema.{adminRoles, notDeletedAdminRoles}
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   EcuAndHardwareId,
@@ -62,6 +68,7 @@ import io.circe.syntax.EncoderOps
 import slick.jdbc.GetResult
 
 import scala.concurrent.{ExecutionContext, Future}
+import cats.syntax.show.*
 
 protected trait DatabaseSupport {
   implicit val ec: ExecutionContext
@@ -128,22 +135,6 @@ protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec:
 
   def exists(deviceId: DeviceId): Future[Boolean] =
     db.run(existsIO(deviceId))
-
-  def markDeleted(namespace: Namespace, deviceId: DeviceId): Future[Unit] = db.run {
-    DBIO
-      .seq(
-        Schema.allProvisionedDevices
-          .filter(d => d.namespace === namespace && d.id === deviceId)
-          .map(_.deleted)
-          .update(true)
-          .handleSingleUpdateError(MissingEntity[Device]()),
-        Schema.allEcus
-          .filter(e => e.namespace === namespace && e.deviceId === deviceId)
-          .map(_.deleted)
-          .update(true)
-      )
-      .transactionally
-  }
 
   def findAllDeviceIds(ns: Namespace,
                        offset: Long,
@@ -675,28 +666,48 @@ trait AdminRolesRepositorySupport extends DatabaseSupport {
   lazy val adminRolesRepository = new AdminRolesRepository()
 }
 
+object AdminRolesRepository {
+
+  sealed trait FindLatestResult {
+    def value: DbAdminRole
+  }
+
+  case class Deleted(value: DbAdminRole) extends FindLatestResult
+  case class NotDeleted(value: DbAdminRole) extends FindLatestResult
+}
+
 protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: ExecutionContext) {
 
-  import Schema.adminRoles
   import SlickMapping.adminRoleNameMapper
 
   private val AlreadyExists = EntityAlreadyExists[(Namespace, DbAdminRole)]()
 
   def findLatestOpt(repoId: RepoId,
                     role: RoleType,
-                    name: AdminRoleName): Future[Option[DbAdminRole]] = db.run {
+                    name: AdminRoleName): Future[Option[FindLatestResult]] = db.run {
     adminRoles
       .filter(_.repoId === repoId)
       .filter(_.name === name)
       .filter(_.role === role)
       .sortBy(_.version.reverse)
       .take(1)
+      .map { row =>
+        (row, row.deleted)
+      }
       .result
       .headOption
+      .map {
+        case Some((role, deleted)) if deleted =>
+          Option(Deleted(role))
+        case Some((role, deleted)) if !deleted =>
+          Option(NotDeleted(role))
+        case _ =>
+          None
+      }
   }
 
   def findAll(repoId: RepoId, role: RoleType): Future[Seq[DbAdminRole]] = db.run {
-    adminRoles
+    notDeletedAdminRoles
       .filter(_.repoId === repoId)
       .filter(_.role === role)
       .result
@@ -706,7 +717,7 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
                     role: RoleType,
                     name: AdminRoleName,
                     version: Int): Future[DbAdminRole] = db.run {
-    adminRoles
+    notDeletedAdminRoles
       .filter(_.repoId === repoId)
       .filter(_.role === role)
       .filter(_.name === name)
@@ -717,9 +728,26 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
 
   def findLatest(repoId: RepoId, role: RoleType, name: AdminRoleName): Future[DbAdminRole] =
     findLatestOpt(repoId, role, name).flatMap {
-      case Some(r) => FastFuture.successful(r)
-      case None    => FastFuture.failed(Errors.MissingAdminRole(repoId, name))
+      case Some(NotDeleted(role)) => FastFuture.successful(role)
+      case _                      => FastFuture.failed(Errors.MissingAdminRole(repoId, name))
     }
+
+  def findLatestExpireDate(repoId: RepoId): Future[Option[Instant]] = {
+    implicit val getInstant = GetResult[Option[Instant]] { pr =>
+      Option(pr.rs.getTimestamp(1)).map(_.toInstant)
+    }
+
+    val sql =
+      sql"""
+            select max(ar0.expires_at) from #${Schema.adminRoles.baseTableRow.tableName} ar0 join
+            (select max(version) version, repo_id, name from #${Schema.adminRoles.baseTableRow.tableName} group by repo_id, name) ar
+            USING (name, version, repo_id)
+            where ar0.repo_id = '${repoId.show}
+            AND deleted = 0'
+      """.as[Option[Instant]].headOption
+
+    db.run(sql).map(_.flatten)
+  }
 
   def persistAction(signedRole: DbAdminRole): DBIO[Unit] =
     adminRoles
@@ -747,6 +775,24 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
       .sequence(values.map(persistAction))
       .handleIntegrityErrors(AlreadyExists)
       .map(_ => ())
+      .transactionally
+  }
+
+  def setDeleted(repoId: RepoId,
+                 roleType: RoleType,
+                 offlineUpdatesName: AdminRoleName,
+                 newSnapshotsRole: DbAdminRole): Future[Unit] = db.run {
+    DBIO
+      .seq(
+        notDeletedAdminRoles
+          .filter(_.repoId === repoId)
+          .filter(_.name === offlineUpdatesName)
+          .filter(_.role === roleType)
+          .map(_.deleted)
+          .update(true)
+          .map(_ => ()),
+        persistAction(newSnapshotsRole)
+      )
       .transactionally
   }
 

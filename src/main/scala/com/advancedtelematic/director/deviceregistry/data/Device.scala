@@ -13,10 +13,12 @@ import java.util.UUID
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import cats.Show
 import cats.syntax.show.*
+import com.advancedtelematic.director.deviceregistry.data.DataType.MqttStatus
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.director.deviceregistry.data.Device.{DeviceOemId, DeviceType}
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
+import DataType.{mqttStatusDecoder, mqttStatusEncoder}
 
 final case class DeviceDB(namespace: Namespace,
                           uuid: DeviceId,
@@ -28,7 +30,9 @@ final case class DeviceDB(namespace: Namespace,
                           activatedAt: Option[Instant] = None,
                           deviceStatus: DeviceStatus = NotSeen,
                           notes: Option[String] = None,
-                          hibernated: Boolean = false)
+                          hibernated: Boolean = false,
+                          mqttStatus: MqttStatus,
+                          mqttLastSeen: Option[Instant])
 
 object DeviceDB {
 
@@ -45,6 +49,10 @@ object DeviceDB {
       deviceStatus = dbDevice.deviceStatus,
       notes = dbDevice.notes,
       hibernated = dbDevice.hibernated,
+      mqttStatus = dbDevice.mqttStatus,
+      mqttLastSeen =
+        if (dbDevice.mqttStatus == MqttStatus.Online) Option(Instant.now())
+        else dbDevice.mqttLastSeen,
       attributes = attributes
     )
 
@@ -61,6 +69,8 @@ final case class Device(namespace: Namespace,
                         deviceStatus: DeviceStatus = NotSeen,
                         notes: Option[String] = None,
                         hibernated: Boolean = false,
+                        mqttLastSeen: Option[Instant],
+                        mqttStatus: MqttStatus,
                         attributes: Map[TagId, String] = Map.empty)
 
 object Device {

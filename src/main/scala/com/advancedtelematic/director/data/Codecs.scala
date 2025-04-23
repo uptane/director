@@ -15,6 +15,13 @@ import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import cats.syntax.either.*
 import com.advancedtelematic.director.data.ClientDataType.{CreateScheduledUpdateRequest, DeviceEcus}
+import com.advancedtelematic.director.data.DbDataType.{
+  Assignment,
+  DeviceKnownState,
+  EcuTarget,
+  ProcessedAssignment
+}
+import com.advancedtelematic.libats.codecs.CirceValidatedGeneric
 import io.circe.syntax.*
 
 object Codecs {
@@ -148,4 +155,12 @@ object Codecs {
   implicit val scheduledUpdateCodec: Codec[ScheduledUpdate] = deriveCodec
 
   implicit val createScheduledUpdateRequestCodec: Codec[CreateScheduledUpdateRequest] = deriveCodec
+
+  implicit val ecuTargetCodec: Codec[EcuTarget] = deriveCodec[EcuTarget]
+  implicit val assignmentCodec: Codec[Assignment] = deriveCodec[Assignment]
+
+  implicit val processedAssignmentCodec: Codec[ProcessedAssignment] =
+    deriveCodec[ProcessedAssignment]
+
+  implicit val deviceKnownStateCodec: Codec[DeviceKnownState] = deriveCodec[DeviceKnownState]
 }
