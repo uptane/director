@@ -3,7 +3,7 @@ package com.advancedtelematic.director.repo
 import com.advancedtelematic.director.Settings
 import com.advancedtelematic.director.data.DataType.AdminRoleName
 import com.advancedtelematic.director.data.DbDataType.SignedPayloadToDbRole
-import com.advancedtelematic.director.db.AdminRolesRepository.{Deleted, NotDeleted}
+import com.advancedtelematic.director.db.AdminRolesRepository.NotDeleted
 import com.advancedtelematic.director.db.AdminRolesRepositorySupport
 import com.advancedtelematic.director.http.Errors.TooManyOfflineRoles
 import com.advancedtelematic.libtuf.data.ClientDataType.{

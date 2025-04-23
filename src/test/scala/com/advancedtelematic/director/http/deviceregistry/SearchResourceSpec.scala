@@ -13,7 +13,6 @@ import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.data.Namespaces.*
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.director.http.{AdminResources, ProvisionedDevicesRequests}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
@@ -25,7 +24,6 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 
-import java.time.{Duration, Instant}
 
 trait SearchRequests {
   self: DirectorSpec & ResourceSpec & RegistryDeviceRequests =>

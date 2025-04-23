@@ -35,7 +35,6 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import java.time.Instant
 import java.util.UUID
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
-import DeviceStatus.*
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 
 import java.time.temporal.ChronoUnit
@@ -49,7 +48,7 @@ class GroupsResourceSpec
 
   private val limit = 30
 
-  implicit override val patienceConfig =
+  implicit override val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(15, Seconds), interval = Span(15, Millis))
 
   test("gets all existing groups") {
@@ -400,7 +399,7 @@ class GroupsResourceSpec
     "creating a static group from a file fails with 400 if the deviceIds are longer than it's allowed"
   ) {
     val groupName = genGroupName().sample.get
-    val oemId = Gen.listOfN(130, Gen.alphaNumChar).map(_.mkString).map(DeviceOemId).sample.get
+    val oemId = Gen.listOfN(130, Gen.alphaNumChar).map(_.mkString).map(DeviceOemId.apply).sample.get
 
     importGroup(groupName, Seq(oemId)) ~> routes ~> check {
       status shouldEqual BadRequest

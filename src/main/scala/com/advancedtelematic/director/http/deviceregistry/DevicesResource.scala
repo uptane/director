@@ -50,7 +50,6 @@ import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, Res
 import com.advancedtelematic.libats.http.Errors.JsonError
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
-import com.advancedtelematic.libats.http.ValidatedGenericMarshalling.validatedStringUnmarshaller
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
@@ -92,7 +91,7 @@ object DevicesResource {
   implicit val groupIdUnmarshaller: Unmarshaller[String, GroupId] = GroupId.unmarshaller
 
   implicit val resultCodeUnmarshaller: FromStringUnmarshaller[ResultCode] =
-    Unmarshaller.strict(ResultCode)
+    Unmarshaller.strict(ResultCode.apply)
 
   implicit val correlationIdUnmarshaller: FromStringUnmarshaller[CorrelationId] =
     Unmarshaller.strict {

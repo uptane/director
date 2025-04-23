@@ -8,13 +8,11 @@ import akka.http.scaladsl.server.PathMatcher
 import cats.implicits.*
 import com.advancedtelematic.director.data.DataType.{
   AdminRoleName,
-  ScheduledUpdate,
-  ScheduledUpdateId
+  ScheduledUpdate
 }
 import com.advancedtelematic.director.data.DataType.ScheduledUpdate.Status
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.UptaneDataType.{Hashes, TargetImage}
-import com.advancedtelematic.libats.codecs.CirceValidatedGeneric
 import com.advancedtelematic.libats.data.DataType.{
   Checksum,
   CorrelationId,
@@ -52,7 +50,7 @@ import com.advancedtelematic.libtuf.data.ValidatedString.{
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
 import eu.timepit.refined.api.Refined
-import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
+import io.circe.Json
 import com.advancedtelematic.libats.data.RefinedUtils.*
 import com.advancedtelematic.libtuf.data.TufCodecs
 import enumeratum.EnumEntry.Camelcase

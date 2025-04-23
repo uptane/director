@@ -8,7 +8,6 @@ import com.advancedtelematic.director.db.deviceregistry.{
   TaggedDeviceRepository
 }
 import com.advancedtelematic.director.deviceregistry.data.DataType.DeletedDevice
-import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*

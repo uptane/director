@@ -4,12 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives
-import com.advancedtelematic.director.deviceregistry.daemon.{
-  DeviceEventListener,
-  DeviceUpdateEventListener
-}
 import com.advancedtelematic.director.{Settings, VersionInfo}
-import com.advancedtelematic.libats.http.VersionDirectives.*
 import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig}
 import com.advancedtelematic.libats.messaging.{
   BusListenerMetrics,
@@ -18,8 +13,6 @@ import com.advancedtelematic.libats.messaging.{
   MessageListenerSupport,
   MetricsBusMonitor
 }
-import com.advancedtelematic.libats.messaging.metrics.MonitoredBusListenerSupport
-import com.advancedtelematic.libats.messaging.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceEventMessage,
   DeviceUpdateEvent
@@ -28,7 +21,6 @@ import com.advancedtelematic.libats.slick.db.{BootMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.DbHealthResource
 import com.advancedtelematic.libtuf_server.data.Messages.TufTargetAdded
 import com.advancedtelematic.metrics.MetricsSupport
-import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import com.advancedtelematic.libats.http.VersionDirectives.*

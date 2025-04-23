@@ -2,7 +2,6 @@ package com.advancedtelematic.director.http
 
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
 import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
-import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import org.scalatest.LoneElement.*
 import akka.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
@@ -134,7 +133,7 @@ class AssignmentsResourceSpec
     with RegistryDeviceRequests
     with Inspectors {
 
-  override implicit val msgPub = new MockMessageBus
+  override implicit val msgPub: MockMessageBus = new MockMessageBus()
 
   val updateScheduler = new UpdateScheduler()
 

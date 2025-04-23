@@ -177,8 +177,8 @@ trait Generators {
   def GenInstallReport(ecuSerial: EcuIdentifier,
                        success: Boolean,
                        correlationId: Option[CorrelationId] = None): Gen[InstallationReport] = for {
-    code <- Gen.alphaLowerStr.map(ResultCode)
-    desc <- Gen.alphaLowerStr.map(ResultDescription)
+    code <- Gen.alphaLowerStr.map(ResultCode.apply)
+    desc <- Gen.alphaLowerStr.map(ResultDescription.apply)
     cid <- correlationId.map(Gen.const).getOrElse(GenCorrelationId)
     installItem = InstallationItem(ecuSerial, InstallationResult(success, code, desc))
   } yield InstallationReport(cid, InstallationResult(success, code, desc), Seq(installItem), None)

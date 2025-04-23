@@ -3,7 +3,6 @@ package com.advancedtelematic.director.daemon
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 import com.advancedtelematic.director.deviceregistry.data.DataType.MqttStatus
 import com.advancedtelematic.director.http.deviceregistry.Errors
-import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import enumeratum.EnumEntry
@@ -16,7 +15,6 @@ import enumeratum.*
 import enumeratum.EnumEntry.Lowercase
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.slf4j.LoggerFactory
-import com.advancedtelematic.libats.codecs.CirceAts.namespaceEncoder
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 
 sealed trait EventType extends EnumEntry with Lowercase
@@ -37,8 +35,6 @@ final case class DeviceMqttLifecycle(deviceId: DeviceId,
 object DeviceMqttLifecycle {
 
   import DeviceId.*
-  import com.advancedtelematic.libats.codecs.CirceAts.namespaceEncoder
-  import com.advancedtelematic.libats.codecs.CirceAts.namespaceDecoder
 
   implicit val eventTypeDecoder: Decoder[EventType] = Circe.decoder(EventType)
   implicit val eventTypeEncoder: Encoder[EventType] = Circe.encoder(EventType)

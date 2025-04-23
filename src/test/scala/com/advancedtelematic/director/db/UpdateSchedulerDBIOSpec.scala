@@ -9,11 +9,9 @@ import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
 import com.advancedtelematic.director.db.UpdateSchedulerDBIO.invalidEcuStatusCodec
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
-import com.advancedtelematic.director.deviceregistry.data.DataType.DeviceT
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus
-import com.advancedtelematic.director.deviceregistry.messages.DeviceCreated
 import com.advancedtelematic.director.http.DeviceAssignments
 import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.data.DataType.{MultiTargetUpdateId, Namespace}

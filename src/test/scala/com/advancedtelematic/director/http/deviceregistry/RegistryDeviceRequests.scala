@@ -21,17 +21,14 @@ import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceT,
-  DevicesQuery,
   SetDevice,
   TagInfo,
   UpdateDevice,
   UpdateTagValue
 }
-import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.director.http.deviceregistry.TomlSupport.`application/toml`
 import com.advancedtelematic.director.util.{DefaultPatience, ResourceSpec}
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}

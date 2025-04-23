@@ -52,7 +52,7 @@ object DeviceIdGenerators {
 
     Gen
       .oneOf(genTooLongVin, genTooShortVin, genNotAlphaNumVin)
-      .map(DeviceOemId)
+      .map(DeviceOemId.apply)
   }
 
   def getInvalidVin: DeviceOemId =

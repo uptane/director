@@ -9,7 +9,6 @@ import com.advancedtelematic.director.data.DataType.{
 import com.advancedtelematic.director.data.DbDataType.*
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.EcuIdentifier
-import com.advancedtelematic.libats.data.UUIDKey.UUIDKey
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
@@ -23,11 +22,9 @@ import com.advancedtelematic.libtuf.data.TufDataType.{
 }
 import io.circe.Json
 import slick.jdbc.MySQLProfile.api.*
-import slick.lifted.ProvenShape
 import SlickMapping.*
 
 import java.time.Instant
-import java.util.UUID
 
 //noinspection TypeAnnotation
 object Schema {
