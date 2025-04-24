@@ -18,9 +18,7 @@ import com.advancedtelematic.director.http.deviceregistry.{
   Errors,
   LastSeenTable
 }
-import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeletedDevice,
   DeviceT,
   HibernationStatus,
   MqttStatus
@@ -31,7 +29,6 @@ import com.advancedtelematic.director.deviceregistry.data.*
 import SlickMappings.*
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
-import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.ExecutionContext
@@ -39,7 +36,6 @@ import cats.syntax.option.*
 import slick.jdbc.{GetResult, PositionedParameters, SetParameter}
 
 import java.sql.Timestamp
-import java.util.UUID
 import scala.annotation.unused
 import Schema.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
@@ -155,8 +151,8 @@ object DeviceRepository {
   def findByDeviceUuids(ns: Namespace, deviceIds: Seq[DeviceId]): DBIO[Seq[DeviceDB]] =
     findByUuids(ns, deviceIds).result
 
-  def updateLastSeen(uuid: DeviceId, when: Instant)(
-    implicit ec: ExecutionContext): DBIO[Boolean] = {
+  def updateLastSeen(uuid: DeviceId,
+                     when: Instant)(implicit ec: ExecutionContext): DBIO[Boolean] = {
     val sometime = Some(when)
 
     val dbIO = for {
@@ -233,15 +229,15 @@ object DeviceRepository {
       .update(status -> lastSeen.some)
       .handleSingleUpdateError(Errors.MissingDevice)
 
-  def getDeviceGroupStats(groupId: GroupId)(
-    implicit ec: ExecutionContext): DBIO[DeviceGroupStats] = {
+  def getDeviceGroupStats(
+    groupId: GroupId)(implicit ec: ExecutionContext): DBIO[DeviceGroupStats] = {
 
     implicit val getDeviceStatus = GetResult[DeviceStatus] { r =>
       DeviceStatus.withName(r.nextString())
     }
 
     val statusQuery = sql"""
-      SELECT 
+      SELECT
         device_status,
         COUNT(*) as status_count
       FROM Device d

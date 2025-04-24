@@ -40,7 +40,6 @@ import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient.RootRoleNot
 import scala.util.{Failure, Success}
 
 object DeviceResource {
-  import akka.http.scaladsl.server.Directives.*
 }
 
 class DeviceResource(extractNamespace: Directive1[Namespace],
@@ -58,7 +57,6 @@ class DeviceResource(extractNamespace: Directive1[Namespace],
     with RootFetching {
 
   import akka.http.scaladsl.server.Directives.*
-  import DeviceResource.*
 
   val deviceRegistration = new DeviceRegistration(keyserverClient)
   val deviceManifestProcess = new DeviceManifestProcess()

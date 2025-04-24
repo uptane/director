@@ -18,7 +18,7 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.director.deviceregistry.data.Device.{DeviceOemId, DeviceType}
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.*
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
-import DataType.{mqttStatusEncoder, mqttStatusDecoder}
+import DataType.{mqttStatusDecoder, mqttStatusEncoder}
 
 final case class DeviceDB(namespace: Namespace,
                           uuid: DeviceId,

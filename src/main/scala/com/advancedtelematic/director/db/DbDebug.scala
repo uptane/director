@@ -115,7 +115,10 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
       ),
       TableResource(
         "scheduled_updates",
-        readTable("scheduled_updates", id => sql"""select * from scheduled_updates where device_id = $id""")
+        readTable(
+          "scheduled_updates",
+          id => sql"""select * from scheduled_updates where device_id = $id"""
+        )
       )
     )
   )

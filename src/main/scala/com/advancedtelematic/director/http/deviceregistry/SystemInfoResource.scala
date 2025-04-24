@@ -24,7 +24,10 @@ import com.advancedtelematic.libats.http.Errors.RawError
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{AktualizrConfigChanged, DeviceSystemInfoChanged}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  AktualizrConfigChanged,
+  DeviceSystemInfoChanged
+}
 import io.circe.Json
 import io.circe.generic.auto.*
 import slick.jdbc.MySQLProfile.api.*

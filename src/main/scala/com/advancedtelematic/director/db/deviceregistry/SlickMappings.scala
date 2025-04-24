@@ -10,10 +10,12 @@ package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.codecs.{SlickEnumMapper, SlickEnumeratum}
-import com.advancedtelematic.director.deviceregistry.data.DataType.{IndexedEventType, MqttStatus, PackageListItemCount}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  IndexedEventType,
+  MqttStatus,
+  PackageListItemCount
+}
 import com.advancedtelematic.director.deviceregistry.data.{CredentialsType, GroupType, PackageId}
-import slick.ast.BaseTypedType
-import slick.jdbc.JdbcType
 import slick.jdbc.MySQLProfile.api.*
 
 object SlickMappings {
@@ -48,5 +50,7 @@ object SlickMappings {
   private[db] implicit object ListedPackageListItemCountShape
       extends CaseClassShape(LiftedPackageListItemCount.tupled, PackageListItemCount.tupled)
 
-  implicit val mqttStatusMapper: BaseColumnType[MqttStatus] = SlickEnumeratum.enumeratumMapper(MqttStatus)
+  implicit val mqttStatusMapper: BaseColumnType[MqttStatus] =
+    SlickEnumeratum.enumeratumMapper(MqttStatus)
+
 }

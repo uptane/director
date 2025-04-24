@@ -14,7 +14,12 @@ import com.advancedtelematic.director.db.deviceregistry.SystemInfoRepository.Sys
 import com.advancedtelematic.director.deviceregistry.data.DataType.PackageListItem
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.deviceregistry.data.{DeviceName, Group, GroupExpression, GroupName}
+import com.advancedtelematic.director.deviceregistry.data.{
+  DeviceName,
+  Group,
+  GroupExpression,
+  GroupName
+}
 import com.advancedtelematic.libats.data.ErrorCode
 import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, RawError}
 
@@ -124,15 +129,19 @@ object Errors {
     StatusCodes.BadRequest,
     "Request parameters have invalid format"
   )
+
 }
 
 object ErrorHandlers {
+
   val sqlExceptionHandler: PartialFunction[Throwable, Throwable] = {
-    case e: SQLSyntaxErrorException => if (e.getMessage().contains("Incorrect string value")) {
-      Errors.InvalidParameterFormat
-    } else {
-      e
-    }
+    case e: SQLSyntaxErrorException =>
+      if (e.getMessage().contains("Incorrect string value")) {
+        Errors.InvalidParameterFormat
+      } else {
+        e
+      }
     case e => e
   }
+
 }

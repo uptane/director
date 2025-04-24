@@ -3,7 +3,6 @@ package com.advancedtelematic.director.daemon
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 import com.advancedtelematic.director.deviceregistry.data.DataType.MqttStatus
 import com.advancedtelematic.director.http.deviceregistry.Errors
-import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import enumeratum.EnumEntry
@@ -16,7 +15,6 @@ import enumeratum.*
 import enumeratum.EnumEntry.Lowercase
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.slf4j.LoggerFactory
-import com.advancedtelematic.libats.codecs.CirceAts.namespaceEncoder
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 
 sealed trait EventType extends EnumEntry with Lowercase
@@ -29,23 +27,28 @@ object EventType extends Enum[EventType] {
   case object Disconnected extends EventType
 }
 
-final case class DeviceMqttLifecycle(deviceId: DeviceId, eventType: EventType, payload: Json, timestamp: Instant)
+final case class DeviceMqttLifecycle(deviceId: DeviceId,
+                                     eventType: EventType,
+                                     payload: Json,
+                                     timestamp: Instant)
 
 object DeviceMqttLifecycle {
+
   import DeviceId.*
-  import com.advancedtelematic.libats.codecs.CirceAts.namespaceEncoder
-  import com.advancedtelematic.libats.codecs.CirceAts.namespaceDecoder
 
   implicit val eventTypeDecoder: Decoder[EventType] = Circe.decoder(EventType)
   implicit val eventTypeEncoder: Encoder[EventType] = Circe.encoder(EventType)
 
-  implicit val deviceMqttLifecycleCodec: Codec[DeviceMqttLifecycle] = io.circe.generic.semiauto.deriveCodec
+  implicit val deviceMqttLifecycleCodec: Codec[DeviceMqttLifecycle] =
+    io.circe.generic.semiauto.deriveCodec
 
-  implicit val messageLike: MessageLike[DeviceMqttLifecycle] = MessageLike.derive[DeviceMqttLifecycle](_.deviceId.uuid.toString)
+  implicit val messageLike: MessageLike[DeviceMqttLifecycle] =
+    MessageLike.derive[DeviceMqttLifecycle](_.deviceId.uuid.toString)
+
 }
 
 class MqttLifecycleListener()(implicit val db: Database, val ec: ExecutionContext)
-  extends MsgOperation[DeviceMqttLifecycle] {
+    extends MsgOperation[DeviceMqttLifecycle] {
 
   import DeviceRepository.setMqttStatus
   import DeviceMqttLifecycle.*
@@ -53,7 +56,8 @@ class MqttLifecycleListener()(implicit val db: Database, val ec: ExecutionContex
   private lazy val log = LoggerFactory.getLogger(this.getClass)
 
   override def apply(msg: DeviceMqttLifecycle): Future[?] = {
-    log.atInfo()
+    log
+      .atInfo()
       .addKeyValue("deviceId", msg.deviceId.asJson)
       .addKeyValue("type", msg.eventType.asJson)
       .log("received deviceMqtt lifcycle msg")
@@ -65,11 +69,12 @@ class MqttLifecycleListener()(implicit val db: Database, val ec: ExecutionContex
         db.run(setMqttStatus(msg.deviceId, MqttStatus.Offline, msg.timestamp))
     }
 
-    f.recover {
-      case Errors.MissingDevice =>
-        log.atDebug()
-          .addKeyValue("deviceId", msg.deviceId.uuid.toString)
-          .log("mqtt status not updated, device not found")
+    f.recover { case Errors.MissingDevice =>
+      log
+        .atDebug()
+        .addKeyValue("deviceId", msg.deviceId.uuid.toString)
+        .log("mqtt status not updated, device not found")
     }
   }
+
 }

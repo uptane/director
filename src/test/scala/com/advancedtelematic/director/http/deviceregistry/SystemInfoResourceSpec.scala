@@ -20,8 +20,7 @@ import com.advancedtelematic.director.http.deviceregistry.{
   ResourcePropSpec,
   SystemInfoResource
 }
-import com.advancedtelematic.director.util.{DirectorSpec, ResourceSpec}
-import com.advancedtelematic.libats.messaging.test.MockMessageBus
+import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   AktualizrConfigChanged,

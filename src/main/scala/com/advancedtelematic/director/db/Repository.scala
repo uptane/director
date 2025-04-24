@@ -474,9 +474,8 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       else
         DBIO
           .seq(
-            Schema.processedAssignments ++= assignments.map(
-              _.toProcessedAssignment(successful = true, canceled = true)
-            ),
+            Schema.processedAssignments ++= assignments
+              .map(_.toProcessedAssignment(successful = true, canceled = true)),
             assignmentQuery.delete,
             deviceRepository.setMetadataOutdatedAction(Set(deviceId), outdated = true)
           )

@@ -23,4 +23,3 @@ trait ResourcePropSpec
     PropertyCheckConfiguration(minSuccessful = 1, minSize = 3)
 
 }
-

@@ -19,7 +19,11 @@ import akka.stream.scaladsl.Framing.FramingException
 import akka.stream.scaladsl.{Framing, Sink, Source}
 import akka.util.ByteString
 import cats.syntax.either.*
-import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, GroupInfoRepository, GroupMemberRepository}
+import com.advancedtelematic.director.db.deviceregistry.{
+  DeviceRepository,
+  GroupInfoRepository,
+  GroupMemberRepository
+}
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.UpdateHibernationStatusRequest
@@ -38,16 +42,27 @@ import slick.jdbc.MySQLProfile.api.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-case class LastSeenTable(`10mins`: Long, `1hour`: Long, `1day`: Long, `1week`: Long, `1month`: Long, `1year`: Long)
+case class LastSeenTable(`10mins`: Long,
+                         `1hour`: Long,
+                         `1day`: Long,
+                         `1week`: Long,
+                         `1month`: Long,
+                         `1year`: Long)
 
 case class DeviceGroupStats(status: Map[DeviceStatus, Long], lastSeen: LastSeenTable)
 
 object DeviceGroupStats {
   implicit val deviceGroupStatusKeyEncoder: KeyEncoder[DeviceStatus] = KeyEncoder(_.toString)
-  implicit val deviceGroupStatusKeyDecoder: KeyDecoder[DeviceStatus] = KeyDecoder.instance(str => Try(DeviceStatus.withName(str)).toOption)
 
-  implicit val lastSeenTableCodec: Codec[LastSeenTable] = io.circe.generic.semiauto.deriveCodec[LastSeenTable]
-  implicit val deviceGroupStatsCodec: Codec[DeviceGroupStats] = io.circe.generic.semiauto.deriveCodec[DeviceGroupStats]
+  implicit val deviceGroupStatusKeyDecoder: KeyDecoder[DeviceStatus] =
+    KeyDecoder.instance(str => Try(DeviceStatus.withName(str)).toOption)
+
+  implicit val lastSeenTableCodec: Codec[LastSeenTable] =
+    io.circe.generic.semiauto.deriveCodec[LastSeenTable]
+
+  implicit val deviceGroupStatsCodec: Codec[DeviceGroupStats] =
+    io.circe.generic.semiauto.deriveCodec[DeviceGroupStats]
+
 }
 
 import Unmarshallers.nonNegativeLong
@@ -123,7 +138,7 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
     val deviceIds = byteSource
       .via(Framing.delimiter(ByteString("\n"), DEVICE_OEM_ID_MAX_BYTES, allowTruncation = true))
       .map(_.utf8String)
-      .map(DeviceOemId)
+      .map(DeviceOemId.apply)
       .runWith(Sink.seq)
 
     val deviceUuids = deviceIds
@@ -212,46 +227,47 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
               }
           }
       } ~
-        (get & path("membership") & parameter("deviceUuids".as(CsvSeq[DeviceId]))) { deviceUuids =>
-          complete(db.run(GroupMemberRepository.listGroupsForDevices(deviceUuids)))
-        }
-        ~
-        (get & path("count")) {
-          countDevicesPerGroup
-        } ~
-        GroupIdPath { groupId =>
-          (get & pathEndOrSingleSlash) {
-            getGroup(groupId)
-          } ~
-            path("hibernation") {
-              updateGroupHibernationStatus(ns, groupId)
+        concat(
+          (get & path("membership") & parameter("deviceUuids".as(CsvSeq[DeviceId]))) { deviceUuids =>
+            complete(db.run(GroupMemberRepository.listGroupsForDevices(deviceUuids)))
+          },
+          (get & path("count")) {
+            countDevicesPerGroup
+          },
+          GroupIdPath { groupId =>
+            (get & pathEndOrSingleSlash) {
+              getGroup(groupId)
             } ~
-            pathPrefix("devices") {
-              get {
-                getDevicesInGroup(groupId)
+              path("hibernation") {
+                updateGroupHibernationStatus(ns, groupId)
               } ~
-                deviceNamespaceAuthorizer { deviceUuid =>
-                  post {
-                    addDeviceToGroup(groupId, deviceUuid)
-                  } ~
-                    delete {
-                      removeDeviceFromGroup(groupId, deviceUuid)
-                    }
-                }
-            } ~
-            delete {
-              deleteGroup(groupId)
-            } ~
-            (put & path("rename") & parameter(Symbol("groupName").as[GroupName])) { groupName =>
-              renameGroup(groupId, groupName)
-            } ~
-            (get & path("count") & pathEnd) {
-              countDevices(groupId)
-            } ~
-            (get & path("device-stats")) {
-              findStats(groupId)
-            }
-        }
+              pathPrefix("devices") {
+                get {
+                  getDevicesInGroup(groupId)
+                } ~
+                  deviceNamespaceAuthorizer { deviceUuid =>
+                    post {
+                      addDeviceToGroup(groupId, deviceUuid)
+                    } ~
+                      delete {
+                        removeDeviceFromGroup(groupId, deviceUuid)
+                      }
+                  }
+              } ~
+              delete {
+                deleteGroup(groupId)
+              } ~
+              (put & path("rename") & parameter(Symbol("groupName").as[GroupName])) { groupName =>
+                renameGroup(groupId, groupName)
+              } ~
+              (get & path("count") & pathEnd) {
+                countDevices(groupId)
+              } ~
+              (get & path("device-stats")) {
+                findStats(groupId)
+              }
+          }
+        )
     }
 
 }

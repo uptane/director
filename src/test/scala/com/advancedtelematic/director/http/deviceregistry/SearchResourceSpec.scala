@@ -13,7 +13,6 @@ import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-import com.advancedtelematic.director.deviceregistry.data.Namespaces.*
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
 import com.advancedtelematic.director.http.{AdminResources, ProvisionedDevicesRequests}
 import com.advancedtelematic.director.http.deviceregistry.Errors.Codes
@@ -25,7 +24,6 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 
-import java.time.{Duration, Instant}
 
 trait SearchRequests {
   self: DirectorSpec & ResourceSpec & RegistryDeviceRequests =>
@@ -50,7 +48,10 @@ trait SearchRequests {
     )
   }
 
-  def searchDevice(regex: String, offset: Long = 0, limit: Long = 50, ns: Namespace = defaultNs): HttpRequest =
+  def searchDevice(regex: String,
+                   offset: Long = 0,
+                   limit: Long = 50,
+                   ns: Namespace = defaultNs): HttpRequest =
     Get(
       DeviceRegistryResourceUri
         .uri(api)
@@ -241,15 +242,23 @@ class SearchResourceSpec
 
     val csvRows = Seq(
       Seq(first.deviceId.underlying, "Germany", "Premium"),
-      Seq(second.deviceId.underlying, "China", "Deluxe"),
+      Seq(second.deviceId.underlying, "China", "Deluxe")
     )
 
     postDeviceTags(csvRows, ns = ns) ~> routes ~> check {
       status shouldBe NoContent
-      db.run(TaggedDeviceRepository.fetchForDevice(firstId)).futureValue
-        .map { case (k, v) => k.value -> v } should contain only("market" -> "Germany", "trim" -> "Premium")
-      db.run(TaggedDeviceRepository.fetchForDevice(secondId)).futureValue
-        .map { case (k, v) => k.value -> v } should contain only("market" -> "China", "trim" -> "Deluxe")
+      db.run(TaggedDeviceRepository.fetchForDevice(firstId))
+        .futureValue
+        .map { case (k, v) => k.value -> v } should contain only (
+        "market" -> "Germany",
+        "trim" -> "Premium"
+      )
+      db.run(TaggedDeviceRepository.fetchForDevice(secondId))
+        .futureValue
+        .map { case (k, v) => k.value -> v } should contain only (
+        "market" -> "China",
+        "trim" -> "Deluxe"
+      )
       db.run(TaggedDeviceRepository.fetchForDevice(thirdId)).futureValue shouldBe empty
     }
 
@@ -260,10 +269,16 @@ class SearchResourceSpec
       result.values.length shouldBe 3
 
       val firstIndex = result.values.indexWhere(_.uuid == firstId)
-      result.values(firstIndex).attributes shouldEqual Map(TagId("market") -> "Germany", TagId("trim") -> "Premium")
+      result.values(firstIndex).attributes shouldEqual Map(
+        TagId("market") -> "Germany",
+        TagId("trim") -> "Premium"
+      )
 
       val secondIndex = result.values.indexWhere(_.uuid == secondId)
-      result.values(secondIndex).attributes shouldEqual Map(TagId("market") -> "China", TagId("trim") -> "Deluxe")
+      result.values(secondIndex).attributes shouldEqual Map(
+        TagId("market") -> "China",
+        TagId("trim") -> "Deluxe"
+      )
 
       val thirdIndex = result.values.indexWhere(_.uuid == thirdId)
       result.values(thirdIndex).attributes shouldBe empty

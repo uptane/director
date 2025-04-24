@@ -10,7 +10,6 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
-import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant
@@ -35,7 +34,7 @@ object Schema {
     def notes = column[Option[String]]("notes")
     def hibernated = column[Boolean]("hibernated")
     def mqttLastSeen = column[Option[Instant]]("mqtt_last_seen")(javaInstantMapping.optionType)
-    def mqttStatus =  column[MqttStatus]("mqtt_status")
+    def mqttStatus = column[MqttStatus]("mqtt_status")
 
     def * =
       (
@@ -51,7 +50,7 @@ object Schema {
         notes,
         hibernated,
         mqttStatus,
-        mqttLastSeen,
+        mqttLastSeen
       ).shaped <> ((DeviceDB.apply _).tupled, DeviceDB.unapply)
 
     def pk = primaryKey("uuid", id)

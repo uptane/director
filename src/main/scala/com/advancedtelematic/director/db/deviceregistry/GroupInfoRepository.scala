@@ -8,7 +8,13 @@
 
 package com.advancedtelematic.director.db.deviceregistry
 
-import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupType, TagId}
+import com.advancedtelematic.director.deviceregistry.data.{
+  Group,
+  GroupExpression,
+  GroupName,
+  GroupType,
+  TagId
+}
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 
@@ -25,7 +31,6 @@ import SlickMappings.*
 import com.advancedtelematic.director.http.deviceregistry.{ErrorHandlers, Errors}
 import slick.jdbc.MySQLProfile.api.*
 
-import java.sql.SQLSyntaxErrorException
 import scala.concurrent.{ExecutionContext, Future}
 
 object GroupInfoRepository {
@@ -40,14 +45,10 @@ object GroupInfoRepository {
     def createdAt = column[Instant]("created_at")(javaInstantMapping)
     def updatedAt = column[Instant]("updated_at")(javaInstantMapping)
 
-    def * = (
-      id,
-      groupName,
-      namespace,
-      createdAt,
-      groupType,
-      expression
-    ) <> ((Group.apply _).tupled, Group.unapply)
+    def * = (id, groupName, namespace, createdAt, groupType, expression) <> (
+      (Group.apply _).tupled,
+      Group.unapply
+    )
 
   }
   // scalastyle:on

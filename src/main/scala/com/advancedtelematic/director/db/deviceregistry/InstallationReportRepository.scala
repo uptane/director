@@ -17,7 +17,6 @@ import com.advancedtelematic.libats.slick.db.SlickCirceMapper._
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
 import com.advancedtelematic.libats.slick.db.SlickUrnMapper.correlationIdMapper
-import com.advancedtelematic.libats.slick.db.SlickValidatedGeneric.validatedStringMapper
 import slick.lifted.AbstractTable
 
 import scala.concurrent.ExecutionContext

@@ -1,4 +1,11 @@
+# scala fmt
+233188029b2b67b4381998c37a47439af7ebec4d
 # more scalafmt
 038c8c5a2b9dc039b97c3c8e34337c165da0052b
 # initial scalafmt
 4e224a6ff898ddf989d9a69b95ea6349f605ec90
+# Scala Steward: Reformat with scalafmt 3.8.2
+c980f5875ba856d02ca8da6162f54f44793dcd16
+
+# Scala Steward: Reformat with scalafmt 3.8.4
+91ba17e0dd3a2f4a64013132ea2aba11622c8eab

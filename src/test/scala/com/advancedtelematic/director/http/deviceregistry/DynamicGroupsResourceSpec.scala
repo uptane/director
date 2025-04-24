@@ -4,7 +4,6 @@ import akka.http.scaladsl.model.StatusCodes.*
 import cats.syntax.either.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.db.DeleteDeviceDBIO
-import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceOemId
 import com.advancedtelematic.director.deviceregistry.data.DeviceName.validatedDeviceType
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId

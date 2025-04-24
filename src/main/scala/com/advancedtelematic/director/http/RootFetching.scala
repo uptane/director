@@ -1,6 +1,9 @@
 package com.advancedtelematic.director.http
 
-import com.advancedtelematic.director.db.{AdminRolesRepositorySupport, RepoNamespaceRepositorySupport}
+import com.advancedtelematic.director.db.{
+  AdminRolesRepositorySupport,
+  RepoNamespaceRepositorySupport
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libtuf.data.ClientDataType.RootRole
 import com.advancedtelematic.libtuf.data.TufDataType.{RepoId, SignedPayload}
@@ -18,7 +21,9 @@ trait RootFetching {
   def fetchRoot(ns: Namespace, version: Option[Int]): Future[SignedPayload[RootRole]] = {
     val fetchFn = version
       .map(v => (r: RepoId, _: Option[Instant]) => keyserverClient.fetchRootRole(r, v))
-      .getOrElse((r: RepoId, i: Option[Instant]) => keyserverClient.fetchRootRole(r, expiresNotBefore = i))
+      .getOrElse((r: RepoId, i: Option[Instant]) =>
+        keyserverClient.fetchRootRole(r, expiresNotBefore = i)
+      )
 
     for {
       repoId <- repoNamespaceRepo.findFor(ns)

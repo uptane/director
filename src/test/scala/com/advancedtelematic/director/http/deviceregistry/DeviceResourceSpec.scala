@@ -15,10 +15,6 @@ import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.daemon.{DeviceMqttLifecycle, EventType, MqttLifecycleListener}
-import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
-  DevicesCount,
-  InstalledPackage
-}
 import com.advancedtelematic.director.db.DeleteDeviceDBIO
 import com.advancedtelematic.director.db.deviceregistry.InstalledPackages.{
   DevicesCount,
@@ -48,7 +44,6 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.DeleteDeviceRequest
 import io.circe.Json
 import io.circe.generic.auto.*
 import org.scalacheck.Arbitrary.*
@@ -74,7 +69,7 @@ class DeviceResourceSpec
 
   private implicit val exec: scala.concurrent.ExecutionContextExecutor = system.dispatcher
 
-  implicit override val patienceConfig =
+  implicit override val patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(30, Seconds), interval = Span(100, Millis))
 
   implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny
