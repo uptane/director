@@ -9,8 +9,20 @@ import UptaneDataType.*
 import io.circe.*
 import AdminDataType.*
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
-import com.advancedtelematic.director.http.{OfflineUpdateRequest, RemoteCommandRequest, RemoteSessionRequest}
-import com.advancedtelematic.libats.data.EcuIdentifier
+import com.advancedtelematic.director.http.{
+  CreateDeviceUpdateRequest,
+  CreateUpdateRequest,
+  CreateUpdateResult,
+  OfflineUpdateRequest,
+  RemoteCommandRequest,
+  RemoteSessionRequest,
+  UpdateDetailResponse,
+  UpdateEcuResult,
+  UpdateEventResponse,
+  UpdateResponse,
+  UpdateResultResponse
+}
+import com.advancedtelematic.libats.messaging_datatype.DataType.EcuIdentifier
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import cats.syntax.either.*
@@ -22,6 +34,7 @@ import com.advancedtelematic.director.data.DbDataType.{
   ProcessedAssignment
 }
 import io.circe.syntax.*
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
 object Codecs {
 
@@ -108,8 +121,8 @@ object Codecs {
   implicit val decoderTargetUpdateRequest: Decoder[TargetUpdateRequest] = deriveDecoder
   implicit val encoderTargetUpdateRequest: Encoder[TargetUpdateRequest] = deriveEncoder
 
-  implicit val multiTargetUpdateEncoder: Encoder[MultiTargetUpdate] = deriveEncoder
-  implicit val multiTargetUpdateDecoder: Decoder[MultiTargetUpdate] = deriveDecoder
+  implicit val targetUpdateSpecEncoder: Encoder[TargetUpdateSpec] = deriveEncoder
+  implicit val targetUpdateSpecDecoder: Decoder[TargetUpdateSpec] = deriveDecoder
 
   implicit val assignUpdateRequestEncoder: Encoder[AssignUpdateRequest] = deriveEncoder
   implicit val assignUpdateRequestDecoder: Decoder[AssignUpdateRequest] = deriveDecoder
@@ -143,17 +156,16 @@ object Codecs {
 
   implicit val remoteSessionRequestCodec: Codec[RemoteSessionRequest] = deriveCodec
 
-  implicit val remoteCommandRequestCodec: Codec[RemoteCommandRequest] = deriveCodec[RemoteCommandRequest]
+  implicit val remoteCommandRequestCodec: Codec[RemoteCommandRequest] =
+    deriveCodec[RemoteCommandRequest]
 
   implicit val assignmentCreateResultCodec: Codec[AssignmentCreateResult] = deriveCodec
 
-  implicit val scheduledUpdateStatusDecoder: Decoder[ScheduledUpdate.Status] =
-    enumeratum.Circe.decoder(ScheduledUpdate.Status)
+  implicit val updateStatusDecoder: Decoder[Update.Status] =
+    enumeratum.Circe.decoder(Update.Status)
 
-  implicit val scheduledUpdateStatusEncoder: Encoder[ScheduledUpdate.Status] =
-    enumeratum.Circe.encoder(ScheduledUpdate.Status)
-
-  implicit val scheduledUpdateCodec: Codec[ScheduledUpdate] = deriveCodec
+  implicit val updateStatusEncoder: Encoder[Update.Status] =
+    enumeratum.Circe.encoder(Update.Status)
 
   implicit val createScheduledUpdateRequestCodec: Codec[CreateScheduledUpdateRequest] = deriveCodec
 
@@ -163,5 +175,24 @@ object Codecs {
   implicit val processedAssignmentCodec: Codec[ProcessedAssignment] =
     deriveCodec[ProcessedAssignment]
 
+  implicit val updateCode: Codec[Update] = deriveCodec
+
   implicit val deviceKnownStateCodec: Codec[DeviceKnownState] = deriveCodec[DeviceKnownState]
+
+  implicit val updateResultResponseCodec: Codec[UpdateResultResponse] = deriveCodec
+
+  implicit val updateResponseCodec: Codec[UpdateResponse] = deriveCodec
+
+  implicit val createUpdateRequestCodec: Codec[CreateUpdateRequest] = deriveCodec
+
+  implicit val createUpdateResultCodec: Codec[CreateUpdateResult] = deriveCodec
+
+  implicit val createDeviceUpdateRequestCodec: Codec[CreateDeviceUpdateRequest] = deriveCodec
+
+  implicit val updateEcuResultCodec: Codec[UpdateEcuResult] = deriveCodec[UpdateEcuResult]
+
+  implicit val updateDetailResponseCodec: Codec[UpdateDetailResponse] =
+    deriveCodec[UpdateDetailResponse]
+
+  implicit val updateEventResponseCodec: Codec[UpdateEventResponse] = deriveCodec[UpdateEventResponse]
 }

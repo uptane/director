@@ -17,8 +17,7 @@ import com.advancedtelematic.director.db.{
   EcuTargetsRepositorySupport
 }
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.data.EcuIdentifier
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.libats.messaging_datatype.DataType.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{
   ClientHashes,
   ClientTargetItem,

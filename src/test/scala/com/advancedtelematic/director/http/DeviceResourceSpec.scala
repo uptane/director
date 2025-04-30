@@ -5,24 +5,10 @@ import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.daemon.UpdateSchedulerDaemon
 import com.advancedtelematic.director.data.AdminDataType
-import com.advancedtelematic.director.data.AdminDataType.{
-  EcuInfoResponse,
-  MultiTargetUpdate,
-  QueueResponse,
-  RegisterDevice,
-  TargetUpdate
-}
+import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, QueueResponse, RegisterDevice, TargetUpdate, TargetUpdateSpec}
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.*
-import com.advancedtelematic.director.data.DeviceRequest.{
-  DeviceManifest,
-  EcuManifest,
-  EcuManifestCustom,
-  InstallationReport,
-  InstallationReportEntity,
-  MissingInstallationReport,
-  OperationResult
-}
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom, InstallationReport, InstallationReportEntity, MissingInstallationReport, OperationResult}
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.data.Messages.DeviceManifestReported
@@ -34,27 +20,14 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDe
 import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
 import com.advancedtelematic.director.manifest.ResultCodes
 import com.advancedtelematic.director.util.*
-import com.advancedtelematic.libats.data.DataType.{
-  CorrelationId,
-  HashMethod,
-  MultiTargetUpdateId,
-  Namespace,
-  ResultCode,
-  ResultDescription
-}
+import com.advancedtelematic.libats.data.DataType.{CorrelationId, HashMethod, MultiTargetUpdateCorrelationId, Namespace, ResultCode, ResultDescription, UpdateCorrelationId}
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.*
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{
-  RootRole,
-  SnapshotRole,
-  TargetsRole,
-  TimestampRole,
-  TufRole
-}
+import com.advancedtelematic.libtuf.data.ClientDataType.{RootRole, SnapshotRole, TargetsRole, TimestampRole, TufRole}
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
@@ -65,6 +38,7 @@ import org.scalatest.OptionValues.*
 import io.circe.syntax.*
 import org.scalatest.EitherValues.*
 
+import java.time.Instant
 import scala.concurrent.Future
 
 class DeviceResourceSpec
@@ -79,7 +53,7 @@ class DeviceResourceSpec
     with RegistryDeviceRequests
     with ProvisionedDevicesRequests
     with AssignmentsRepositorySupport
-    with ScheduledUpdatesResources {
+    with UpdatesResources {
 
   override implicit val msgPub: MockMessageBus = new MockMessageBus()
 
@@ -1606,7 +1580,7 @@ class DeviceResourceSpec
   }
 
   testWithRepo(
-    "installing assignments created via a scheduled update updates scheduled update status"
+    "installing assignments created via a scheduled update updates update status"
   ) { implicit ns =>
     val dev = registerAdminDeviceWithSecondariesOk()
     val currentUpdate = GenTargetUpdateRequest.generate
@@ -1623,11 +1597,11 @@ class DeviceResourceSpec
     )
     putManifestOk(dev.deviceId, deviceManifest)
 
-    val mtu = MultiTargetUpdate(
+    val mtu = TargetUpdateSpec(
       Map(dev.secondaries.values.head.hardwareId -> newUpdate, dev.primary.hardwareId -> newUpdate)
     )
 
-    createScheduledUpdateOk(dev.deviceId, mtu)
+    createUpdateOk(dev.deviceId, mtu)
 
     updateSchedulerIO.run().futureValue
 
@@ -1641,8 +1615,8 @@ class DeviceResourceSpec
 
     putManifestOk(dev.deviceId, newManifest)
 
-    val scheduledUpdate = listScheduledUpdatesOK(dev.deviceId).values.loneElement
-    scheduledUpdate.status shouldBe ScheduledUpdate.Status.Completed
+    val scheduledUpdate = listUpdatesOK(dev.deviceId).values.loneElement
+    scheduledUpdate.status shouldBe Update.Status.Completed
   }
 
   testWithRepo(
@@ -1655,9 +1629,9 @@ class DeviceResourceSpec
     val deviceManifest = buildPrimaryManifest(dev.primary, dev.primaryKey, currentUpdate.to)
     putManifestOk(dev.deviceId, deviceManifest)
 
-    val mtu = MultiTargetUpdate(Map(dev.primary.hardwareId -> newUpdate))
+    val mtu = TargetUpdateSpec(Map(dev.primary.hardwareId -> newUpdate))
 
-    createScheduledUpdateOk(dev.deviceId, mtu)
+    createUpdateOk(dev.deviceId, mtu, Instant.now().some)
 
     val scheduledUpdate = updateSchedulerIO.run().futureValue.loneElement
 
@@ -1666,7 +1640,7 @@ class DeviceResourceSpec
       dev.primaryKey,
       currentUpdate.to,
       InstallationReport(
-        MultiTargetUpdateId(scheduledUpdate.updateId.uuid),
+        scheduledUpdate.id.toCorrelationId,
         InstallationResult(
           success = false,
           code = ResultCode("download_failed"),
@@ -1679,8 +1653,8 @@ class DeviceResourceSpec
 
     putManifestOk(dev.deviceId, newManifest)
 
-    val apiScheduledUpdate = listScheduledUpdatesOK(dev.deviceId).values.loneElement
-    apiScheduledUpdate.status shouldBe ScheduledUpdate.Status.Completed
+    val apiScheduledUpdate = listUpdatesOK(dev.deviceId).values.loneElement
+    apiScheduledUpdate.status shouldBe Update.Status.Completed
   }
 
   testWithRepo("partially installing a scheduled update sets status to PartiallyCompleted") {
@@ -1701,14 +1675,14 @@ class DeviceResourceSpec
       )
       putManifestOk(dev.deviceId, deviceManifest)
 
-      val mtu = MultiTargetUpdate(
+      val mtu = TargetUpdateSpec(
         Map(
           dev.secondaries.values.head.hardwareId -> newUpdatePrimary,
           dev.primary.hardwareId -> newUpdateSecondary
         )
       )
 
-      createScheduledUpdateOk(dev.deviceId, mtu)
+      createUpdateOk(dev.deviceId, mtu)
 
       updateSchedulerIO.run().futureValue
 
@@ -1722,8 +1696,8 @@ class DeviceResourceSpec
 
       putManifestOk(dev.deviceId, newManifest)
 
-      val scheduledUpdate = listScheduledUpdatesOK(dev.deviceId).values.loneElement
-      scheduledUpdate.status shouldBe ScheduledUpdate.Status.PartiallyCompleted
+      val scheduledUpdate = listUpdatesOK(dev.deviceId).values.loneElement
+      scheduledUpdate.status shouldBe Update.Status.PartiallyCompleted
 
       val newManifest2 = buildSecondaryManifest(
         dev.primary.ecuSerial,
@@ -1735,8 +1709,8 @@ class DeviceResourceSpec
 
       putManifestOk(dev.deviceId, newManifest2)
 
-      val scheduledUpdate2 = listScheduledUpdatesOK(dev.deviceId).values.loneElement
-      scheduledUpdate2.status shouldBe ScheduledUpdate.Status.Completed
+      val scheduledUpdate2 = listUpdatesOK(dev.deviceId).values.loneElement
+      scheduledUpdate2.status shouldBe Update.Status.Completed
   }
 
   testWithRepo(
@@ -1752,9 +1726,9 @@ class DeviceResourceSpec
     val previousTargets = getTargetsOk(dev.deviceId).signed
     previousTargets.targets shouldBe empty
 
-    val mtu = MultiTargetUpdate(Map(dev.primary.hardwareId -> newUpdate))
+    val mtu = TargetUpdateSpec(Map(dev.primary.hardwareId -> newUpdate))
 
-    createScheduledUpdateOk(dev.deviceId, mtu)
+    createUpdateOk(dev.deviceId, mtu)
 
     updateSchedulerIO.run().futureValue
 
@@ -1774,11 +1748,11 @@ class DeviceResourceSpec
     val previousTargets = getTargetsOk(dev.deviceId).signed
     previousTargets.targets shouldBe empty
 
-    val mtu = MultiTargetUpdate(Map(dev.primary.hardwareId -> newUpdate))
+    val mtu = TargetUpdateSpec(Map(dev.primary.hardwareId -> newUpdate))
 
-    createScheduledUpdateOk(dev.deviceId, mtu)
+    createUpdateOk(dev.deviceId, mtu)
 
-    val mtuId = listScheduledUpdatesOK(dev.deviceId).values.loneElement.updateId
+    val updateId = listUpdatesOK(dev.deviceId).values.loneElement.updateId
 
     // TODO: runs full daemon instead of IO
     val daemon = new UpdateSchedulerDaemon()
@@ -1795,7 +1769,7 @@ class DeviceResourceSpec
       .value
 
     assignedMsg.deviceUuid shouldBe dev.deviceId
-    assignedMsg.correlationId shouldBe MultiTargetUpdateId(mtuId.uuid)
+    assignedMsg.correlationId shouldBe updateId.toCorrelationId
   }
 
 
@@ -1817,16 +1791,16 @@ class DeviceResourceSpec
     )
     putManifestOk(dev.deviceId, deviceManifest)
 
-    val mtu = MultiTargetUpdate(
+    val mtu = TargetUpdateSpec(
       Map(dev.secondaries.values.head.hardwareId -> newUpdate, dev.primary.hardwareId -> newUpdate)
     )
 
-    val id = createScheduledUpdateOk(dev.deviceId, mtu)
+    val id = createUpdateOk(dev.deviceId, mtu)
 
-    cancelScheduledUpdateOK(dev.deviceId, id)
+    cancelUpdateOK(dev.deviceId, id)
 
-    val scheduledUpdate0 = listScheduledUpdatesOK(dev.deviceId).values.loneElement
-    scheduledUpdate0.status shouldBe ScheduledUpdate.Status.Cancelled
+    val scheduledUpdate0 = listUpdatesOK(dev.deviceId).values.loneElement
+    scheduledUpdate0.status shouldBe Update.Status.Cancelled
 
     val newManifest = buildSecondaryManifest(
       dev.primary.ecuSerial,
@@ -1838,7 +1812,7 @@ class DeviceResourceSpec
 
     putManifestOk(dev.deviceId, newManifest)
 
-    val scheduledUpdate = listScheduledUpdatesOK(dev.deviceId).values.loneElement
-    scheduledUpdate.status shouldBe ScheduledUpdate.Status.Cancelled
+    val scheduledUpdate = listUpdatesOK(dev.deviceId).values.loneElement
+    scheduledUpdate.status shouldBe Update.Status.Cancelled
   }
 }

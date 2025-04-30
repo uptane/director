@@ -14,14 +14,7 @@ import com.advancedtelematic.director.data.AdminDataType.TargetUpdate
 import com.advancedtelematic.director.data.UptaneDataType.*
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.DeviceRequest
-import com.advancedtelematic.director.data.DeviceRequest.{
-  DeviceManifest,
-  EcuManifest,
-  InstallationReport,
-  InstallationReportEntity,
-  MissingInstallationReport
-}
-import com.advancedtelematic.libats.data.EcuIdentifier
+import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationReport, InstallationReportEntity, MissingInstallationReport}
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
@@ -29,7 +22,7 @@ import com.advancedtelematic.director.deviceregistry.AllowUUIDPath
 import com.advancedtelematic.director.http.deviceregistry.DeviceRegistryRoutes
 import com.advancedtelematic.libats.http.NamespaceDirectives
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 

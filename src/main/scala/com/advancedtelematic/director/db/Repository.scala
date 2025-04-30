@@ -18,25 +18,25 @@ import com.advancedtelematic.director.data.DbDataType.{
 }
 import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
-import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
+import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.http.Errors.{
   EntityAlreadyExists,
   MissingEntity,
   MissingEntityId
 }
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
-import cats.syntax.either.*
+import com.advancedtelematic.libats.messaging_datatype.DataType.{
+  DeviceId,
+  EcuIdentifier,
+  ValidEcuIdentifier
+}
+import com.advancedtelematic.libats.data.RefinedUtils.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import slick.jdbc.MySQLProfile.api.*
 import akka.http.scaladsl.util.FastFuture
-import com.advancedtelematic.director.data.DataType.{
-  AdminRoleName,
-  ScheduledUpdate,
-  ScheduledUpdateId,
-  StatusInfo
-}
+import cats.data.NonEmptyList
+import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update, UpdateId}
 import com.advancedtelematic.director.db.AdminRolesRepository.{
   Deleted,
   FindLatestResult,
@@ -66,9 +66,10 @@ import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
 import io.circe.syntax.EncoderOps
 import slick.jdbc.GetResult
-
 import scala.concurrent.{ExecutionContext, Future}
 import cats.syntax.show.*
+
+import com.advancedtelematic.libats.slick.db.SlickUrnMapper.*
 
 protected trait DatabaseSupport {
   implicit val ec: ExecutionContext
@@ -291,17 +292,13 @@ protected[db] class RepoNamespaceRepository()(implicit val db: Database, val ec:
 
 object HardwareUpdateRepository {
 
-  implicit val showHardwareUpdateId: cats.Show[
-    (
-      com.advancedtelematic.libats.data.DataType.Namespace,
-      com.advancedtelematic.libats.messaging_datatype.DataType.UpdateId
-    )
-  ] = Show.show[(Namespace, UpdateId)] { case (ns, id) =>
-    s"($ns, $id)"
-  }
+  implicit val showHardwareTargetSpecId: cats.Show[(Namespace, TargetSpecId)] =
+    Show.show[(Namespace, TargetSpecId)] { case (ns, id) =>
+      s"($ns, $id)"
+    }
 
-  def MissingHardwareUpdate(namespace: Namespace, id: UpdateId) =
-    MissingEntityId[(Namespace, UpdateId)](namespace -> id)
+  def MissingHardwareUpdate(namespace: Namespace, id: TargetSpecId) =
+    MissingEntityId[(Namespace, TargetSpecId)](namespace -> id)
 
 }
 
@@ -315,20 +312,24 @@ protected class HardwareUpdateRepository()(implicit val db: Database, val ec: Ex
   protected[db] def persistAction(hardwareUpdate: HardwareUpdate): DBIO[Unit] =
     (Schema.hardwareUpdates += hardwareUpdate).map(_ => ())
 
-  def findBy(ns: Namespace, id: UpdateId): Future[Map[HardwareIdentifier, HardwareUpdate]] =
-    db.run {
-      Schema.hardwareUpdates
-        .filter(_.namespace === ns)
-        .filter(_.id === id)
-        .result
-        .failIfEmpty(MissingHardwareUpdate(ns, id))
-        .map { hwUpdates =>
-          hwUpdates.map(hwUpdate => hwUpdate.hardwareId -> hwUpdate).toMap
-        }
-    }
+  def findAll(ns: Namespace): Future[Seq[HardwareUpdate]] = db.run {
+    Schema.hardwareUpdates.filter(_.namespace === ns).result
+  }
 
-  def findUpdateTargets(ns: Namespace,
-                        id: UpdateId): Future[Seq[(HardwareUpdate, Option[EcuTarget], EcuTarget)]] =
+  protected[db] def findByAction(ns: Namespace,
+                                 id: TargetSpecId): DBIO[Map[HardwareIdentifier, HardwareUpdate]] =
+    Schema.hardwareUpdates
+      .filter(_.namespace === ns)
+      .filter(_.id === id)
+      .result
+      .failIfEmpty(MissingHardwareUpdate(ns, id))
+      .map { hwUpdates =>
+        hwUpdates.map(hwUpdate => hwUpdate.hardwareId -> hwUpdate).toMap
+      }
+
+  def findUpdateTargets(
+    ns: Namespace,
+    id: TargetSpecId): Future[Seq[(HardwareUpdate, Option[EcuTarget], EcuTarget)]] =
     db.run {
       val io = Schema.hardwareUpdates
         .filter(_.namespace === ns)
@@ -364,12 +365,16 @@ protected class EcuTargetsRepository()(implicit val db: Database, val ec: Execut
   }
 
   def findAll(ns: Namespace, ids: Seq[EcuTargetId]): Future[Map[EcuTargetId, EcuTarget]] = db.run {
+    findAllAction(ns, ids)
+  }
+
+  protected[db] def findAllAction(ns: Namespace,
+                                  ids: Seq[EcuTargetId]): DBIO[Map[EcuTargetId, EcuTarget]] =
     Schema.ecuTargets
       .filter(_.namespace === ns)
       .filter(_.id.inSet(ids))
       .result
       .map(_.map(e => e.id -> e).toMap)
-  }
 
 }
 
@@ -416,6 +421,14 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       }.toMap
     }
 
+  protected[db] def findByCorrelationIdsAction(
+    ns: Namespace,
+    correlationIds: Set[CorrelationId]): DBIO[Seq[Assignment]] =
+    Schema.assignments
+      .filter(_.namespace === ns)
+      .filter(_.correlationId.inSet(correlationIds))
+      .result
+
   def existsForDevices(deviceIds: Set[DeviceId]): Future[Map[DeviceId, Boolean]] = db.run {
     Schema.assignments
       .filter(_.deviceId.inSet(deviceIds))
@@ -424,26 +437,24 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       .map(existing => deviceIds.map(_ -> false).toMap ++ existing.toMap)
   }
 
-  def withAssignments(ids: Set[(DeviceId, EcuIdentifier)]): Future[Set[(DeviceId, EcuIdentifier)]] =
+  protected[db] def withAssignmentsAction(
+    ids: Set[(DeviceId, EcuIdentifier)]): DBIO[Set[(DeviceId, EcuIdentifier)]] =
     if (ids.isEmpty) {
-      FastFuture.successful(Set.empty)
+      DBIO.successful(Set.empty)
     } else {
       // raw sql is workaround for https://github.com/slick/slick/pull/995
       implicit val getResult = GetResult { r =>
-        DeviceId(UUID.fromString(r.nextString())) -> EcuIdentifier
-          .from(r.nextString())
-          .valueOr(throw _)
+        DeviceId(UUID.fromString(r.nextString())) ->
+          r.nextString().refineTry[ValidEcuIdentifier].get
       }
 
       val elems = ids
         .map { case (d, e) => "('" + d.uuid.toString + "','" + e.value + "')" }
         .mkString("(", ",", ")")
 
-      db.run {
-        sql"select device_id, ecu_serial from assignments where (device_id, ecu_serial) in #$elems"
-          .as[(DeviceId, EcuIdentifier)]
-          .map(_.toSet)
-      }
+      sql"select device_id, ecu_serial from assignments where (device_id, ecu_serial) in #$elems"
+        .as[(DeviceId, EcuIdentifier)]
+        .map(_.toSet)
     }
 
   def markRegenerated(deviceRepository: ProvisionedDeviceRepository)(
@@ -459,33 +470,59 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
     io.transactionally
   }
 
-  def processDeviceCancellation(deviceRepository: ProvisionedDeviceRepository)(
+  protected[db] def processDeviceCancellationAction(deviceRepository: ProvisionedDeviceRepository)(
     ns: Namespace,
-    deviceId: DeviceId,
-    allowInFlightCancellation: Boolean): Future[List[CorrelationId]] = db.run {
-    val assignmentQuery =
-      Schema.assignments.filter(_.namespace === ns).filter(_.deviceId === deviceId)
+    deviceId: Option[DeviceId],
+    correlationId: Option[CorrelationId] = None,
+    allowInFlightCancellation: Boolean = false): DBIO[List[(CorrelationId, DeviceId)]] = {
 
-    val action = assignmentQuery.forUpdate.result.flatMap { assignments =>
+    val baseQuery = Schema.assignments
+      .filter(_.namespace === ns)
+      .maybeFilter(_.deviceId === deviceId)
+      .maybeFilter(_.correlationId === correlationId)
+
+    baseQuery.forUpdate.result.flatMap { assignments =>
       if (assignments.isEmpty)
         DBIO.failed(MissingEntity[Assignment]())
-      else if (assignments.exists(_.inFlight) && !allowInFlightCancellation)
-        DBIO.failed(Errors.AssignmentInFlight(deviceId))
-      else
+      else if (assignments.exists(_.inFlight) && !allowInFlightCancellation) {
+        // safe because of above `exists`
+        val deviceIds =
+          NonEmptyList.fromListUnsafe(assignments.filter(_.inFlight).map(_.deviceId).toSet.toList)
+        DBIO.failed(Errors.AssignmentInFlight(deviceIds))
+      } else
         DBIO
           .seq(
             Schema.processedAssignments ++= assignments
               .map(_.toProcessedAssignment(successful = true, canceled = true)),
-            assignmentQuery.delete,
-            deviceRepository.setMetadataOutdatedAction(Set(deviceId), outdated = true)
+            baseQuery.delete,
+            deviceRepository
+              .setMetadataOutdatedAction(assignments.map(_.deviceId).toSet, outdated = true)
           )
-          .map(_ => assignments.map(_.correlationId).toList)
+          .map(_ => assignments.map(a => a.correlationId -> a.deviceId).toList)
     }
-
-    action.transactionally
   }
 
-  def processCancellation(deviceRepository: ProvisionedDeviceRepository)(
+  def processDeviceCancellation(deviceRepository: ProvisionedDeviceRepository,
+                                updatesRepository: UpdatesRepository)(
+    ns: Namespace,
+    deviceId: DeviceId,
+    allowInFlightCancellation: Boolean): Future[List[CorrelationId]] = db.run {
+    val io = for {
+      ids <- processDeviceCancellationAction(deviceRepository)(
+        ns,
+        Option(deviceId),
+        correlationId = None,
+        allowInFlightCancellation
+      )
+      correlationIds = ids.map(_._1)
+      _ <- updatesRepository.ensureNoUpdateFor(ns, correlationIds.toSet).map(_ => correlationIds)
+    } yield correlationIds
+
+    io.transactionally
+  }
+
+  def processCancellation(deviceRepository: ProvisionedDeviceRepository,
+                          updatesRepository: UpdatesRepository)(
     ns: Namespace,
     deviceIds: Seq[DeviceId]): Future[Seq[Assignment]] = db.run {
     val assignmentQuery = Schema.assignments
@@ -498,6 +535,8 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       _ <- Schema.processedAssignments ++= assignments.map(
         _.toProcessedAssignment(successful = true, canceled = true)
       )
+      correlationIds = assignments.map(_.correlationId).toSet
+      _ <- updatesRepository.ensureNoUpdateFor(ns, correlationIds)
       _ <- assignmentQuery.delete
       _ <- deviceRepository.setMetadataOutdatedAction(deviceIds.toSet, outdated = true)
     } yield assignments
@@ -508,6 +547,14 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
   def findProcessed(ns: Namespace, deviceId: DeviceId): Future[Seq[ProcessedAssignment]] = db.run {
     Schema.processedAssignments.filter(_.namespace === ns).filter(_.deviceId === deviceId).result
   }
+
+  protected[db] def findAllProcessedByCorrelatioIds(
+    ns: Namespace,
+    correlationIds: Set[CorrelationId]): DBIO[Seq[ProcessedAssignment]] =
+    Schema.processedAssignments
+      .filter(_.namespace === ns)
+      .filter(_.correlationId.inSet(correlationIds))
+      .result
 
 }
 
@@ -585,16 +632,15 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
       .result
   }
 
-  def findEcuWithTargets(
+  def findEcuWithTargetsAction(
     devices: Set[DeviceId],
-    hardwareIds: Set[HardwareIdentifier]): Future[Seq[(Ecu, Option[EcuTarget])]] = db.run {
+    hardwareIds: Set[HardwareIdentifier]): DBIO[Seq[(Ecu, Option[EcuTarget])]] =
     Schema.activeEcus
       .filter(_.deviceId.inSet(devices))
       .filter(_.hardwareId.inSet(hardwareIds))
       .joinLeft(Schema.ecuTargets)
       .on(_.installedTarget === _.id)
       .result
-  }
 
   private[db] def findDevicePrimaryAction(ns: Namespace, deviceId: DeviceId): DBIO[Ecu] =
     Schema.allProvisionedDevices
@@ -610,8 +656,9 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
   def findDevicePrimary(ns: Namespace, deviceId: DeviceId): Future[Ecu] =
     db.run(findDevicePrimaryAction(ns, deviceId))
 
-  def findDevicePrimaryIds(ns: Namespace,
-                           deviceId: Set[DeviceId]): Future[Map[DeviceId, EcuIdentifier]] = db.run {
+  protected[db] def findDevicePrimaryIdsAction(
+    ns: Namespace,
+    deviceId: Set[DeviceId]): DBIO[Map[DeviceId, EcuIdentifier]] =
     Schema.allProvisionedDevices
       .filter(_.namespace === ns)
       .filter(_.id.inSet(deviceId))
@@ -622,7 +669,6 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
       .map { case (_, ecu) => ecu.deviceId -> ecu.ecuSerial }
       .result
       .map(_.toMap)
-  }
 
   protected[db] def setActiveEcus(ns: Namespace,
                                   deviceId: DeviceId,
@@ -942,74 +988,97 @@ protected class DeviceManifestRepository()(implicit db: Database, ec: ExecutionC
 
 }
 
-trait ScheduledUpdatesRepositorySupport {
-
-  def scheduledUpdatesRepository(implicit db: Database, ec: ExecutionContext) =
-    new ScheduledUpdatesRepository()
-
-}
-
-protected class ScheduledUpdatesRepository()(implicit db: Database, ec: ExecutionContext) {
+protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext) {
   import SlickMapping.*
 
-  def persist(scheduledUpdate: ScheduledUpdate): Future[ScheduledUpdateId] = db.run {
-    persistAction(scheduledUpdate)
-  }
-
-  protected[db] def persistAction(scheduledUpdate: ScheduledUpdate): DBIO[ScheduledUpdateId] =
-    (Schema.scheduledUpdates += scheduledUpdate).map(_ => scheduledUpdate.id)
-
-  def findFor(ns: Namespace, device: DeviceId): Future[PaginationResult[ScheduledUpdate]] = db.run {
-    Schema.scheduledUpdates
-      .filter(_.namespace === ns)
-      .filter(_.deviceId === device)
-      .result
-      .map(seq => PaginationResult(seq, seq.length, 0, seq.length))
-  }
-
-  def setStatus[T <: StatusInfo: Encoder](ns: Namespace,
-                                          id: ScheduledUpdateId,
-                                          newStatus: ScheduledUpdate.Status,
-                                          info: Option[T] = None): Future[Unit] = db.run {
-    setStatusAction(ns, id, newStatus, info)
-  }
-
-  def filterActiveUpdateExists(ns: Namespace, devices: Set[DeviceId]): Future[Set[DeviceId]] =
-    db.run {
-      Schema.scheduledUpdates
-        .filter(_.namespace === ns)
-        .filter(_.deviceId.inSet(devices))
-        .filterNot(
-          _.status.inSet(Set(ScheduledUpdate.Status.Completed, ScheduledUpdate.Status.Cancelled))
-        )
-        .map(_.deviceId)
-        .result
-        .map(_.toSet)
-    }
-
-  protected[db] def scheduledUpdateExistsFor(ns: Namespace,
-                                             deviceId: DeviceId): DBIO[Option[ScheduledUpdateId]] =
-    Schema.scheduledUpdates
+  protected[db] def findAction(ns: Namespace,
+                               deviceId: DeviceId,
+                               offset: Long = 0L,
+                               limit: Long = 10L): DBIO[PaginationResult[Update]] =
+    Schema.updates
       .filter(_.namespace === ns)
       .filter(_.deviceId === deviceId)
-      .filterNot(
-        _.status.inSet(Set(ScheduledUpdate.Status.Completed, ScheduledUpdate.Status.Cancelled))
-      )
-      .map(_.id)
-      .take(1)
+      .paginateAndSortResult(_.createdAt.desc, offset, limit)
+
+  def persist(update: Update): Future[Unit] = db.run {
+    persistMany(Seq(update))
+  }
+
+  protected[db] def persistMany(updates: Seq[Update]): DBIO[Unit] =
+    (Schema.updates ++= updates).map(_ => ())
+
+  protected[db] def cancelUpdateAction(ns: Namespace,
+                                       updateId: UpdateId,
+                                       deviceId: Option[DeviceId]): DBIO[CorrelationId] =
+
+    Schema.updates
+      .filter(_.namespace === ns)
+      .filter(_.id === updateId)
+      .maybeFilter(_.deviceId === deviceId)
+      .forUpdate
       .result
       .headOption
+      .flatMap {
+        case Some(u) if u.status == Update.Status.Assigned => DBIO.successful(u)
+        case Some(_) => DBIO.failed(Errors.UpdateCannotBeCancelled(updateId))
+        case None    => DBIO.failed(MissingEntity[Update]())
+      }
+      .flatMap { update =>
+        Schema.updates
+          .filter(_.namespace === ns)
+          .filter(_.id === updateId)
+          .maybeFilter(_.deviceId === deviceId)
+          .map(r => (r.status, r.completedAt))
+          .update((Update.Status.Cancelled, Some(Instant.now)))
+          .map(_ => update.correlationId)
+      }
 
-  protected[db] def setStatusAction[T <: StatusInfo: Encoder](ns: Namespace,
-                                                              id: ScheduledUpdateId,
-                                                              newStatus: ScheduledUpdate.Status,
-                                                              info: Option[T] = None): DBIO[Unit] =
-    Schema.scheduledUpdates
+  protected[db] def setStatusAction[T: Encoder](ns: Namespace,
+                                                id: UpdateId,
+                                                newStatus: Update.Status,
+                                                info: Option[T] = None): DBIO[Unit] =
+    Schema.updates
       .filter(_.namespace === ns)
       .filter(_.id === id)
       .map(r => (r.status, r.statusInfo))
       .update(newStatus -> info.map(_.asJson))
-      .handleSingleUpdateError(MissingEntity[ScheduledUpdate]())
+      .handleSingleUpdateError(MissingEntity[Update]())
       .map(_ => ())
+
+  protected[db] def filterActiveUpdateExistsAction(ns: Namespace,
+                                                   devices: Set[DeviceId]): DBIO[Set[DeviceId]] =
+    Schema.updates
+      .filter(_.namespace === ns)
+      .filter(_.deviceId.inSet(devices))
+      .filterNot(_.status.inSet(Set(Update.Status.Completed, Update.Status.Cancelled)))
+      .map(_.deviceId)
+      .result
+      .map(_.toSet)
+
+  def findFor(ns: Namespace, device: DeviceId): Future[Seq[Update]] = db.run {
+    Schema.updates
+      .filter(_.namespace === ns)
+      .filter(_.deviceId === device)
+      .result
+  }
+
+  def ensureNoUpdateFor(ns: Namespace, correlationIds: Set[CorrelationId]): DBIO[Unit] =
+    Schema.updates
+      .filter(_.namespace === ns)
+      .filter(_.correlationId.inSet(correlationIds))
+      .map(_.correlationId)
+      .result
+      .flatMap {
+        case id +: ids =>
+          DBIO.failed(Errors.AssignmentBelongsToUpdate(NonEmptyList(id, ids.toList)))
+        case _ => DBIO.successful(())
+      }
+
+}
+
+trait UpdatesRepositorySupport {
+
+  def updatesRepository(implicit db: Database, ec: ExecutionContext) =
+    new UpdatesRepository()
 
 }
