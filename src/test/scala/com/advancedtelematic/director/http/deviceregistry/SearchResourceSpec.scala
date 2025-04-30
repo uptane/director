@@ -24,7 +24,6 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 
-
 trait SearchRequests {
   self: DirectorSpec & ResourceSpec & RegistryDeviceRequests =>
 

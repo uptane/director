@@ -6,10 +6,7 @@ import java.util.UUID
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.PathMatcher
 import cats.implicits.*
-import com.advancedtelematic.director.data.DataType.{
-  AdminRoleName,
-  ScheduledUpdate
-}
+import com.advancedtelematic.director.data.DataType.{AdminRoleName, ScheduledUpdate}
 import com.advancedtelematic.director.data.DataType.ScheduledUpdate.Status
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.UptaneDataType.{Hashes, TargetImage}
