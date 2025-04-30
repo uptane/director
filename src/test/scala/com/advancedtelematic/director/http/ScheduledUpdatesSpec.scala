@@ -11,7 +11,12 @@ import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.GenTargetUpdateRequest
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
 import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
-import com.advancedtelematic.director.util.{DirectorSpec, NamespacedTests, RepositorySpec, ResourceSpec}
+import com.advancedtelematic.director.util.{
+  DirectorSpec,
+  NamespacedTests,
+  RepositorySpec,
+  ResourceSpec
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
@@ -65,10 +70,11 @@ trait ScheduledUpdatesResources {
       responseAs[PaginationResult[ScheduledUpdate]]
     }
 
-  def cancelScheduledUpdateOK(deviceId: DeviceId, id: ScheduledUpdateId)(
-    implicit ns: Namespace,
-    pos: Position): Unit =
-    Delete(apiUri(s"admin/devices/${deviceId.show}/scheduled-updates/${id.show}")).namespaced ~> routes ~> check {
+  def cancelScheduledUpdateOK(deviceId: DeviceId,
+                              id: ScheduledUpdateId)(implicit ns: Namespace, pos: Position): Unit =
+    Delete(
+      apiUri(s"admin/devices/${deviceId.show}/scheduled-updates/${id.show}")
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
     }
 

@@ -35,7 +35,10 @@ import toml.Value.{Str, Tbl}
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import com.advancedtelematic.director.deviceregistry.data.SimpleJsonGenerator.*
 
-class SystemInfoResourceSpec extends DirectorSpec with ResourcePropSpec with RegistryDeviceRequests {
+class SystemInfoResourceSpec
+    extends DirectorSpec
+    with ResourcePropSpec
+    with RegistryDeviceRequests {
 
   import akka.http.scaladsl.model.StatusCodes.*
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*

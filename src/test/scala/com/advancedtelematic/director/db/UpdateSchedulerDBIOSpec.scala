@@ -1,7 +1,11 @@
 package com.advancedtelematic.director.db
 
 import com.advancedtelematic.director.daemon.UpdateScheduler
-import com.advancedtelematic.director.data.AdminDataType.{MultiTargetUpdate, RegisterEcu, TargetUpdateRequest}
+import com.advancedtelematic.director.data.AdminDataType.{
+  MultiTargetUpdate,
+  RegisterEcu,
+  TargetUpdateRequest
+}
 import com.advancedtelematic.director.data.DataType.{ScheduledUpdate, ScheduledUpdateId}
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.GeneratorOps.*
@@ -64,7 +68,8 @@ class UpdateSchedulerDBIOSpec
     implicit ns: Namespace): Future[DeviceCreateResult] = {
     val deviceT = genDeviceT.generate.copy(
       uuid = Option(deviceId),
-      deviceId = DeviceOemId(s"oemid-${deviceId.uuid}"))
+      deviceId = DeviceOemId(s"oemid-${deviceId.uuid}")
+    )
     db.run(DeviceRepository.create(ns, deviceT)).futureValue
 
     provisionedDeviceRepository
@@ -193,7 +198,11 @@ class UpdateSchedulerDBIOSpec
       val updateId = multiTargetUpdates.create(ns, mtu).futureValue
       val device = DeviceId.generate()
 
-      createDevice(device, primaryRegisterEcu.ecu_serial, primaryRegisterEcu.toEcu(ns, device)).futureValue
+      createDevice(
+        device,
+        primaryRegisterEcu.ecu_serial,
+        primaryRegisterEcu.toEcu(ns, device)
+      ).futureValue
 
       val scheduledUpdate = ScheduledUpdate(
         ns,
@@ -344,20 +353,21 @@ class UpdateSchedulerDBIOSpec
     )
   }
 
-  testWithNamespace("updates device status to UpdateScheduled when assignment is created") { implicit ns =>
-    val device = DeviceId.generate()
-    val mtu = Map(GenHardwareIdentifier.generate -> GenTargetUpdateRequest.generate)
-    val registerEcu = GenRegisterEcu.generate.copy(hardware_identifier = mtu.keys.head)
+  testWithNamespace("updates device status to UpdateScheduled when assignment is created") {
+    implicit ns =>
+      val device = DeviceId.generate()
+      val mtu = Map(GenHardwareIdentifier.generate -> GenTargetUpdateRequest.generate)
+      val registerEcu = GenRegisterEcu.generate.copy(hardware_identifier = mtu.keys.head)
 
-    createScheduledUpdate(device, mtu, registerEcu.ecu_serial, registerEcu)
+      createScheduledUpdate(device, mtu, registerEcu.ecu_serial, registerEcu)
 
-    updateSchedulerIO.run().futureValue
+      updateSchedulerIO.run().futureValue
 
-    val deviceStatus = db.run(DeviceRepository.findByUuid(device)).futureValue.deviceStatus
-    deviceStatus shouldBe DeviceStatus.UpdateScheduled
+      val deviceStatus = db.run(DeviceRepository.findByUuid(device)).futureValue.deviceStatus
+      deviceStatus shouldBe DeviceStatus.UpdateScheduled
 
-    val assignments = assignmentsRepository.findBy(device).futureValue
-    assignments.loneElement.deviceId shouldBe device
+      val assignments = assignmentsRepository.findBy(device).futureValue
+      assignments.loneElement.deviceId shouldBe device
   }
 
   test("works for a larger group of devices")(pending)

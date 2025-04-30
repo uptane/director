@@ -39,8 +39,7 @@ import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient.RootRoleNot
 
 import scala.util.{Failure, Success}
 
-object DeviceResource {
-}
+object DeviceResource {}
 
 class DeviceResource(extractNamespace: Directive1[Namespace],
                      val keyserverClient: KeyserverClient,
