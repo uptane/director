@@ -101,8 +101,15 @@ class FakeKeyserverClient extends KeyserverClient {
         throw KeyserverClient.RootRoleNotFound
       }
     }.flatMap { role =>
-      sign(repoId, role).map { jsonSigned =>
-        SignedPayload(jsonSigned.signatures, role, jsonSigned.json)
+      val expireNotBefore = _expireNotBefore.getOrElse(role.expires)
+
+      val role2 = if(role.expires.isBefore(expireNotBefore))
+        role.copy(expires = expireNotBefore)
+      else
+        role
+
+      sign(repoId, role2).map { jsonSigned =>
+        SignedPayload(jsonSigned.signatures, role2, jsonSigned.json)
       }
     }
 

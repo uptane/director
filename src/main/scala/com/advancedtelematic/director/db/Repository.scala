@@ -742,8 +742,8 @@ protected[db] class AdminRolesRepository()(implicit val db: Database, val ec: Ex
             select max(ar0.expires_at) from #${Schema.adminRoles.baseTableRow.tableName} ar0 join
             (select max(version) version, repo_id, name from #${Schema.adminRoles.baseTableRow.tableName} group by repo_id, name) ar
             USING (name, version, repo_id)
-            where ar0.repo_id = '${repoId.show}
-            AND deleted = 0'
+            where ar0.repo_id = ${repoId.show}
+            AND deleted = 0
       """.as[Option[Instant]].headOption
 
     db.run(sql).map(_.flatten)
