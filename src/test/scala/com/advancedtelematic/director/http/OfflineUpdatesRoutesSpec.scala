@@ -15,6 +15,7 @@ import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libtuf.data.ClientDataType.{
   OfflineSnapshotRole,
   OfflineUpdatesRole,
+  RootRole,
   TufRole,
   ValidMetaPath
 }
@@ -297,6 +298,12 @@ class OfflineUpdatesRoutesSpec
       val resp = responseAs[SignedPayload[OfflineSnapshotRole]]
       resp.signed.version shouldBe 2
       resp.signed.expires shouldBe expiresAt
+    }
+
+    Get(apiUri("admin/repo/root.json")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      val resp = responseAs[SignedPayload[RootRole]]
+      resp.signed.expires shouldBe expiresAt.plus(180, ChronoUnit.DAYS)
     }
   }
 
