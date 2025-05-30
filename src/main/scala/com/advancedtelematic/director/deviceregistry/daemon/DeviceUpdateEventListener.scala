@@ -85,9 +85,9 @@ class DeviceUpdateEventListener(messageBus: MessageBusPublisher)(
   }
 
   private def handleEvent(event: DeviceUpdateEvent): Future[DeviceStatus] = event match {
-    case _: DeviceUpdateAssigned => FastFuture.successful(DeviceStatus.Outdated)
-    case _: DeviceUpdateCanceled => FastFuture.successful(DeviceStatus.UpToDate)
-    case _: DeviceUpdateInFlight => FastFuture.successful(DeviceStatus.UpdatePending)
+    case _: DeviceUpdateAssigned    => FastFuture.successful(DeviceStatus.Outdated)
+    case _: DeviceUpdateCanceled    => FastFuture.successful(DeviceStatus.UpToDate)
+    case _: DeviceUpdateInFlight    => FastFuture.successful(DeviceStatus.UpdatePending)
     case msg: DeviceUpdateCompleted =>
       db.run {
         InstallationReportRepository

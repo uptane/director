@@ -127,7 +127,7 @@ class SystemInfoResourceSpec
         )
         val sysInfo = sysInfoJson.as[DeviceId => NetworkInfo] match {
           case Right(ninfo) => ninfo
-          case Left(e) =>
+          case Left(e)      =>
             throw new IllegalArgumentException(
               "Failed to parse json string. Error: " + e.toString()
             )

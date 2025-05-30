@@ -103,7 +103,7 @@ object DevicesResource {
       _.toLowerCase match {
         case "device" => InstallationStatsLevel.Device
         case "ecu"    => InstallationStatsLevel.Ecu
-        case s =>
+        case s        =>
           throw new IllegalArgumentException(
             s"Invalid value for installation stats level parameter: $s."
           )
