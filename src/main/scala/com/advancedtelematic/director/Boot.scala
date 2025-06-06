@@ -17,23 +17,14 @@ import com.advancedtelematic.libats.http.VersionDirectives.versionHeaders
 import com.advancedtelematic.libats.http.monitoring.ServiceHealthCheck
 import com.advancedtelematic.libats.http.tracing.Tracing
 import com.advancedtelematic.libats.http.tracing.Tracing.ServerRequestTracing
-import com.advancedtelematic.libats.http.{
-  BootApp,
-  BootAppDatabaseConfig,
-  BootAppDefaultConfig,
-  NamespaceDirectives
-}
-import com.advancedtelematic.libats.messaging.MessageBus
+import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig, NamespaceDirectives}
+import com.advancedtelematic.libats.messaging.{MessageBus, MessageBusPublisher}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.{CheckMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.{DatabaseMetrics, DbHealthResource}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverHttpClient
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
-import com.advancedtelematic.metrics.{
-  AkkaHttpConnectionMetrics,
-  AkkaHttpRequestMetrics,
-  MetricsSupport
-}
+import com.advancedtelematic.metrics.{AkkaHttpConnectionMetrics, AkkaHttpRequestMetrics, MetricsSupport}
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -69,7 +60,7 @@ class DirectorBoot(override val globalConfig: Config,
 
   private def keyserverClient(implicit tracing: ServerRequestTracing) = KeyserverHttpClient(tufUri)
 
-  private implicit val msgPublisher: com.advancedtelematic.libats.messaging.MessageBusPublisher =
+  private implicit val msgPublisher: MessageBusPublisher =
     MessageBus.publisher(system, globalConfig)
 
   private lazy val authNamespace = NamespaceDirectives.fromConfig()

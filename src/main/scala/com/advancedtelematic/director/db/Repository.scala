@@ -3,33 +3,14 @@ package com.advancedtelematic.director.db
 import java.time.Instant
 import java.util.UUID
 import cats.Show
-import com.advancedtelematic.director.data.DbDataType.{
-  Assignment,
-  AutoUpdateDefinition,
-  AutoUpdateDefinitionId,
-  DbAdminRole,
-  DbDeviceRole,
-  Device,
-  Ecu,
-  EcuTarget,
-  EcuTargetId,
-  HardwareUpdate,
-  ProcessedAssignment
-}
+import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, AutoUpdateDefinitionId, DbAdminRole, DbDeviceRole, Device, Ecu, EcuTarget, EcuTargetId, HardwareUpdate, MurmurHash3Checksum, ProcessedAssignment, ValidMurmurHash3Checksum}
 import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.libats.http.Errors.{
-  EntityAlreadyExists,
-  MissingEntity,
-  MissingEntityId
-}
-import com.advancedtelematic.libats.messaging_datatype.DataType.{
-  DeviceId,
-  EcuIdentifier,
-  ValidEcuIdentifier
-}
+import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, MissingEntityId}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, ValidEcuIdentifier}
 import com.advancedtelematic.libats.data.RefinedUtils.*
+import cats.syntax.either.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
@@ -37,39 +18,27 @@ import slick.jdbc.MySQLProfile.api.*
 import akka.http.scaladsl.util.FastFuture
 import cats.data.NonEmptyList
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update, UpdateId}
-import com.advancedtelematic.director.db.AdminRolesRepository.{
-  Deleted,
-  FindLatestResult,
-  NotDeleted
-}
+import com.advancedtelematic.director.db.AdminRolesRepository.{Deleted, FindLatestResult, NotDeleted}
 import com.advancedtelematic.director.db.Schema.{adminRoles, notDeletedAdminRoles}
 import com.advancedtelematic.director.http.Errors
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  EcuAndHardwareId,
-  EcuReplaced,
-  EcuReplacement
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement}
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
-import com.advancedtelematic.libtuf.data.TufDataType.{
-  HardwareIdentifier,
-  RepoId,
-  RoleType,
-  TargetFilename,
-  TargetName
-}
+import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, RepoId, RoleType, TargetFilename, TargetName}
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.data.TufSlickMappings.*
 import io.circe.{Encoder, Json}
 import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
 import io.circe.syntax.EncoderOps
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, PositionedParameters, SetParameter}
+
 import scala.concurrent.{ExecutionContext, Future}
 import cats.syntax.show.*
-
 import com.advancedtelematic.libats.slick.db.SlickUrnMapper.*
+
+import scala.util.hashing.MurmurHash3
 
 protected trait DatabaseSupport {
   implicit val ec: ExecutionContext
@@ -963,28 +932,60 @@ trait DeviceManifestRepositorySupport {
 
 protected class DeviceManifestRepository()(implicit db: Database, ec: ExecutionContext) {
 
-  def find(deviceId: DeviceId): Future[Option[(Json, Instant)]] = db.run {
+  def findLatest(deviceId: DeviceId): Future[Option[(Json, Instant)]] = db.run {
     Schema.deviceManifests
       .filter(_.deviceId === deviceId)
+      .sortBy(_.receivedAt.desc)
+      .take(1)
       .map(r => r.manifest -> r.receivedAt)
       .result
       .headOption
   }
 
-  def findAll(deviceId: DeviceId): Future[Seq[(Json, Instant)]] = db.run {
+  def findAll(deviceId: DeviceId,
+              offset: Long = 0L,
+              limit: Long = 50L): Future[PaginationResult[(Json, Instant)]] = db.run {
     Schema.deviceManifests
       .filter(_.deviceId === deviceId)
+      .sortBy(_.receivedAt.desc)
       .map(r => r.manifest -> r.receivedAt)
-      .result
+      .paginateResult(offset, limit)
   }
 
-  def createOrUpdate(device: DeviceId, jsonManifest: Json, receivedAt: Instant): Future[Unit] =
-    db.run {
-      val checksum = Sha256Digest.digest(jsonManifest.canonical.getBytes).hash
-      Schema.deviceManifests
-        .insertOrUpdate((device, jsonManifest, checksum, receivedAt))
-        .map(_ => ())
-    }
+  def createOrUpdate(manifests: Seq[(DeviceId, Json, Instant)]): Future[Unit] = db.run {
+    val items = manifests
+      .map { case (deviceId, json, receivedAt) =>
+        val checksum = f"${MurmurHash3.bytesHash(json.canonical.getBytes)}%08x"
+          .refineTry[ValidMurmurHash3Checksum]
+          .get
+
+        (deviceId, json, checksum, receivedAt)
+      }
+      .sortBy(_._4)
+
+    // Using string concat to set a list but currently mariadb doesn't have native arrays so this is the best we can do
+    val deviceIdStr = items.map(_._1).map(d => s"'${d.show}'").toSet.mkString(",")
+
+    val deleteSql =
+      sql"""
+         DELETE FROM device_manifests
+         WHERE (device_id, checksum) IN (
+           SELECT device_id, checksum
+           FROM (
+             SELECT device_id, checksum, ROW_NUMBER() OVER (PARTITION BY device_id ORDER BY received_at DESC) as row_num
+             FROM device_manifests
+             WHERE device_id IN (#$deviceIdStr)
+           ) ranked
+          WHERE row_num > 200
+        )
+        """.asUpdate
+
+    Schema.deviceManifests
+      .insertOrUpdateAll(items)
+      .andThen(deleteSql)
+      .transactionally
+      .map(_ => ())
+  }
 
 }
 

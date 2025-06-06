@@ -28,8 +28,11 @@ import com.advancedtelematic.libats.data.RefinedUtils.*
 import com.advancedtelematic.libtuf.data.TufCodecs
 import com.fasterxml.uuid.Generators
 import enumeratum.EnumEntry.Camelcase
+import eu.timepit.refined.boolean.And
+import eu.timepit.refined.collection.Size
+import eu.timepit.refined.generic.Equal
 import eu.timepit.refined.refineV
-import eu.timepit.refined.string.MatchesRegex
+import eu.timepit.refined.string.{HexStringSpec, MatchesRegex}
 
 import scala.annotation.nowarn
 
@@ -198,6 +201,9 @@ object DbDataType {
                                  canceled: Boolean)
 
   type SHA256Checksum = Refined[String, ValidChecksum]
+
+  type ValidMurmurHash3Checksum = HexStringSpec And Size[Equal[8]]
+  type MurmurHash3Checksum = Refined[String, ValidMurmurHash3Checksum]
 }
 
 object AdminDataType {
