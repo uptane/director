@@ -202,7 +202,7 @@ object Errors {
       ErrorCodes.UpdateScheduleError,
       StatusCodes.BadRequest,
       reasons.asJson,
-      msg = "Invalid ecu status for scheduled update"
+      msg = s"Invalid ecu ($deviceId) status for scheduled update"
     )
 
 }

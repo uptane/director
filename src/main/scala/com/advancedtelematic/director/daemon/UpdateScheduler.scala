@@ -51,7 +51,6 @@ class UpdateSchedulerDaemon()(
           log.debug("no scheduled updates pending, trying later")
           Future {
             blocking(Thread.sleep(CHECK_INTERVAL.toMillis))
-            0
           }
         } else {
           log.info(s"$scheduledUpdates scheduled updates processed")
