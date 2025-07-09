@@ -21,7 +21,7 @@ import akka.util.ByteString
 import cats.syntax.either.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.db.deviceregistry.*
-import com.advancedtelematic.director.db.deviceregistry.DbOps.PaginationResultOps
+import com.advancedtelematic.director.db.deviceregistry.DbOps.*
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
@@ -50,14 +50,16 @@ import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 import slick.jdbc.MySQLProfile.api.*
-import Unmarshallers.nonNegativeLong
 import com.advancedtelematic.director.db.DeleteDeviceDBIO
+import com.advancedtelematic.director.http.PaginationParametersDirectives
+import com.advancedtelematic.director.http.PaginationParametersDirectives.PaginationParameters
 
 import java.time.{Instant, OffsetDateTime}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
+import com.advancedtelematic.libats.data.PaginationResult.*
 
 object DevicesResource {
   import akka.http.scaladsl.server.PathMatchers.Segment
@@ -162,7 +164,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     complete(db.run(SearchDBIO.countByStatus(ns, params)))
 
   def searchDevice(ns: Namespace): Route =
-    parameters(
+    (parameters(
       Symbol("deviceId").as[DeviceOemId].?,
       Symbol("grouped").as[Boolean].?,
       Symbol("groupType").as[GroupType].?,
@@ -180,9 +182,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
       Symbol("hardwareIds").as(CsvSeq[HardwareIdentifier]).?,
       Symbol("sortBy").as[DeviceSortBy].?,
       Symbol("sortDirection").as[SortDirection].?,
-      Symbol("offset").as(nonNegativeLong).?,
-      Symbol("limit").as(nonNegativeLong).?
-    ).as(
+    ) & PaginationParameters).as(
       (oemId,
        grouped,
        groupType,
@@ -221,7 +221,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
           sortBy,
           sortDirection,
           offset,
-          limit
+          limit,
         )
     ) { params =>
       complete(for {
@@ -309,7 +309,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     complete(db.run(SearchDBIO.countDevicesForExpression(ns, expression)))
 
   def getGroupsForDevice(uuid: DeviceId): Route =
-    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) {
+    PaginationParameters {
       (offset, limit) =>
         complete(db.run(GroupMemberRepository.listGroupsForDevice(uuid, offset, limit)))
     }
@@ -324,11 +324,9 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     complete(db.run(InstalledPackages.getDevicesCount(pkg, ns)))
 
   def listPackagesOnDevice(device: DeviceId): Route =
-    parameters(
-      Symbol("nameContains").as[String].?,
-      Symbol("offset").as(nonNegativeLong).?,
-      Symbol("limit").as(nonNegativeLong).?
-    ) { (nameContains, offset, limit) =>
+    (parameters(
+      Symbol("nameContains").as[String].?
+    ) & PaginationParameters) { (nameContains, offset, limit) =>
       complete(db.run(InstalledPackages.installedOn(device, nameContains, offset, limit)))
     }
 
@@ -348,7 +346,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     }
 
   def getDistinctPackages(ns: Namespace): Route =
-    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) {
+    PaginationParameters {
       (offset, limit) =>
         complete(db.run(InstalledPackages.getInstalledForAllDevices(ns, offset, limit)))
     }
@@ -362,27 +360,27 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     }
 
   def getPackageStats(ns: Namespace, name: PackageId.Name): Route =
-    parameters(Symbol("offset").as(nonNegativeLong).?, Symbol("limit").as(nonNegativeLong).?) {
+    PaginationParameters {
       (offset, limit) =>
         val f = db.run(InstalledPackages.listAllWithPackageByName(ns, name, offset, limit))
         complete(f)
     }
 
   def fetchInstallationHistory(deviceId: DeviceId,
-                               offset: Option[Long],
-                               limit: Option[Long]): Route =
+                               offset: Offset,
+                               limit: Limit): Route =
     complete(
       db.run(
         EcuReplacementRepository
-          .deviceHistory(deviceId, offset.orDefaultOffset, limit.orDefaultLimit)
+          .deviceHistory(deviceId, offset, limit)
       )
     )
 
-  def installationReports(deviceId: DeviceId, offset: Option[Long], limit: Option[Long]): Route =
+  def installationReports(deviceId: DeviceId, offset: Offset, limit: Limit): Route =
     complete(
       db.run(
         InstallationReportRepository
-          .installationReports(deviceId, offset.orDefaultOffset, limit.orDefaultLimit)
+          .installationReports(deviceId, offset, limit)
       )
     )
 
@@ -502,16 +500,10 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
               path("active_device_count") {
                 getActiveDeviceCount(ns)
               } ~
-              (path("installation_reports") & parameters(
-                Symbol("offset").as(nonNegativeLong).?,
-                Symbol("limit").as(nonNegativeLong).?
-              )) { (offset, limit) =>
+              (path("installation_reports") & PaginationParameters) { (offset, limit) =>
                 installationReports(uuid, offset, limit)
               } ~
-              (path("installation_history") & parameters(
-                Symbol("offset").as(nonNegativeLong).?,
-                Symbol("limit").as(nonNegativeLong).?
-              )) { (offset, limit) =>
+              (path("installation_history") & PaginationParameters) { (offset, limit) =>
                 fetchInstallationHistory(uuid, offset, limit)
               } ~
               (pathPrefix("device_count") & extractPackageId) { pkg =>

@@ -13,6 +13,7 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceSta
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
+import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import enumeratum.EnumEntry
 import enumeratum.EnumEntry.Camelcase
@@ -88,7 +89,7 @@ object DataType {
 
   object SearchParams {
 
-    def all(limit: Option[Long], offset: Option[Long]) = SearchParams(
+    def all(limit: Limit, offset: Offset) = SearchParams(
       None,
       None,
       None,
@@ -139,8 +140,8 @@ object DataType {
                                 hardwareId: Seq[HardwareIdentifier],
                                 sortBy: Option[DeviceSortBy],
                                 sortDirection: Option[SortDirection],
-                                offset: Option[Long],
-                                limit: Option[Long]) {
+                                offset: Offset,
+                                limit: Limit) {
 
     if (oemId.isDefined) {
       require(

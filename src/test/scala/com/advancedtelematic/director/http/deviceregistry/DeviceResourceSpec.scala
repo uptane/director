@@ -968,8 +968,8 @@ class DeviceResourceSpec
       status shouldBe OK
       val paginationResult = responseAs[PaginationResult[PackageId]]
       paginationResult.total shouldBe allPackages.length
-      paginationResult.limit shouldBe limit
-      paginationResult.offset shouldBe offset
+      paginationResult.limit.toLong shouldBe limit
+      paginationResult.offset.toLong shouldBe offset
       val packages = paginationResult.values.map(canonPkg)
       packages.length shouldBe scala.math.min(limit, allPackages.length)
       packages shouldBe sorted

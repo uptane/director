@@ -8,6 +8,7 @@
 
 package com.advancedtelematic.director.http.deviceregistry
 
+import com.advancedtelematic.libats.data.PaginationResult.*
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.StatusCodes.*
 import akka.http.scaladsl.model.Uri.Query
@@ -355,7 +356,7 @@ class GroupsResourceSpec
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
-        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .listDevices(groupId, 0L.toOffset, deviceTs.size.toLimit)
         .futureValue
         .values
       uuidsInGroup should contain allElementsOf uuidsCreated
@@ -373,7 +374,7 @@ class GroupsResourceSpec
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
-        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .listDevices(groupId, 0L.toOffset, deviceTs.size.toLimit)
         .futureValue
         .values
       uuidsInGroup should contain allElementsOf uuidsCreated
@@ -388,7 +389,7 @@ class GroupsResourceSpec
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
-        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .listDevices(groupId, 0L.toOffset, deviceTs.size.toLimit)
         .futureValue
         .values
       uuidsInGroup shouldBe empty

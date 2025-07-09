@@ -34,7 +34,6 @@ import com.advancedtelematic.director.data.DbDataType.{
   ProcessedAssignment
 }
 import io.circe.syntax.*
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
 
 object Codecs {
 

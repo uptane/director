@@ -1,5 +1,6 @@
 package com.advancedtelematic.director.http
 
+import com.advancedtelematic.libats.data.PaginationResult.*
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import akka.http.scaladsl.model.StatusCodes
@@ -325,7 +326,7 @@ class AdminResourceSpec
     Get(apiUri(s"admin/devices?primaryHardwareId=foo")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       val page = responseAs[PaginationResult[DeviceId]]
-      page shouldBe PaginationResult(Seq.empty, 0, 0, 50)
+      page shouldBe PaginationResult(Seq.empty, 0, 0L.toOffset, 50L.toLimit)
     }
   }
 
