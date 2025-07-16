@@ -3,8 +3,7 @@ package com.advancedtelematic.director.deviceregistry.data
 import java.time.Instant
 import cats.Show
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
-import com.advancedtelematic.libats.data.EcuIdentifier
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, Event}
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceMetricsObservation
 import com.advancedtelematic.director.deviceregistry.data.CredentialsType.CredentialsType
 import com.advancedtelematic.director.deviceregistry.data.DataType.IndexedEventType.IndexedEventType
@@ -84,7 +83,8 @@ object DataType {
                                          resultCode: ResultCode,
                                          deviceId: DeviceId,
                                          ecuId: EcuIdentifier,
-                                         success: Boolean)
+                                         success: Boolean,
+                                         description: Option[String])
 
   object SearchParams {
 

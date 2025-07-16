@@ -239,8 +239,8 @@ trait RegistryDeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =
     Get(DeviceRegistryResourceUri.uri(api, deviceUuid.show, "events").withQuery(query))
   }
 
-  def getEventsV2(deviceUuid: DeviceId, updateId: Option[CorrelationId] = None): HttpRequest = {
-    val query = Query(updateId.map("updateId" -> _.toString).toMap)
+  def getEventsV2(deviceUuid: DeviceId, TargetSpecId: Option[CorrelationId] = None): HttpRequest = {
+    val query = Query(TargetSpecId.map("TargetSpecId" -> _.toString).toMap)
     Get(DeviceRegistryResourceUri.uriV2(api, deviceUuid.show, "events").withQuery(query))
   }
 

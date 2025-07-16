@@ -15,18 +15,18 @@ scalacOptions := Seq(
   "-Wconf:cat=other-match-analysis:error"
 )
 
-resolvers += "sonatype-snapshots".at("https://s01.oss.sonatype.org/content/repositories/snapshots")
-resolvers += "sonatype-releases".at("https://s01.oss.sonatype.org/content/repositories/releases")
+resolvers += Resolver.mavenCentral
+resolvers += "maven-snapshots"at "https://central.sonatype.com/repository/maven-snapshots"
 
 Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
   val akkaV = "2.8.5"
   val akkaHttpV = "10.5.2"
-  val tufV = "3.2.9-17-g2279b3b"
+  val tufV = "3.2.13"
   val scalaTestV = "3.2.19"
   val bouncyCastleV = "1.80"
-  val libatsV = "2.6.6"
+  val libatsV = "3.0.5"
 
   Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaV,

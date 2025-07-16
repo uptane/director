@@ -24,8 +24,9 @@ class DirectorRoutes(keyserverClient: KeyserverClient, allowEcuReplacement: Bool
         new AdminResource(extractNamespace, keyserverClient).route ~
           new AssignmentsResource(extractNamespace).route ~
           new DeviceResource(extractNamespace, keyserverClient, allowEcuReplacement).route ~
-          new MultiTargetUpdatesResource(extractNamespace).route ~
-          new LegacyRoutes(extractNamespace).route
+          new TargetUpdateSpecsResource(extractNamespace).route ~
+          new LegacyRoutes(extractNamespace).route ~
+          new UpdateResource(extractNamespace).route
       } ~
         new DirectorDebugResource().route
     }

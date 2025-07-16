@@ -85,7 +85,8 @@ class DeviceUpdateEventListener(messageBus: MessageBusPublisher)(
   }
 
   private def handleEvent(event: DeviceUpdateEvent): Future[DeviceStatus] = event match {
-    case _: DeviceUpdateAssigned => FastFuture.successful(DeviceStatus.Outdated)
+    case msg: DeviceUpdateAssigned if msg.scheduledFor.isEmpty => FastFuture.successful(DeviceStatus.Outdated)
+    case _: DeviceUpdateAssigned => FastFuture.successful(DeviceStatus.UpdateScheduled)
     case _: DeviceUpdateCanceled => FastFuture.successful(DeviceStatus.UpToDate)
     case _: DeviceUpdateInFlight => FastFuture.successful(DeviceStatus.UpdatePending)
     case msg: DeviceUpdateCompleted =>
@@ -98,7 +99,7 @@ class DeviceUpdateEventListener(messageBus: MessageBusPublisher)(
             msg.result.success,
             msg.ecuReports,
             msg.eventTime,
-            msg.asJson
+            msg.asJson // TODO: Should not be here. if we need data from here, provide it parsed
           )
           .map(_ => if (msg.result.success) DeviceStatus.UpToDate else DeviceStatus.Error)
       }

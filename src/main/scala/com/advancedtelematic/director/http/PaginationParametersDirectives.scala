@@ -5,6 +5,7 @@ import akka.http.scaladsl.server.Directives._
 
 object PaginationParametersDirectives {
 
+  // TODO: (Long, Long) should be typed
   val PaginationParameters: Directive[(Long, Long)] =
     (parameters(Symbol("limit").as[Long].?) & parameters(Symbol("offset").as[Long].?)).tmap {
       case (mLimit, mOffset) =>

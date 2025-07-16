@@ -8,6 +8,7 @@
 
 package com.advancedtelematic.director.http.deviceregistry
 
+import com.advancedtelematic.libats.codecs.CirceRefined.*
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.model.headers.*
 import akka.http.scaladsl.server.*
@@ -24,18 +25,7 @@ import com.advancedtelematic.director.db.deviceregistry.DbOps.PaginationResultOp
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceCountParams,
-  DeviceT,
-  DevicesQuery,
-  InstallationStatsLevel,
-  RenameTagId,
-  SearchParams,
-  SetDevice,
-  UpdateDevice,
-  UpdateHibernationStatusRequest,
-  UpdateTagValue
-}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceCountParams, DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
 import com.advancedtelematic.director.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
@@ -52,12 +42,9 @@ import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, Event, EventType}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeleteDeviceRequest,
-  DeviceEventMessage
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
@@ -84,8 +71,9 @@ object DevicesResource {
         deviceTime <- c.get[Instant]("deviceTime")(io.circe.Decoder.decodeInstant)
         eventType <- c.get[EventType]("eventType")
         payload <- c.get[Json]("event")
+        ecu <- c.get[Option[EcuIdentifier]]("ecu")
       } yield (deviceUuid: DeviceId, receivedAt: Instant) =>
-        Event(deviceUuid, id, eventType, deviceTime, receivedAt, payload)
+        Event(deviceUuid, id, eventType, deviceTime, receivedAt, ecu, payload)
     }
 
   implicit val groupIdUnmarshaller: Unmarshaller[String, GroupId] = GroupId.unmarshaller

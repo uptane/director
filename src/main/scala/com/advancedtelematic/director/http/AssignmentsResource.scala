@@ -7,11 +7,12 @@ import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
 import cats.implicits.*
 import com.advancedtelematic.director.data.AdminDataType.AssignUpdateRequest
 import com.advancedtelematic.director.data.Codecs.*
+import com.advancedtelematic.director.data.DataType.TargetSpecId
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, UpdateId}
+import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceUpdateAssigned,
   DeviceUpdateEvent
@@ -47,10 +48,9 @@ class AssignmentsResource(extractNamespace: Directive1[Namespace])(
     }
   }
 
-  private implicit val updateIdUnmarshaller: akka.http.scaladsl.unmarshalling.Unmarshaller[
-    String,
-    com.advancedtelematic.libats.messaging_datatype.DataType.UpdateId
-  ] = UpdateId.unmarshaller
+  private implicit val TargetSpecIdUnmarshaller
+    : akka.http.scaladsl.unmarshalling.Unmarshaller[String, TargetSpecId] =
+    TargetSpecId.unmarshaller
 
   private implicit val deviceIdUnmarshaller: akka.http.scaladsl.unmarshalling.Unmarshaller[
     String,
@@ -59,10 +59,10 @@ class AssignmentsResource(extractNamespace: Directive1[Namespace])(
 
   val route = extractNamespace { ns =>
     pathPrefix("assignments") {
-      (path("devices") & parameter(Symbol("mtuId").as[UpdateId]) & parameter(
+      (path("devices") & parameter(Symbol("targetSpecId").as[TargetSpecId]) & parameter(
         Symbol("ids").as(CsvSeq[DeviceId])
-      )) { (mtuId, deviceIds) =>
-        val f = deviceAssignments.findAffectedDevices(ns, deviceIds, mtuId)
+      )) { (targetSpecId, deviceIds) =>
+        val f = deviceAssignments.findAffectedDevices(ns, deviceIds, targetSpecId)
         complete(f)
       } ~
         pathEnd {

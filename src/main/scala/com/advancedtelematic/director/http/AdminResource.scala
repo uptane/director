@@ -4,23 +4,21 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.*
 import akka.http.scaladsl.server.Directives.*
 import cats.syntax.option.*
-import com.advancedtelematic.director.daemon.UpdateScheduler
 import com.advancedtelematic.director.data.AdminDataType.{FindImageCount, RegisterDevice}
 import com.advancedtelematic.director.data.ClientDataType.*
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.AdminRoleName.AdminRoleNamePathMatcher
-import com.advancedtelematic.director.data.DataType.ScheduledUpdateId
 import com.advancedtelematic.director.db.*
 import com.advancedtelematic.director.http.PaginationParametersDirectives.*
 import com.advancedtelematic.director.repo.{DeviceRoleGeneration, OfflineUpdates, RemoteSessions}
 import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
+import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
 import com.advancedtelematic.libats.http.UUIDKeyAkka.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
-import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, ValidEcuIdentifier}
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{
   ClientTargetItem,
@@ -63,9 +61,9 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
     with EcuRepositorySupport
     with ProvisionedDeviceRepositorySupport
     with AutoUpdateDefinitionRepositorySupport
-    with ScheduledUpdatesRepositorySupport {
+    with UpdatesRepositorySupport {
 
-  private val EcuIdPath = Segment.flatMap(EcuIdentifier.from(_).toOption)
+  private val EcuIdPath = Segment.flatMap(_.refineTry[ValidEcuIdentifier].toOption)
   private val KeyIdPath = Segment.flatMap(_.refineTry[ValidKeyId].toOption)
   private val TargetNamePath: PathMatcher1[TargetName] = Segment.map(TargetName.apply)
 
@@ -74,7 +72,6 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
   val deviceRoleGeneration = new DeviceRoleGeneration(keyserverClient)
   val offlineUpdates = new OfflineUpdates(keyserverClient)
   val remoteSessions = new RemoteSessions(keyserverClient)
-  val updateScheduler = new UpdateScheduler()
 
   private def findDevicesCurrentTarget(ns: Namespace,
                                        devices: Seq[DeviceId]): Future[DevicesCurrentTarget] = {
@@ -179,60 +176,39 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
 
   def devicePath(ns: Namespace): Route =
     pathPrefix(DeviceId.Path) { device =>
-      pathPrefix("scheduled-updates") {
-        pathEnd {
-          (post & entity(as[CreateScheduledUpdateRequest])) { req =>
-            val f = updateScheduler
-              .create(ns, req.device, req.updateId, req.scheduledAt)
-              .map(id => StatusCodes.Created -> id)
-            complete(f)
-          } ~
-            get {
-              val f = scheduledUpdatesRepository.findFor(ns, device)
-              complete(f)
-            }
-        } ~
-          path(ScheduledUpdateId.Path) { scheduledId =>
-            delete {
-              val f = updateScheduler.cancel(ns, scheduledId)
-              complete(f)
-            }
-          }
-
-      } ~
-        pathPrefix("ecus") {
-          pathPrefix(EcuIdPath) { ecuId =>
-            pathPrefix("auto_update") {
-              (pathEnd & get) {
-                complete(
-                  autoUpdateDefinitionRepository
-                    .findOnDevice(ns, device, ecuId)
-                    .map(_.map(_.targetName))
-                )
-              } ~
-                path(TargetNamePath) { targetName =>
-                  put {
+      pathPrefix("ecus") {
+        pathPrefix(EcuIdPath) { ecuId =>
+          pathPrefix("auto_update") {
+            (pathEnd & get) {
+              complete(
+                autoUpdateDefinitionRepository
+                  .findOnDevice(ns, device, ecuId)
+                  .map(_.map(_.targetName))
+              )
+            } ~
+              path(TargetNamePath) { targetName =>
+                put {
+                  complete(
+                    autoUpdateDefinitionRepository
+                      .persist(ns, device, ecuId, targetName)
+                      .map(_ => StatusCodes.NoContent)
+                  )
+                } ~
+                  delete {
                     complete(
                       autoUpdateDefinitionRepository
-                        .persist(ns, device, ecuId, targetName)
+                        .remove(ns, device, ecuId, targetName)
                         .map(_ => StatusCodes.NoContent)
                     )
-                  } ~
-                    delete {
-                      complete(
-                        autoUpdateDefinitionRepository
-                          .remove(ns, device, ecuId, targetName)
-                          .map(_ => StatusCodes.NoContent)
-                      )
-                    }
-                }
-            } ~
-              (path("public_key") & get) {
-                val key = ecuRepository.findBySerial(ns, device, ecuId).map(_.publicKey)
-                complete(key)
+                  }
               }
-          }
-        } ~
+          } ~
+            (path("public_key") & get) {
+              val key = ecuRepository.findBySerial(ns, device, ecuId).map(_.publicKey)
+              complete(key)
+            }
+        }
+      } ~
         get {
           val f = deviceRegistration.findDeviceEcuInfo(ns, device)
           complete(f)

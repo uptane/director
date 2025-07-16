@@ -3,8 +3,12 @@ package com.advancedtelematic.director.db.deviceregistry
 import java.time.Instant
 
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, ResultCode}
-import com.advancedtelematic.libats.data.{EcuIdentifier, PaginationResult}
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuInstallationReport}
+import com.advancedtelematic.libats.data.PaginationResult
+import com.advancedtelematic.libats.messaging_datatype.DataType.{
+  DeviceId,
+  EcuIdentifier,
+  EcuInstallationReport
+}
 import com.advancedtelematic.director.deviceregistry.data.DataType.{
   DeviceInstallationResult,
   EcuInstallationResult,
@@ -13,6 +17,7 @@ import com.advancedtelematic.director.deviceregistry.data.DataType.{
 import io.circe.Json
 import slick.jdbc.MySQLProfile.api._
 import com.advancedtelematic.libats.slick.db.SlickAnyVal._
+import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper._
 import com.advancedtelematic.libats.slick.db.SlickExtensions._
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
@@ -58,9 +63,10 @@ object InstallationReportRepository {
     def deviceUuid = column[DeviceId]("device_uuid")
     def ecuId = column[EcuIdentifier]("ecu_id")
     def success = column[Boolean]("success")
+    def description = column[Option[String]]("description")
 
     def * =
-      (correlationId, resultCode, deviceUuid, ecuId, success) <>
+      (correlationId, resultCode, deviceUuid, ecuId, success, description) <>
         ((EcuInstallationResult.apply _).tupled, EcuInstallationResult.unapply)
 
     def pk = primaryKey("pk_ecu_report", (deviceUuid, ecuId))
@@ -91,7 +97,8 @@ object InstallationReportRepository {
         ecuReport.result.code,
         deviceUuid,
         ecuId,
-        ecuReport.result.success
+        ecuReport.result.success,
+        Option(ecuReport.result.description.value)
       )
     }
     val q =
@@ -134,14 +141,24 @@ object InstallationReportRepository {
       .filter(_.correlationId === correlationId)
       .result
 
-  def fetchEcuInstallationReport(correlationId: CorrelationId): DBIO[Seq[EcuInstallationResult]] =
-    ecuInstallationResults.filter(_.correlationId === correlationId).result
+  def fetchEcuInstallationReport(deviceId: DeviceId,
+                                 correlationId: CorrelationId): DBIO[Seq[EcuInstallationResult]] =
+    ecuInstallationResults
+      .filter(_.deviceUuid === deviceId)
+      .filter(_.correlationId === correlationId)
+      .result
 
   private[db] def queryInstallationHistory(deviceId: DeviceId): Query[Rep[Json], Json, Seq] =
     deviceInstallationResults
       .filter(_.deviceUuid === deviceId)
       .sortBy(_.receivedAt.desc)
-      .map(_.installationReport)
+      .map(
+        _.installationReport
+      )
+  // TODO: Returning or even storing an installationReport here doesn't make sense, since it just contains
+  // the same as ecuInstallationResults. installationReport is just the serialized form of the DeviceUpdateEvent
+  // that originated this deviceInstallationResult
+  // We cannot change this now as this is used by the frontend currently
 
   def installationReports(deviceId: DeviceId, offset: Long, limit: Long)(
     implicit ec: ExecutionContext): DBIO[PaginationResult[Json]] =
