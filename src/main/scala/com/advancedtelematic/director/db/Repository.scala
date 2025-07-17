@@ -438,6 +438,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
   }
 
   protected[db] def withAssignmentsAction(
+    ns: Namespace,
     ids: Set[(DeviceId, EcuIdentifier)]): DBIO[Set[(DeviceId, EcuIdentifier)]] =
     if (ids.isEmpty) {
       DBIO.successful(Set.empty)
@@ -452,7 +453,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
         .map { case (d, e) => "('" + d.uuid.toString + "','" + e.value + "')" }
         .mkString("(", ",", ")")
 
-      sql"select device_id, ecu_serial from assignments where (device_id, ecu_serial) in #$elems"
+      sql"select device_id, ecu_serial from assignments where (device_id, ecu_serial) in #$elems AND namespace = ${ns.get}"
         .as[(DeviceId, EcuIdentifier)]
         .map(_.toSet)
     }

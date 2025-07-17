@@ -63,7 +63,7 @@ class AffectedEcusDBIO()(implicit val db: Database, val ec: ExecutionContext)
       )
 
       // Filter out ECUs with running assignments
-      finalResult <- filterEcusWithRunningAssignments(affected)
+      finalResult <- filterEcusWithRunningAssignments(ns, affected)
     } yield finalResult
 
   private def findHardwareUpdatesAndTargets(ns: Namespace, targetSpecId: TargetSpecId)
@@ -179,12 +179,13 @@ class AffectedEcusDBIO()(implicit val db: Database, val ec: ExecutionContext)
     installedTarget.exists(_.matches(updateTo))
 
   private def filterEcusWithRunningAssignments(
+    ns: Namespace,
     ecusResult: AffectedEcusResult): DBIO[AffectedEcusResult] = {
     val ecuIds = ecusResult.affected.map { case (ecu, _) =>
       ecu.deviceId -> ecu.ecuSerial
     }.toSet
 
-    assignmentsRepository.withAssignmentsAction(ecuIds).map { ecusWithAssignments =>
+    assignmentsRepository.withAssignmentsAction(ns, ecuIds).map { ecusWithAssignments =>
       ecusResult.affected.foldLeft(AffectedEcusResult(Seq.empty, ecusResult.notAffected)) {
         case (acc, (ecu, _)) if ecusWithAssignments.contains(ecu.deviceId -> ecu.ecuSerial) =>
           val error = Errors.NotAffectedRunningAssignment(ecu.deviceId, ecu.ecuSerial)
