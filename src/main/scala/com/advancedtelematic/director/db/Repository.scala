@@ -483,9 +483,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       .maybeFilter(_.correlationId === correlationId)
 
     baseQuery.forUpdate.result.flatMap { assignments =>
-      if (assignments.isEmpty)
-        DBIO.failed(MissingEntity[Assignment]())
-      else if (assignments.exists(_.inFlight) && !allowInFlightCancellation) {
+      if (assignments.exists(_.inFlight) && !allowInFlightCancellation) {
         // safe because of above `exists`
         val deviceIds =
           NonEmptyList.fromListUnsafe(assignments.filter(_.inFlight).map(_.deviceId).toSet.toList)
@@ -1021,6 +1019,7 @@ protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext)
       .headOption
       .flatMap {
         case Some(u) if u.status == Update.Status.Assigned => DBIO.successful(u)
+        case Some(u) if u.status == Update.Status.Scheduled => DBIO.successful(u)
         case Some(_) => DBIO.failed(Errors.UpdateCannotBeCancelled(updateId))
         case None    => DBIO.failed(MissingEntity[Update]())
       }
