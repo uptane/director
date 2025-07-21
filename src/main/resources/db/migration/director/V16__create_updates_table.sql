@@ -14,11 +14,12 @@ CREATE TABLE `updates` (
 
   CONSTRAINT fk_updates_hardware_update
   FOREIGN KEY (hardware_update_id) REFERENCES hardware_updates (id),
+  FOREIGN KEY (device_id) REFERENCES provisioned_devices(id),
 
   KEY `updates_status_scheduled_for` (`status`,`scheduled_for`),
   KEY `idx_updates_device_id` (`device_id`),
   KEY `idx_updates_namespace` (`namespace`)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 CREATE INDEX `idx_assignments_namespace_correlation_id` ON `assignments` (`namespace`, `correlation_id`);
 

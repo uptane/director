@@ -131,6 +131,12 @@ protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec:
     db.run(io.transactionally)
   }
 
+  protected [db] def ensureExistsIO(device: DeviceId) : DBIO[Unit] =
+    existsIO(device).flatMap  {
+      case true => DBIO.successful(())
+      case false => DBIO.failed(MissingEntity[Device]())
+    }
+
   private def existsIO(deviceId: DeviceId): DBIO[Boolean] =
     Schema.allProvisionedDevices.filter(_.id === deviceId).exists.result
 
