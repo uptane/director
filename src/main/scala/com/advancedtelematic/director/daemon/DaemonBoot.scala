@@ -68,6 +68,8 @@ class DirectorDaemonBoot(override val globalConfig: Config,
     startMonitoredListener[DeviceUpdateEvent](new DeviceUpdateEventListener(messageBus))
     startMonitoredListener[DeviceMqttLifecycle](new MqttLifecycleListener)
 
+    new DeviceManifestReportedListener(globalConfig).start()
+
     val routes = versionHeaders(version) {
       prometheusMetricsRoutes ~
         DbHealthResource(
