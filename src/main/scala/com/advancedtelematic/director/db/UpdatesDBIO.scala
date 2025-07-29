@@ -69,6 +69,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
                 targetsSpec: TargetUpdateSpec,
                 scheduledFor: Option[Instant]): Future[UpdateId] = {
     val io = for {
+      _ <- provisionedDeviceRepository.ensureExistsIO(deviceId)
       targetSpecId <- targetUpdateSpecs.createAction(ns, targetsSpec)
       affectedResult <- affectedEcusDBIO.findAffectedEcusAction(ns, Seq(deviceId), targetSpecId)
       _ <- affectedResult.notAffected.get(deviceId) match {

@@ -131,6 +131,12 @@ protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec:
     db.run(io.transactionally)
   }
 
+  protected [db] def ensureExistsIO(device: DeviceId) : DBIO[Unit] =
+    existsIO(device).flatMap  {
+      case true => DBIO.successful(())
+      case false => DBIO.failed(MissingEntity[Device]())
+    }
+
   private def existsIO(deviceId: DeviceId): DBIO[Boolean] =
     Schema.allProvisionedDevices.filter(_.id === deviceId).exists.result
 
@@ -438,6 +444,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
   }
 
   protected[db] def withAssignmentsAction(
+    ns: Namespace,
     ids: Set[(DeviceId, EcuIdentifier)]): DBIO[Set[(DeviceId, EcuIdentifier)]] =
     if (ids.isEmpty) {
       DBIO.successful(Set.empty)
@@ -452,7 +459,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
         .map { case (d, e) => "('" + d.uuid.toString + "','" + e.value + "')" }
         .mkString("(", ",", ")")
 
-      sql"select device_id, ecu_serial from assignments where (device_id, ecu_serial) in #$elems"
+      sql"select device_id, ecu_serial from assignments where (device_id, ecu_serial) in #$elems AND namespace = ${ns.get}"
         .as[(DeviceId, EcuIdentifier)]
         .map(_.toSet)
     }
@@ -482,9 +489,7 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
       .maybeFilter(_.correlationId === correlationId)
 
     baseQuery.forUpdate.result.flatMap { assignments =>
-      if (assignments.isEmpty)
-        DBIO.failed(MissingEntity[Assignment]())
-      else if (assignments.exists(_.inFlight) && !allowInFlightCancellation) {
+      if (assignments.exists(_.inFlight) && !allowInFlightCancellation) {
         // safe because of above `exists`
         val deviceIds =
           NonEmptyList.fromListUnsafe(assignments.filter(_.inFlight).map(_.deviceId).toSet.toList)
@@ -1020,6 +1025,7 @@ protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext)
       .headOption
       .flatMap {
         case Some(u) if u.status == Update.Status.Assigned => DBIO.successful(u)
+        case Some(u) if u.status == Update.Status.Scheduled => DBIO.successful(u)
         case Some(_) => DBIO.failed(Errors.UpdateCannotBeCancelled(updateId))
         case None    => DBIO.failed(MissingEntity[Update]())
       }

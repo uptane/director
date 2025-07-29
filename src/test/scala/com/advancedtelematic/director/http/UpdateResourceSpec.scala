@@ -479,6 +479,38 @@ class UpdateResourceSpec
     msg shouldNot be(empty)
   }
 
+  testWithRepo("can cancel a scheduled update") { implicit ns =>
+    val device = registerAdminDeviceOk()
+    val hardwareId = device.primary.hardwareId
+    val targetUpdate = GenTargetUpdate.generate
+    val targetRequest = TargetUpdateRequest(None, targetUpdate)
+
+    createUpdateOk(
+      device.deviceId,
+      TargetUpdateSpec(Map(hardwareId -> targetRequest)),
+      Instant.now.minusSeconds(60).some
+    )
+
+    val updates = listUpdatesOK(device.deviceId)
+    val update = updates.values.loneElement
+    update.status shouldBe Update.Status.Scheduled
+    val updateId = update.updateId
+
+    cancelUpdateOK(device.deviceId, updateId)
+
+    val cancelledUpdates = listUpdatesOK(device.deviceId)
+    cancelledUpdates.values should have size 1
+    cancelledUpdates.values.head.status shouldBe Update.Status.Cancelled
+
+    val msg = msgPub
+      .findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
+        msg.deviceUuid == device.deviceId && msg.correlationId == updateId.toCorrelationId &&
+        msg.isInstanceOf[DeviceUpdateCanceled]
+      }
+
+    msg shouldNot be(empty)
+  }
+
   testWithRepo("cannot cancel an update that is not in Assigned status") { implicit ns =>
     val device = registerAdminDeviceOk()
     val hardwareId = device.primary.hardwareId
@@ -512,54 +544,55 @@ class UpdateResourceSpec
     }
   }
 
-  testWithRepo("can cancel an update when it is InFlight if force header is provided") { implicit ns =>
-    val device = registerAdminDeviceOk()
-    val hardwareId = device.primary.hardwareId
-    val targetUpdate = GenTargetUpdate.generate
-    val targetRequest = TargetUpdateRequest(None, targetUpdate)
-    val createRequest = CreateUpdateRequest(
-      targets = Map(hardwareId -> targetRequest),
-      devices = Seq(device.deviceId)
-    )
+  testWithRepo("can cancel an update when it is InFlight if force header is provided") {
+    implicit ns =>
+      val device = registerAdminDeviceOk()
+      val hardwareId = device.primary.hardwareId
+      val targetUpdate = GenTargetUpdate.generate
+      val targetRequest = TargetUpdateRequest(None, targetUpdate)
+      val createRequest = CreateUpdateRequest(
+        targets = Map(hardwareId -> targetRequest),
+        devices = Seq(device.deviceId)
+      )
 
-    createManyUpdates(createRequest) {
-      status shouldBe StatusCodes.OK
-      val result = responseAs[CreateUpdateResult]
-      result.affected should contain(device.deviceId)
-    }
-
-    val updates = listUpdatesOK(device.deviceId)
-    val update = updates.values.loneElement
-    update.status shouldBe Update.Status.Assigned
-    val updateId = update.updateId
-
-    getTargetsOk(device.deviceId)
-
-    Patch(
-      apiUri(s"updates/devices/${device.deviceId.show}/${updateId.show}")
-    ).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.Conflict
-      val error = responseAs[ErrorRepresentation]
-      error.code.code shouldBe "assignment_in_flight_devices"
-    }
-
-    Patch(
-      apiUri(s"updates/devices/${device.deviceId.show}/${updateId.show}")
-    ).addHeader(new ForceHeader(true)).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.NoContent
-    }
-
-    val cancelledUpdates = listUpdatesOK(device.deviceId)
-    cancelledUpdates.values should have size 1
-    cancelledUpdates.values.head.status shouldBe Update.Status.Cancelled
-
-    val msg = msgPub
-      .findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
-        msg.deviceUuid == device.deviceId && msg.correlationId == updateId.toCorrelationId &&
-        msg.isInstanceOf[DeviceUpdateCanceled]
+      createManyUpdates(createRequest) {
+        status shouldBe StatusCodes.OK
+        val result = responseAs[CreateUpdateResult]
+        result.affected should contain(device.deviceId)
       }
 
-    msg shouldNot be(empty)
+      val updates = listUpdatesOK(device.deviceId)
+      val update = updates.values.loneElement
+      update.status shouldBe Update.Status.Assigned
+      val updateId = update.updateId
+
+      getTargetsOk(device.deviceId)
+
+      Patch(
+        apiUri(s"updates/devices/${device.deviceId.show}/${updateId.show}")
+      ).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.Conflict
+        val error = responseAs[ErrorRepresentation]
+        error.code.code shouldBe "assignment_in_flight_devices"
+      }
+
+      Patch(apiUri(s"updates/devices/${device.deviceId.show}/${updateId.show}"))
+        .addHeader(new ForceHeader(true))
+        .namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.NoContent
+      }
+
+      val cancelledUpdates = listUpdatesOK(device.deviceId)
+      cancelledUpdates.values should have size 1
+      cancelledUpdates.values.head.status shouldBe Update.Status.Cancelled
+
+      val msg = msgPub
+        .findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
+          msg.deviceUuid == device.deviceId && msg.correlationId == updateId.toCorrelationId &&
+          msg.isInstanceOf[DeviceUpdateCanceled]
+        }
+
+      msg shouldNot be(empty)
   }
 
   testWithRepo("sends DeviceUpdateAssigned message when update is created with scheduledFor") {
@@ -695,37 +728,39 @@ class UpdateResourceSpec
     }
   }
 
-  testWithRepo("can cancel all updates and assignments for all devices with a given update") { implicit ns =>
-    val device1 = registerAdminDeviceOk()
-    val device2 = registerAdminDeviceOk(hardwareIdentifier = device1.primary.hardwareId.some)
+  testWithRepo("can cancel all updates and assignments for all devices with a given update") {
+    implicit ns =>
+      val device1 = registerAdminDeviceOk()
+      val device2 = registerAdminDeviceOk(hardwareIdentifier = device1.primary.hardwareId.some)
 
-    val targetUpdate = GenTargetUpdate.generate
-    val targetRequest = TargetUpdateRequest(None, targetUpdate)
-    val createRequest = CreateUpdateRequest(
-      targets = Map(device1.primary.hardwareId -> targetRequest),
-      devices = Seq(device1.deviceId, device2.deviceId)
-    )
+      val targetUpdate = GenTargetUpdate.generate
+      val targetRequest = TargetUpdateRequest(None, targetUpdate)
+      val createRequest = CreateUpdateRequest(
+        targets = Map(device1.primary.hardwareId -> targetRequest),
+        devices = Seq(device1.deviceId, device2.deviceId)
+      )
 
-    createManyUpdates(createRequest) {
-      status shouldBe StatusCodes.OK
-      val result = responseAs[CreateUpdateResult]
-      (result.affected should contain).allOf(device1.deviceId, device2.deviceId)
-    }
+      createManyUpdates(createRequest) {
+        status shouldBe StatusCodes.OK
+        val result = responseAs[CreateUpdateResult]
+        (result.affected should contain).allOf(device1.deviceId, device2.deviceId)
+      }
 
-    val update1 = listUpdatesOK(device1.deviceId).values.loneElement
-    update1.status shouldBe Update.Status.Assigned
+      val update1 = listUpdatesOK(device1.deviceId).values.loneElement
+      update1.status shouldBe Update.Status.Assigned
 
-    val update2 = listUpdatesOK(device2.deviceId).values.loneElement
-    update2.status shouldBe Update.Status.Assigned
+      val update2 = listUpdatesOK(device2.deviceId).values.loneElement
+      update2.status shouldBe Update.Status.Assigned
 
-    update1.updateId shouldBe update2.updateId
+      update1.updateId shouldBe update2.updateId
 
-    cancelAllUpdatesOK(update1.updateId)
+      cancelAllUpdatesOK(update1.updateId)
 
-    val cancelledUpdates1 = listUpdatesOK(device1.deviceId)
-    cancelledUpdates1.values.loneElement.status shouldBe Update.Status.Cancelled
+      val cancelledUpdates1 = listUpdatesOK(device1.deviceId)
+      cancelledUpdates1.values.loneElement.status shouldBe Update.Status.Cancelled
 
-    val cancelledUpdates2 = listUpdatesOK(device2.deviceId)
-    cancelledUpdates2.values.loneElement.status shouldBe Update.Status.Cancelled
+      val cancelledUpdates2 = listUpdatesOK(device2.deviceId)
+      cancelledUpdates2.values.loneElement.status shouldBe Update.Status.Cancelled
   }
+
 }
