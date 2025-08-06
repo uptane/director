@@ -51,15 +51,15 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
              deviceId: DeviceId,
              allowInFlightCancellation: Boolean): Future[CorrelationId] = {
     val io = for {
-      correlationId <- updatesRepository.cancelUpdateAction(ns, updateId, Option(deviceId))
+      ids <- updatesRepository.cancelUpdateAction(ns, updateId, Option(deviceId))
       _ <- assignmentsRepository
         .processDeviceCancellationAction(provisionedDeviceRepository)(
           ns,
           Option(deviceId),
-          Some(correlationId),
+          Some(ids._1),
           allowInFlightCancellation
         )
-    } yield correlationId
+    } yield ids._1
 
     db.run(io.withTransactionIsolation(TransactionIsolation.Serializable).transactionally)
   }
@@ -126,15 +126,20 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
 
   def cancelAll(ns: Namespace, updateId: UpdateId): Future[List[(CorrelationId, DeviceId)]] = {
     val io = for {
-      correlationId <- updatesRepository.cancelUpdateAction(ns, updateId, deviceId = None)
+      idTuple <- updatesRepository.cancelUpdateAction(ns, updateId, deviceId = None)
       ids <- assignmentsRepository
         .processDeviceCancellationAction(provisionedDeviceRepository)(
           ns,
           deviceId = None,
-          correlationId = Some(correlationId),
+          correlationId = Some(idTuple._1),
           allowInFlightCancellation = false
         )
-    } yield ids
+    } yield
+      // When an update is scheduled there won't be an assignment yet which
+      // will mean that ids will be empty. But even if empty we still need to return
+      // the correlationId and DeviceId of the canceled scheduled update.
+      if (ids.isEmpty) { List[(CorrelationId, DeviceId)](idTuple) }
+      else { ids }
 
     db.run(io.withTransactionIsolation(TransactionIsolation.Serializable).transactionally)
   }

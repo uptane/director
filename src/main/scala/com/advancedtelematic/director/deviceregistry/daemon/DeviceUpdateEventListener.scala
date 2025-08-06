@@ -85,7 +85,8 @@ class DeviceUpdateEventListener(messageBus: MessageBusPublisher)(
   }
 
   private def handleEvent(event: DeviceUpdateEvent): Future[DeviceStatus] = event match {
-    case msg: DeviceUpdateAssigned if msg.scheduledFor.isEmpty => FastFuture.successful(DeviceStatus.Outdated)
+    case msg: DeviceUpdateAssigned if msg.scheduledFor.isEmpty =>
+      FastFuture.successful(DeviceStatus.Outdated)
     case _: DeviceUpdateAssigned => FastFuture.successful(DeviceStatus.UpdateScheduled)
     case _: DeviceUpdateCanceled => FastFuture.successful(DeviceStatus.UpToDate)
     case _: DeviceUpdateInFlight => FastFuture.successful(DeviceStatus.UpdatePending)

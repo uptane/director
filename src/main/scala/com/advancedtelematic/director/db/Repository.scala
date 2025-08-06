@@ -3,12 +3,34 @@ package com.advancedtelematic.director.db
 import java.time.Instant
 import java.util.UUID
 import cats.Show
-import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, AutoUpdateDefinitionId, DbAdminRole, DbDeviceRole, Device, Ecu, EcuTarget, EcuTargetId, HardwareUpdate, MurmurHash3Checksum, ProcessedAssignment, ValidMurmurHash3Checksum}
+import com.advancedtelematic.director.data.DbDataType.{
+  Assignment,
+  AutoUpdateDefinition,
+  AutoUpdateDefinitionId,
+  DbAdminRole,
+  DbDeviceRole,
+  Device,
+  Ecu,
+  EcuTarget,
+  EcuTargetId,
+  HardwareUpdate,
+  MurmurHash3Checksum,
+  ProcessedAssignment,
+  ValidMurmurHash3Checksum
+}
 import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, MissingEntityId}
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, ValidEcuIdentifier}
+import com.advancedtelematic.libats.http.Errors.{
+  EntityAlreadyExists,
+  MissingEntity,
+  MissingEntityId
+}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{
+  DeviceId,
+  EcuIdentifier,
+  ValidEcuIdentifier
+}
 import com.advancedtelematic.libats.data.RefinedUtils.*
 import cats.syntax.either.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
@@ -18,14 +40,28 @@ import slick.jdbc.MySQLProfile.api.*
 import akka.http.scaladsl.util.FastFuture
 import cats.data.NonEmptyList
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update, UpdateId}
-import com.advancedtelematic.director.db.AdminRolesRepository.{Deleted, FindLatestResult, NotDeleted}
+import com.advancedtelematic.director.db.AdminRolesRepository.{
+  Deleted,
+  FindLatestResult,
+  NotDeleted
+}
 import com.advancedtelematic.director.db.Schema.{adminRoles, notDeletedAdminRoles}
 import com.advancedtelematic.director.http.Errors
-import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  EcuAndHardwareId,
+  EcuReplaced,
+  EcuReplacement
+}
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
-import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, RepoId, RoleType, TargetFilename, TargetName}
+import com.advancedtelematic.libtuf.data.TufDataType.{
+  HardwareIdentifier,
+  RepoId,
+  RoleType,
+  TargetFilename,
+  TargetName
+}
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.data.TufSlickMappings.*
 import io.circe.{Encoder, Json}
@@ -100,9 +136,9 @@ protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec:
     db.run(io.transactionally)
   }
 
-  protected [db] def ensureExistsIO(device: DeviceId) : DBIO[Unit] =
-    existsIO(device).flatMap  {
-      case true => DBIO.successful(())
+  protected[db] def ensureExistsIO(device: DeviceId): DBIO[Unit] =
+    existsIO(device).flatMap {
+      case true  => DBIO.successful(())
       case false => DBIO.failed(MissingEntity[Device]())
     }
 
@@ -1013,9 +1049,10 @@ protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext)
   protected[db] def persistMany(updates: Seq[Update]): DBIO[Unit] =
     (Schema.updates ++= updates).map(_ => ())
 
-  protected[db] def cancelUpdateAction(ns: Namespace,
-                                       updateId: UpdateId,
-                                       deviceId: Option[DeviceId]): DBIO[CorrelationId] =
+  protected[db] def cancelUpdateAction(
+    ns: Namespace,
+    updateId: UpdateId,
+    deviceId: Option[DeviceId]): DBIO[(CorrelationId, DeviceId)] =
 
     Schema.updates
       .filter(_.namespace === ns)
@@ -1025,7 +1062,7 @@ protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext)
       .result
       .headOption
       .flatMap {
-        case Some(u) if u.status == Update.Status.Assigned => DBIO.successful(u)
+        case Some(u) if u.status == Update.Status.Assigned  => DBIO.successful(u)
         case Some(u) if u.status == Update.Status.Scheduled => DBIO.successful(u)
         case Some(_) => DBIO.failed(Errors.UpdateCannotBeCancelled(updateId))
         case None    => DBIO.failed(MissingEntity[Update]())
@@ -1037,7 +1074,7 @@ protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext)
           .maybeFilter(_.deviceId === deviceId)
           .map(r => (r.status, r.completedAt))
           .update((Update.Status.Cancelled, Some(Instant.now)))
-          .map(_ => update.correlationId)
+          .map(_ => update.correlationId -> update.deviceId)
       }
 
   protected[db] def setStatusAction[T: Encoder](ns: Namespace,
