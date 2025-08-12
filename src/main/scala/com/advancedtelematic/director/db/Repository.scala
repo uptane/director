@@ -45,7 +45,12 @@ import com.advancedtelematic.director.db.AdminRolesRepository.{
   FindLatestResult,
   NotDeleted
 }
-import com.advancedtelematic.director.db.Schema.{adminRoles, notDeletedAdminRoles}
+import com.advancedtelematic.director.db.Schema.{
+  adminRoles,
+  assignments,
+  notDeletedAdminRoles,
+  AssignmentsTable
+}
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   EcuAndHardwareId,
@@ -483,17 +488,9 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
   }
 
   protected[db] def processDeviceCancellationAction(deviceRepository: ProvisionedDeviceRepository)(
-    ns: Namespace,
-    deviceId: Option[DeviceId],
-    correlationId: Option[CorrelationId] = None,
-    allowInFlightCancellation: Boolean = false): DBIO[List[(CorrelationId, DeviceId)]] = {
-
-    val baseQuery = Schema.assignments
-      .filter(_.namespace === ns)
-      .maybeFilter(_.deviceId === deviceId)
-      .maybeFilter(_.correlationId === correlationId)
-
-    baseQuery.forUpdate.result.flatMap { assignments =>
+    assignmentsQuery: Query[AssignmentsTable, Assignment, Seq],
+    allowInFlightCancellation: Boolean = false): DBIO[Map[CorrelationId, List[DeviceId]]] =
+    assignmentsQuery.forUpdate.result.flatMap { assignments =>
       if (assignments.exists(_.inFlight) && !allowInFlightCancellation) {
         // safe because of above `exists`
         val deviceIds =
@@ -504,29 +501,28 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
           .seq(
             Schema.processedAssignments ++= assignments
               .map(_.toProcessedAssignment(successful = true, canceled = true)),
-            baseQuery.delete,
+            assignmentsQuery.delete,
             deviceRepository
               .setMetadataOutdatedAction(assignments.map(_.deviceId).toSet, outdated = true)
           )
           .map(_ => assignments.map(a => a.correlationId -> a.deviceId).toList)
+          .map(_.groupMap(_._1)(_._2))
     }
-  }
 
   def processDeviceCancellation(deviceRepository: ProvisionedDeviceRepository,
                                 updatesRepository: UpdatesRepository)(
     ns: Namespace,
     deviceId: DeviceId,
     allowInFlightCancellation: Boolean): Future[List[CorrelationId]] = db.run {
+    val assignmentsToCancelQuery = Schema.assignments.filter(_.deviceId === deviceId)
+
     val io = for {
       ids <- processDeviceCancellationAction(deviceRepository)(
-        ns,
-        Option(deviceId),
-        correlationId = None,
+        assignmentsToCancelQuery,
         allowInFlightCancellation
       )
-      correlationIds = ids.map(_._1)
-      _ <- updatesRepository.ensureNoUpdateFor(ns, correlationIds.toSet).map(_ => correlationIds)
-    } yield correlationIds
+      _ <- updatesRepository.ensureNoUpdateFor(ns, ids.keySet).map(_ => ids.keySet)
+    } yield ids.keySet.toList
 
     io.transactionally
   }
@@ -1052,7 +1048,7 @@ protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext)
   protected[db] def cancelUpdateAction(
     ns: Namespace,
     updateId: UpdateId,
-    deviceId: Option[DeviceId]): DBIO[(CorrelationId, DeviceId)] =
+    deviceId: Option[DeviceId]): DBIO[NonEmptyList[(CorrelationId, DeviceId)]] =
 
     Schema.updates
       .filter(_.namespace === ns)
@@ -1060,22 +1056,27 @@ protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext)
       .maybeFilter(_.deviceId === deviceId)
       .forUpdate
       .result
-      .headOption
       .flatMap {
-        case Some(u) if u.status == Update.Status.Assigned  => DBIO.successful(u)
-        case Some(u) if u.status == Update.Status.Scheduled => DBIO.successful(u)
-        case Some(_) => DBIO.failed(Errors.UpdateCannotBeCancelled(updateId))
-        case None    => DBIO.failed(MissingEntity[Update]())
+        case updates if updates.isEmpty => DBIO.failed(MissingEntity[Update]())
+        case updates
+            if updates.forall(u =>
+              u.status == Update.Status.Assigned || u.status == Update.Status.Scheduled
+            ) =>
+          DBIO.successful(updates)
+        case _ => DBIO.failed(Errors.UpdateCannotBeCancelled(updateId))
       }
-      .flatMap { update =>
+      .flatMap { updates =>
         Schema.updates
           .filter(_.namespace === ns)
           .filter(_.id === updateId)
           .maybeFilter(_.deviceId === deviceId)
           .map(r => (r.status, r.completedAt))
           .update((Update.Status.Cancelled, Some(Instant.now)))
-          .map(_ => update.correlationId -> update.deviceId)
+          .map(_ => updates.map(u => u.correlationId -> u.deviceId))
       }
+      .map(updates =>
+        NonEmptyList.fromListUnsafe(updates.toList)
+      ) // safe because we check if `updates` is empty above
 
   protected[db] def setStatusAction[T: Encoder](ns: Namespace,
                                                 id: UpdateId,
