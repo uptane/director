@@ -51,7 +51,7 @@ class AffectedEcusDBIO()(implicit val db: Database, val ec: ExecutionContext)
         if (ignoreScheduledUpdates)
           DBIO.successful((compatible, unaffected))
         else
-          filterDevicesWithScheduledUpdates(ns, compatible, unaffected, targetSpecId)
+          filterDevicesWithActiveUpdates(ns, compatible, unaffected, targetSpecId)
 
       // Determine which ECUs are affected by the update
       affected = determineAffectedEcus(
@@ -110,61 +110,63 @@ class AffectedEcusDBIO()(implicit val db: Database, val ec: ExecutionContext)
       }
     } yield (ecusWithCompatibleHardware, unaffectedDueToHardware)
 
-  private def filterDevicesWithScheduledUpdates(
+  private def filterDevicesWithActiveUpdates(
     ns: Namespace,
     ecusWithCompatibleHardware: Seq[(Ecu, Option[EcuTarget])],
     unaffectedDueToHardware: AffectedEcusResult,
     targetSpecId: TargetSpecId): DBIO[(Seq[(Ecu, Option[EcuTarget])], AffectedEcusResult)] =
     for {
-      devicesWithScheduledUpdates <- updatesRepository.filterActiveUpdateExistsAction(
+      devicesWithUpdates <- updatesRepository.filterActiveUpdateExistsAction(
         ns,
         ecusWithCompatibleHardware.map(_._1.deviceId).toSet
       )
 
       _ = _log
         .atDebug()
-        .addKeyValue("devicesWithScheduledUpdates", devicesWithScheduledUpdates.asJson)
+        .addKeyValue("devicesWithActiveUpdates", devicesWithUpdates.asJson)
         .log()
 
       ecusWithoutScheduledUpdates = ecusWithCompatibleHardware.filterNot { case (ecu, _) =>
-        devicesWithScheduledUpdates.contains(ecu.deviceId)
+        devicesWithUpdates.contains(ecu.deviceId)
       }
 
-      unaffectedDueToScheduledUpdates = devicesWithScheduledUpdates.foldLeft(
-        unaffectedDueToHardware
-      ) { case (acc, deviceId) =>
-        val error = Errors.DeviceHasScheduledUpdate(deviceId, targetSpecId)
-        _log.info(error.getMessage)
-        acc.addNotAffected(deviceId, refineV.unsafeFrom("unknown"), error)
-      }
-    } yield (ecusWithoutScheduledUpdates, unaffectedDueToScheduledUpdates)
+      unaffectedDueToActiveUpdates = devicesWithUpdates.foldLeft(unaffectedDueToHardware) {
+        case (acc, deviceId) =>
+          val ecus = ecusWithCompatibleHardware.filter(_._1.deviceId == deviceId)
 
-  private def determineAffectedEcus(ecusWithoutScheduledUpdates: Seq[(Ecu, Option[EcuTarget])],
+          ecus.foldLeft(acc) { case (result, (ecu, _)) =>
+            val error = Errors.DeviceHasActiveUpdate(deviceId, targetSpecId)
+            _log.info(error.getMessage)
+            result.addNotAffected(deviceId, ecu.ecuSerial, error)
+          }
+      }
+    } yield (ecusWithoutScheduledUpdates, unaffectedDueToActiveUpdates)
+
+  private def determineAffectedEcus(compatibleEcus: Seq[(Ecu, Option[EcuTarget])],
                                     hardwareUpdates: Map[HardwareIdentifier, HardwareUpdate],
                                     allTargets: Map[EcuTargetId, EcuTarget],
-                                    unaffectedDueToScheduledUpdates: AffectedEcusResult,
+                                    notAffected: AffectedEcusResult,
                                     targetSpecId: TargetSpecId): AffectedEcusResult =
 
-    ecusWithoutScheduledUpdates.foldLeft(unaffectedDueToScheduledUpdates) {
-      case (acc, (ecu, installedTarget)) =>
-        val hwUpdate = hardwareUpdates(ecu.hardwareId)
-        val updateFrom = hwUpdate.fromTarget.flatMap(allTargets.get)
-        val updateTo = allTargets(hwUpdate.toTarget)
+    compatibleEcus.foldLeft(notAffected) { case (acc, (ecu, installedTarget)) =>
+      val hwUpdate = hardwareUpdates(ecu.hardwareId)
+      val updateFrom = hwUpdate.fromTarget.flatMap(allTargets.get)
+      val updateTo = allTargets(hwUpdate.toTarget)
 
-        if (isEcuUpdateable(hwUpdate, installedTarget, updateFrom)) {
-          if (isTargetAlreadyInstalled(installedTarget, updateTo)) {
-            val error = Errors.InstalledTargetIsUpdate(ecu.deviceId, ecu.ecuSerial, hwUpdate)
-            _log.info(error.getMessage)
-            acc.addNotAffected(ecu.deviceId, ecu.ecuSerial, error)
-          } else {
-            _log.info(s"${ecu.deviceId}/${ecu.ecuSerial} affected for $hwUpdate")
-            acc.addAffected(ecu, hwUpdate.toTarget)
-          }
-        } else {
-          val error = Errors.NotAffectedByMtu(ecu.deviceId, ecu.ecuSerial, targetSpecId)
+      if (isEcuUpdateable(hwUpdate, installedTarget, updateFrom)) {
+        if (isTargetAlreadyInstalled(installedTarget, updateTo)) {
+          val error = Errors.InstalledTargetIsUpdate(ecu.deviceId, ecu.ecuSerial, hwUpdate)
           _log.info(error.getMessage)
           acc.addNotAffected(ecu.deviceId, ecu.ecuSerial, error)
+        } else {
+          _log.info(s"${ecu.deviceId}/${ecu.ecuSerial} affected for $hwUpdate")
+          acc.addAffected(ecu, hwUpdate.toTarget)
         }
+      } else {
+        val error = Errors.NotAffectedByMtu(ecu.deviceId, ecu.ecuSerial, targetSpecId)
+        _log.info(error.getMessage)
+        acc.addNotAffected(ecu.deviceId, ecu.ecuSerial, error)
+      }
     }
 
   private def isEcuUpdateable(hwUpdate: HardwareUpdate,

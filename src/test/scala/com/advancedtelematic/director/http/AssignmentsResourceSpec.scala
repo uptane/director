@@ -323,7 +323,7 @@ class AssignmentsResourceSpec
       val (deviceId, errors) = response.notAffected.loneElement
       val (_, error) = errors.loneElement
       deviceId shouldBe regDev0.deviceId
-      error.code shouldBe ErrorCodes.DeviceHasScheduledUpdate
+      error.code shouldBe ErrorCodes.DeviceHasActiveUpdate
     }
 
     val queue0 = getDeviceAssignmentOk(regDev0.deviceId)

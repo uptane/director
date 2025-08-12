@@ -49,9 +49,7 @@ object ErrorCodes {
 
   val UpdateScheduleError = ErrorCode("update_schedule_error")
 
-  val DeviceHasScheduledUpdate = ErrorCode("update_already_scheduled_error")
-
-  val DeviceUpdateNotFound = ErrorCode("device_update_not_found")
+  val DeviceHasActiveUpdate = ErrorCode("device_has_active_update")
 
   val UpdateCannotBeCancelled = ErrorCode("update_cannot_be_cancelled")
 
@@ -91,9 +89,9 @@ object Errors {
         s"$deviceId not affected for $targetSpecId, device does not have any ecu with compatible hardware"
       )
 
-  case class DeviceHasScheduledUpdate(deviceId: DeviceId, targetSpecId: TargetSpecId)
+  case class DeviceHasActiveUpdate(deviceId: DeviceId, targetSpecId: TargetSpecId)
       extends Error(
-        ErrorCodes.DeviceHasScheduledUpdate,
+        ErrorCodes.DeviceHasActiveUpdate,
         StatusCodes.BadRequest,
         s"$deviceId not affected for $targetSpecId, there is an update scheduled for the device"
       )

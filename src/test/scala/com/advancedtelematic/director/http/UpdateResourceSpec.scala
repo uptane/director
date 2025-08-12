@@ -649,7 +649,7 @@ class UpdateResourceSpec
 
       val code =
         error.cause.value.as[Map[String, ErrorRepresentation]].value.values.loneElement.code
-      code shouldBe ErrorCodes.DeviceHasScheduledUpdate
+      code shouldBe ErrorCodes.DeviceHasActiveUpdate
     }
   }
 
