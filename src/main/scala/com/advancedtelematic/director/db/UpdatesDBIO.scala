@@ -1,6 +1,7 @@
 package com.advancedtelematic.director.db
 
 import cats.Traverse
+import cats.data.NonEmptyList
 import cats.syntax.functor.*
 import cats.syntax.foldable.*
 import com.advancedtelematic.libats.data.PaginationResult.*
@@ -13,14 +14,7 @@ import com.advancedtelematic.director.data.DataType.{TargetSpecId, Update, Updat
 import com.advancedtelematic.director.data.DbDataType.{Assignment, Ecu, EcuTarget, EcuTargetId}
 import com.advancedtelematic.director.db.deviceregistry.{EventJournal, InstallationReportRepository}
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
-import com.advancedtelematic.director.http.{
-  Errors,
-  UpdateDetailResponse,
-  UpdateEcuResult,
-  UpdateEventResponse,
-  UpdateResponse,
-  UpdateResultResponse
-}
+import com.advancedtelematic.director.http.{Errors, UpdateDetailResponse, UpdateEcuResult, UpdateEventResponse, UpdateResponse, UpdateResultResponse}
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, UpdateCorrelationId}
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.http.Errors.MissingEntity
@@ -46,20 +40,23 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
 
   private lazy val log = LoggerFactory.getLogger(this.getClass)
 
+  import com.advancedtelematic.libats.slick.db.SlickUrnMapper.*
+
   def cancel(ns: Namespace,
              updateId: UpdateId,
              deviceId: DeviceId,
              allowInFlightCancellation: Boolean): Future[CorrelationId] = {
     val io = for {
-      correlationId <- updatesRepository.cancelUpdateAction(ns, updateId, Option(deviceId))
+      ids <- updatesRepository.cancelUpdateAction(ns, updateId, Option(deviceId))
+      assignmentsToCancelQuery = Schema.assignments
+        .filter(_.deviceId === deviceId)
+        .filter(_.correlationId.inSet(ids.map(_._1).toList.toSet))
       _ <- assignmentsRepository
         .processDeviceCancellationAction(provisionedDeviceRepository)(
-          ns,
-          Option(deviceId),
-          Some(correlationId),
+          assignmentsToCancelQuery,
           allowInFlightCancellation
         )
-    } yield correlationId
+    } yield ids.head._1
 
     db.run(io.withTransactionIsolation(TransactionIsolation.Serializable).transactionally)
   }
@@ -124,17 +121,18 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
     db.run(io.withTransactionIsolation(TransactionIsolation.Serializable).transactionally)
   }
 
-  def cancelAll(ns: Namespace, updateId: UpdateId): Future[List[(CorrelationId, DeviceId)]] = {
+  def cancelAll(ns: Namespace, updateId: UpdateId): Future[NonEmptyList[(CorrelationId, DeviceId)]] = {
     val io = for {
-      correlationId <- updatesRepository.cancelUpdateAction(ns, updateId, deviceId = None)
-      ids <- assignmentsRepository
+      updatesCorrelationIds <- updatesRepository.cancelUpdateAction(ns, updateId, deviceId = None)
+      query = Schema.assignments
+        .filter(_.deviceId.inSet(updatesCorrelationIds.map(_._2).toList.toSet))
+        .filter(_.correlationId.inSet(updatesCorrelationIds.map(_._1).toList.toSet))
+      _ <- assignmentsRepository
         .processDeviceCancellationAction(provisionedDeviceRepository)(
-          ns,
-          deviceId = None,
-          correlationId = Some(correlationId),
+          query,
           allowInFlightCancellation = false
         )
-    } yield ids
+    } yield updatesCorrelationIds
 
     db.run(io.withTransactionIsolation(TransactionIsolation.Serializable).transactionally)
   }

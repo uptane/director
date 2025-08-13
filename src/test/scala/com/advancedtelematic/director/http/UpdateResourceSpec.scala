@@ -25,7 +25,6 @@ import com.advancedtelematic.director.util.{
   RepositorySpec,
   ResourceSpec
 }
-import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Event, EventType}
@@ -761,6 +760,38 @@ class UpdateResourceSpec
 
       val cancelledUpdates2 = listUpdatesOK(device2.deviceId)
       cancelledUpdates2.values.loneElement.status shouldBe Update.Status.Cancelled
+  }
+
+  testWithRepo("cancelling scheduled updates sends messages when the update is not yet assigned") { implicit ns =>
+    val device = registerAdminDeviceOk()
+    val hardwareId = device.primary.hardwareId
+    val targetUpdate = GenTargetUpdate.generate
+    val targetRequest = TargetUpdateRequest(None, targetUpdate)
+
+    createUpdateOk(
+      device.deviceId,
+      TargetUpdateSpec(Map(hardwareId -> targetRequest)),
+      Instant.now.minusSeconds(60).some
+    )
+
+    val updates = listUpdatesOK(device.deviceId)
+    val update = updates.values.loneElement
+    update.status shouldBe Update.Status.Scheduled
+    val updateId = update.updateId
+
+    cancelAllUpdatesOK(updateId)
+
+    val cancelledUpdates = listUpdatesOK(device.deviceId)
+    cancelledUpdates.values should have size 1
+    cancelledUpdates.values.head.status shouldBe Update.Status.Cancelled
+
+    val msg = msgPub
+      .findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
+        msg.deviceUuid == device.deviceId && msg.correlationId == updateId.toCorrelationId &&
+          msg.isInstanceOf[DeviceUpdateCanceled]
+      }
+
+    msg shouldNot be(empty)
   }
 
 }
