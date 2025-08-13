@@ -26,7 +26,6 @@ import eu.timepit.refined.api.Refined
 import io.circe.Json
 import com.advancedtelematic.libats.data.RefinedUtils.*
 import com.advancedtelematic.libtuf.data.TufCodecs
-import com.fasterxml.uuid.Generators
 import enumeratum.EnumEntry.Camelcase
 import eu.timepit.refined.boolean.And
 import eu.timepit.refined.collection.Size

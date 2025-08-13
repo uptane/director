@@ -56,7 +56,7 @@ class LegacyRoutes(extractNamespace: Directive1[Namespace])(
             complete(a.map(_.map(_.deviceId)))
           }
         },
-        (path("admin" / "devices") & PaginationParameters) { (limit, offset) =>
+        (path("admin" / "devices") & PaginationParameters) { (offset, limit) =>
           get {
             complete(provisionedDeviceRepository.findAllDeviceIds(ns, offset, limit))
           }

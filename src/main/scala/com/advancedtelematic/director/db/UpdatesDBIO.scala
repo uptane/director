@@ -285,8 +285,8 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
   }
 
   def findAll(ns: Namespace,
-              offset: Long,
-              limit: Long): Future[PaginationResult[UpdateResponse]] = {
+              offset: Offset,
+              limit: Limit): Future[PaginationResult[UpdateResponse]] = {
     val io = for {
       updates <- Schema.updates
         .filter(_.namespace === ns)
@@ -309,8 +309,8 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
 
   def findUpdateDevices(ns: Namespace,
                         updateId: UpdateId,
-                        offset: Long,
-                        limit: Long): Future[PaginationResult[DeviceId]] = db.run {
+                        offset: Offset,
+                        limit: Limit): Future[PaginationResult[DeviceId]] = db.run {
     Schema.updates
       .filter(_.namespace === ns)
       .filter(_.id === updateId)
@@ -320,8 +320,8 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
 
   def findFor(ns: Namespace,
               deviceId: DeviceId,
-              offset: Long,
-              limit: Long): Future[PaginationResult[UpdateResponse]] = {
+              offset: Offset,
+              limit: Limit): Future[PaginationResult[UpdateResponse]] = {
     val io = for {
       updates <- updatesRepository.findAction(ns, deviceId, offset, limit)
       updateTargets <- findUpdateEcuTargets(updates)

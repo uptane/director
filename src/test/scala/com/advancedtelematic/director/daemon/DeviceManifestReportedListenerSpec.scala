@@ -25,6 +25,7 @@ import org.scalatest.OptionValues.*
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.{ExecutionContext, Future}
+import com.advancedtelematic.libats.data.PaginationResult.LongAsParam
 
 class DeviceManifestReportedListenerSpec
     extends DirectorSpec
@@ -128,7 +129,7 @@ class DeviceManifestReportedListenerSpec
 
     runListener(manifests).futureValue
 
-    val savedManifests = deviceManifestRepository.findAll(device, 0L, 1000L).futureValue.values
+    val savedManifests = deviceManifestRepository.findAll(device, 0L.toOffset, 1000L.toLimit).futureValue.values
     val lastManifests = manifests.map(_.manifest.json).takeRight(200)
 
     savedManifests should have size 200
@@ -150,7 +151,7 @@ class DeviceManifestReportedListenerSpec
     runListener(manifests).futureValue
 
     devices.foreach { device =>
-      val savedManifests = deviceManifestRepository.findAll(device, 0, 1000L).futureValue.values
+      val savedManifests = deviceManifestRepository.findAll(device, 0.toOffset, 1000.toLimit).futureValue.values
       val deviceManifests =
         manifests.filter(_.deviceId == device).map(_.manifest.json).takeRight(200)
 

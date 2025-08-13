@@ -1,11 +1,13 @@
 package com.advancedtelematic.director.db.deviceregistry
 
+import com.advancedtelematic.libats.data.PaginationResult.*
 import java.time.Instant
 import cats.instances.option.*
 import cats.syntax.apply.*
 import cats.syntax.option.*
 import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.data.PaginationResult
+import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.ecuReplacementCodec
 import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement, EcuReplacementFailed}
@@ -91,7 +93,7 @@ object EcuReplacementRepository {
       .filter(_.deviceId === deviceId)
       .result
 
-  def deviceHistory(deviceId: DeviceId, offset: Long, limit: Long)(
+  def deviceHistory(deviceId: DeviceId, offset: Offset, limit: Limit)(
     implicit ec: ExecutionContext): DBIO[PaginationResult[Json]] =
     for {
       installations <- InstallationReportRepository.queryInstallationHistory(deviceId).result

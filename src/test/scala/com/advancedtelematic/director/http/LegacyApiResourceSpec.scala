@@ -92,8 +92,8 @@ class LegacyApiResourceSpec
       status shouldBe StatusCodes.OK
       val devices = responseAs[PaginationResult[DeviceId]]
       devices.total shouldBe 1
-      devices.offset shouldBe 0
-      devices.limit shouldBe 50
+      devices.offset.toLong shouldBe 0L
+      devices.limit.toLong shouldBe 50L
       devices.values.loneElement shouldBe regDev.deviceId
     }
   }

@@ -1,5 +1,6 @@
 package com.advancedtelematic.director.http
 
+import com.advancedtelematic.libats.data.PaginationResult.*
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.*
 import akka.http.scaladsl.server.Directives.*
@@ -293,7 +294,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                       * [[LegacyRoutes.route]]
                       */
                     parameter(Symbol("primaryHardwareId").as[HardwareIdentifier]) { hardwareId =>
-                      PaginationParameters { (limit, offset) =>
+                      PaginationParameters { (offset, limit) =>
                         val f = provisionedDeviceRepository
                           .findDevices(ns, hardwareId, offset, limit)
                           .map(_.toClient)
@@ -302,13 +303,13 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                     }
                   },
                   path("hardware_identifiers") {
-                    PaginationParameters { (limit, offset) =>
+                    PaginationParameters { (offset, limit) =>
                       val f = ecuRepository.findAllHardwareIdentifiers(ns, offset, limit)
                       complete(f)
                     }
                   },
                   path("ecus") {
-                    PaginationParameters { (limit, offset) =>
+                    PaginationParameters { (offset, limit) =>
                       val pagedEcus = ecuRepository.findAll(ns).map { ecuTuples =>
                         val uniqueDeviceIds = ecuTuples.map(_._1.deviceId).toSet
                         val s = uniqueDeviceIds.map { deviceId =>

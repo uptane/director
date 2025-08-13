@@ -3,34 +3,12 @@ package com.advancedtelematic.director.db
 import java.time.Instant
 import java.util.UUID
 import cats.Show
-import com.advancedtelematic.director.data.DbDataType.{
-  Assignment,
-  AutoUpdateDefinition,
-  AutoUpdateDefinitionId,
-  DbAdminRole,
-  DbDeviceRole,
-  Device,
-  Ecu,
-  EcuTarget,
-  EcuTargetId,
-  HardwareUpdate,
-  MurmurHash3Checksum,
-  ProcessedAssignment,
-  ValidMurmurHash3Checksum
-}
+import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, AutoUpdateDefinitionId, DbAdminRole, DbDeviceRole, Device, Ecu, EcuTarget, EcuTargetId, HardwareUpdate, MurmurHash3Checksum, ProcessedAssignment, ValidMurmurHash3Checksum}
 import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.libats.http.Errors.{
-  EntityAlreadyExists,
-  MissingEntity,
-  MissingEntityId
-}
-import com.advancedtelematic.libats.messaging_datatype.DataType.{
-  DeviceId,
-  EcuIdentifier,
-  ValidEcuIdentifier
-}
+import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, MissingEntityId}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, ValidEcuIdentifier}
 import com.advancedtelematic.libats.data.RefinedUtils.*
 import cats.syntax.either.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
@@ -40,33 +18,14 @@ import slick.jdbc.MySQLProfile.api.*
 import akka.http.scaladsl.util.FastFuture
 import cats.data.NonEmptyList
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update, UpdateId}
-import com.advancedtelematic.director.db.AdminRolesRepository.{
-  Deleted,
-  FindLatestResult,
-  NotDeleted
-}
-import com.advancedtelematic.director.db.Schema.{
-  adminRoles,
-  assignments,
-  notDeletedAdminRoles,
-  AssignmentsTable
-}
+import com.advancedtelematic.director.db.AdminRolesRepository.{Deleted, FindLatestResult, NotDeleted}
+import com.advancedtelematic.director.db.Schema.{AssignmentsTable, adminRoles, assignments, notDeletedAdminRoles}
 import com.advancedtelematic.director.http.Errors
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  EcuAndHardwareId,
-  EcuReplaced,
-  EcuReplacement
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement}
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
-import com.advancedtelematic.libtuf.data.TufDataType.{
-  HardwareIdentifier,
-  RepoId,
-  RoleType,
-  TargetFilename,
-  TargetName
-}
+import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, RepoId, RoleType, TargetFilename, TargetName}
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.data.TufSlickMappings.*
 import io.circe.{Encoder, Json}
@@ -77,9 +36,11 @@ import slick.jdbc.{GetResult, PositionedParameters, SetParameter}
 
 import scala.concurrent.{ExecutionContext, Future}
 import cats.syntax.show.*
+import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import com.advancedtelematic.libats.slick.db.SlickUrnMapper.*
 
 import scala.util.hashing.MurmurHash3
+import PaginationResult.LongAsParam
 
 protected trait DatabaseSupport {
   implicit val ec: ExecutionContext
@@ -154,8 +115,8 @@ protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec:
     db.run(existsIO(deviceId))
 
   def findAllDeviceIds(ns: Namespace,
-                       offset: Long,
-                       limit: Long): Future[PaginationResult[DeviceId]] = db.run {
+                       offset: Offset,
+                       limit: Limit): Future[PaginationResult[DeviceId]] = db.run {
     Schema.activeProvisionedDevices
       .filter(_.namespace === ns)
       .map(d => (d.id, d.createdAt))
@@ -165,8 +126,8 @@ protected class ProvisionedDeviceRepository()(implicit val db: Database, val ec:
 
   def findDevices(ns: Namespace,
                   hardwareIdentifier: HardwareIdentifier,
-                  offset: Long,
-                  limit: Long): Future[PaginationResult[(Instant, Device)]] = db.run {
+                  offset: Offset,
+                  limit: Limit): Future[PaginationResult[(Instant, Device)]] = db.run {
     Schema.activeProvisionedDevices
       .filter(_.namespace === ns)
       .join(Schema.activeEcus.filter(_.hardwareId === hardwareIdentifier))
@@ -611,8 +572,8 @@ protected class EcuRepository()(implicit val db: Database, val ec: ExecutionCont
   }
 
   def findAllHardwareIdentifiers(ns: Namespace,
-                                 offset: Long,
-                                 limit: Long): Future[PaginationResult[HardwareIdentifier]] =
+                                 offset: Offset,
+                                 limit: Limit): Future[PaginationResult[HardwareIdentifier]] =
     db.run {
       Schema.activeEcus
         .filter(_.namespace === ns)
@@ -980,8 +941,8 @@ protected class DeviceManifestRepository()(implicit db: Database, ec: ExecutionC
   }
 
   def findAll(deviceId: DeviceId,
-              offset: Long = 0L,
-              limit: Long = 50L): Future[PaginationResult[(Json, Instant)]] = db.run {
+              offset: Offset = 0L.toOffset,
+              limit: Limit = 50L.toLimit): Future[PaginationResult[(Json, Instant)]] = db.run {
     Schema.deviceManifests
       .filter(_.deviceId === deviceId)
       .sortBy(_.receivedAt.desc)
@@ -1028,11 +989,12 @@ protected class DeviceManifestRepository()(implicit db: Database, ec: ExecutionC
 
 protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext) {
   import SlickMapping.*
+  import PaginationResult.*
 
   protected[db] def findAction(ns: Namespace,
                                deviceId: DeviceId,
-                               offset: Long = 0L,
-                               limit: Long = 10L): DBIO[PaginationResult[Update]] =
+                               offset: Offset = 0L.toOffset,
+                               limit: Limit = 10L.toLimit): DBIO[PaginationResult[Update]] =
     Schema.updates
       .filter(_.namespace === ns)
       .filter(_.deviceId === deviceId)

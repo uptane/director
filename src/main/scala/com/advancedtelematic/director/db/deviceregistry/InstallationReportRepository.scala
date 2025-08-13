@@ -1,26 +1,18 @@
 package com.advancedtelematic.director.db.deviceregistry
 
 import java.time.Instant
-
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, ResultCode}
 import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.libats.messaging_datatype.DataType.{
-  DeviceId,
-  EcuIdentifier,
-  EcuInstallationReport
-}
-import com.advancedtelematic.director.deviceregistry.data.DataType.{
-  DeviceInstallationResult,
-  EcuInstallationResult,
-  InstallationStat
-}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, EcuInstallationReport}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceInstallationResult, EcuInstallationResult, InstallationStat}
+import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import io.circe.Json
-import slick.jdbc.MySQLProfile.api._
-import com.advancedtelematic.libats.slick.db.SlickAnyVal._
+import slick.jdbc.MySQLProfile.api.*
+import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
-import com.advancedtelematic.libats.slick.db.SlickCirceMapper._
-import com.advancedtelematic.libats.slick.db.SlickExtensions._
-import com.advancedtelematic.libats.slick.db.SlickUUIDKey._
+import com.advancedtelematic.libats.slick.db.SlickCirceMapper.*
+import com.advancedtelematic.libats.slick.db.SlickExtensions.*
+import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.db.SlickUrnMapper.correlationIdMapper
 import slick.lifted.AbstractTable
 
@@ -160,7 +152,7 @@ object InstallationReportRepository {
   // that originated this deviceInstallationResult
   // We cannot change this now as this is used by the frontend currently
 
-  def installationReports(deviceId: DeviceId, offset: Long, limit: Long)(
+  def installationReports(deviceId: DeviceId, offset: Offset, limit: Limit)(
     implicit ec: ExecutionContext): DBIO[PaginationResult[Json]] =
     queryInstallationHistory(deviceId).paginateResult(offset, limit)
 

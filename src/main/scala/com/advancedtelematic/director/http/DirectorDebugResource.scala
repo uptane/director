@@ -38,7 +38,7 @@ class DirectorDebugResource()(implicit val db: Database, val ec: ExecutionContex
         complete(f)
       },
       (get & path("device-manifests" / DeviceId.Path) & PaginationParameters) {
-        (deviceId, limit, offset) =>
+        (deviceId, offset, limit) =>
           val f = deviceManifestRepository.findAll(deviceId, offset, limit).map(_.map(_._1))
           complete(f)
       } ~

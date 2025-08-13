@@ -3,7 +3,6 @@ package com.advancedtelematic.director.db.deviceregistry
 import com.advancedtelematic.director.db
 import com.advancedtelematic.director.db.deviceregistry.DbOps.{
   deviceTableToSlickOrder,
-  PaginationResultOps
 }
 import com.advancedtelematic.director.db.deviceregistry.GroupInfoRepository.groupInfos
 import com.advancedtelematic.director.db.deviceregistry.GroupMemberRepository.groupMembers
@@ -240,7 +239,7 @@ object SearchDBIO {
       .filter(lastSeenEndFilter)
       .filter(hardwareIdFilter)
       .sortBy(devices => devices.ordered(sortBy, sortDirection))
-      .paginateResult(params.offset.orDefaultOffset, params.limit.orDefaultLimit)
+      .paginateResult(params.offset, params.limit)
   }
 
   def countByStatus(ns: Namespace, params: DeviceCountParams): DBIO[DeviceStatusCounts] = {

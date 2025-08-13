@@ -91,7 +91,7 @@ class UpdateResource(extractNamespace: Directive1[Namespace])(
   val route = extractNamespace { ns =>
     concat(
       path("updates") {
-        (get & pathEnd & PaginationParameters) { case (limit, offset) =>
+        (get & pathEnd & PaginationParameters) { case (offset, limit) =>
           complete(updates.findAll(ns, offset, limit))
         }
       },
@@ -110,7 +110,7 @@ class UpdateResource(extractNamespace: Directive1[Namespace])(
             complete(f.map(_ => StatusCodes.NoContent))
           },
           path("devices") {
-            (get & PaginationParameters) { case (limit, offset) =>
+            (get & PaginationParameters) { case (offset, limit) =>
               complete(updates.findUpdateDevices(ns, updateId, offset, limit))
             }
           }
@@ -119,7 +119,7 @@ class UpdateResource(extractNamespace: Directive1[Namespace])(
       pathPrefix("updates" / "devices") {
         path(DeviceId.Path) { deviceId =>
           concat(
-            (get & pathEnd & PaginationParameters) { (limit, offset) =>
+            (get & pathEnd & PaginationParameters) { (offset, limit) =>
               val f =
                 updates.findFor(ns, deviceId, offset, limit)
               complete(f)
