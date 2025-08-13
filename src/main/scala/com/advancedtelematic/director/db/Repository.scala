@@ -1074,9 +1074,9 @@ protected class UpdatesRepository()(implicit db: Database, ec: ExecutionContext)
           .update((Update.Status.Cancelled, Some(Instant.now)))
           .map(_ => updates.map(u => u.correlationId -> u.deviceId))
       }
-      .map(updates =>
+      .map { updates =>
         NonEmptyList.fromListUnsafe(updates.toList)
-      ) // safe because we check if `updates` is empty above
+      } // safe because we check if `updates` is empty above
 
   protected[db] def setStatusAction[T: Encoder](ns: Namespace,
                                                 id: UpdateId,
