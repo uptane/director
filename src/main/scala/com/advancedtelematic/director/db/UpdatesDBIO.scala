@@ -357,7 +357,8 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
           event.eventType,
           event.deviceTime,
           event.receivedAt,
-          event.ecu
+          event.payload.hcursor.downField("success").as[Boolean].toOption,
+          event.ecu,
         )
       }
     }
