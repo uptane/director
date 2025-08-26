@@ -40,7 +40,7 @@ case class UpdateResultResponse(hardwareId: HardwareIdentifier,
                                 id: TargetFilename,
                                 success: Boolean,
                                 description: String,
-                                reports: Seq[UpdateEcuResult])
+                                result: Option[UpdateEcuResult])
 
 case class UpdateDetailResponse(updateId: UpdateId,
                                 status: Update.Status,
@@ -48,13 +48,14 @@ case class UpdateDetailResponse(updateId: UpdateId,
                                 scheduledFor: Option[Instant],
                                 completedAt: Option[Instant],
                                 packages: Map[HardwareIdentifier, TargetFilename],
-                                results: Map[EcuIdentifier, UpdateResultResponse])
+                                ecuResults: Map[EcuIdentifier, UpdateResultResponse])
 
 case class UpdateResponse(updateId: UpdateId,
                           status: Update.Status,
                           createdAt: Instant,
                           scheduledFor: Option[Instant],
                           completedAt: Option[Instant],
+                          deviceResult: Option[UpdateEcuResult],
                           packages: Map[HardwareIdentifier, TargetFilename])
 
 case class UpdateEventResponse(deviceId: DeviceId,

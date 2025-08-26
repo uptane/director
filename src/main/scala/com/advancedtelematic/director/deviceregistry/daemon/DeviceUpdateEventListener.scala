@@ -80,7 +80,7 @@ class DeviceUpdateEventListener(messageBus: MessageBusPublisher)(
 
   private def wasCompleted(deviceId: DeviceId, correlationId: CorrelationId): Future[Boolean] = {
     val existingReport =
-      db.run(InstallationReportRepository.fetchDeviceInstallationResultFor(deviceId, correlationId))
+      db.run(InstallationReportRepository.fetchDeviceInstallationResultByCorrelationId(deviceId, correlationId))
     existingReport.map(_.exists(_.success)) // if we handle success event - other should be ignored
   }
 

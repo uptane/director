@@ -14,7 +14,14 @@ import com.advancedtelematic.director.data.DataType.{TargetSpecId, Update, Updat
 import com.advancedtelematic.director.data.DbDataType.{Assignment, Ecu, EcuTarget, EcuTargetId}
 import com.advancedtelematic.director.db.deviceregistry.{EventJournal, InstallationReportRepository}
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
-import com.advancedtelematic.director.http.{Errors, UpdateDetailResponse, UpdateEcuResult, UpdateEventResponse, UpdateResponse, UpdateResultResponse}
+import com.advancedtelematic.director.http.{
+  Errors,
+  UpdateDetailResponse,
+  UpdateEcuResult,
+  UpdateEventResponse,
+  UpdateResponse,
+  UpdateResultResponse
+}
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, UpdateCorrelationId}
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.http.Errors.MissingEntity
@@ -121,7 +128,8 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
     db.run(io.withTransactionIsolation(TransactionIsolation.Serializable).transactionally)
   }
 
-  def cancelAll(ns: Namespace, updateId: UpdateId): Future[NonEmptyList[(CorrelationId, DeviceId)]] = {
+  def cancelAll(ns: Namespace,
+                updateId: UpdateId): Future[NonEmptyList[(CorrelationId, DeviceId)]] = {
     val io = for {
       updatesCorrelationIds <- updatesRepository.cancelUpdateAction(ns, updateId, deviceId = None)
       query = Schema.assignments
@@ -185,7 +193,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         update.correlationId
       )
       deviceInstallationReport <- InstallationReportRepository
-        .fetchDeviceInstallationResultFor(deviceId, update.correlationId)
+        .fetchDeviceInstallationResultByCorrelationId(deviceId, update.correlationId)
         .map(_.headOption)
 
     } yield UpdateDetailResponse(
@@ -195,7 +203,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
       scheduledFor = update.scheduledFor,
       packages = targets.view.mapValues(_.filename).toMap,
       completedAt = update.completedAt,
-      results = targets.flatMap { case (hwId, ecuTarget) =>
+      ecuResults = targets.flatMap { case (hwId, ecuTarget) =>
         val processedAssignment = processedAssignments.find(a => a.ecuTargetId == ecuTarget.id)
 
         // `.description` is only in ecuReport for newer updates, so we need to fetch it from
@@ -210,19 +218,21 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
           .getOrElse(Map.empty)
 
         processedAssignment.map { pa =>
-          val updateEcuReports = ecuReports.map { er =>
-            val ecuReportOnDeviceReport =
-              ecuReportsOnDeviceReport.get(er.ecuId).map(_.result.description.value)
-            val desc = er.description.orElse(ecuReportOnDeviceReport)
-            UpdateEcuResult(er.resultCode, er.success, desc)
-          }
+          val updateEcuReport = ecuReports
+            .get(pa.ecuId)
+            .map { er =>
+              val ecuReportOnDeviceReport =
+                ecuReportsOnDeviceReport.get(er.ecuId).map(_.result.description.value)
+              val desc = er.description.orElse(ecuReportOnDeviceReport)
+              UpdateEcuResult(er.resultCode, er.success, desc)
+            }
 
           pa.ecuId -> UpdateResultResponse(
             hwId,
             ecuTarget.filename,
             pa.successful,
             pa.result.getOrElse(""),
-            updateEcuReports
+            updateEcuReport
           )
         }
       }
@@ -292,6 +302,8 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         .filter(_.namespace === ns)
         .distinctOn(_.id)
         .paginateResult(offset, limit)
+      ids = updates.values.map { u => u.deviceId -> u.correlationId }.toSet
+      deviceResults <- InstallationReportRepository.fetchManyDevicesInstallationResults(ids)
       updateTargets <- findUpdateEcuTargets(updates)
     } yield updateTargets.map { case (update, targets) =>
       UpdateResponse(
@@ -300,7 +312,10 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         update.createdAt,
         scheduledFor = update.scheduledFor,
         packages = targets.view.mapValues(_.filename).toMap,
-        completedAt = update.completedAt
+        completedAt = update.completedAt,
+        deviceResult = deviceResults
+          .find(r => r.deviceId == update.deviceId && r.correlationId == update.correlationId)
+          .map { r => UpdateEcuResult(r.resultCode, r.success, r.description) }
       )
     }
 
@@ -325,6 +340,8 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
     val io = for {
       updates <- updatesRepository.findAction(ns, deviceId, offset, limit)
       updateTargets <- findUpdateEcuTargets(updates)
+      ids = updates.values.map(_.correlationId).toSet
+      deviceResults <- InstallationReportRepository.fetchManyByDevice(deviceId, ids)
     } yield updateTargets.map { case (update, targets) =>
       UpdateResponse(
         update.id,
@@ -332,7 +349,10 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         update.createdAt,
         scheduledFor = update.scheduledFor,
         packages = targets.view.mapValues(_.filename).toMap,
-        completedAt = update.completedAt
+        completedAt = update.completedAt,
+        deviceResult = deviceResults
+          .find(r => r.deviceId == update.deviceId && r.correlationId == update.correlationId)
+          .map { r => UpdateEcuResult(r.resultCode, r.success, r.description) }
       )
     }
 
@@ -358,7 +378,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
           event.deviceTime,
           event.receivedAt,
           event.payload.hcursor.downField("success").as[Boolean].toOption,
-          event.ecu,
+          event.ecu
         )
       }
     }

@@ -39,7 +39,7 @@ class DeviceInstallationReportListenerSpec
     listener.apply(message).futureValue shouldBe (())
 
     val expectedDeviceReports =
-      Seq(
+      Option(
         DeviceInstallationResult(
           correlationId,
           message.result.code,
@@ -50,11 +50,11 @@ class DeviceInstallationReportListenerSpec
         )
       )
     val deviceReports =
-      db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
+      db.run(InstallationReportRepository.fetchDeviceInstallationResultByCorrelationId(deviceUuid, correlationId))
     deviceReports.futureValue shouldBe expectedDeviceReports
 
     val expectedEcuReports = message.ecuReports.map { case (ecuId, ecuReport) =>
-      EcuInstallationResult(
+      ecuId -> EcuInstallationResult(
         correlationId,
         ecuReport.result.code,
         deviceUuid,
@@ -62,7 +62,7 @@ class DeviceInstallationReportListenerSpec
         ecuReport.result.success,
         ecuReport.result.description.value.some
       )
-    }.toSeq
+    }
     val ecuReports =
       db.run(InstallationReportRepository.fetchEcuInstallationReport(deviceUuid, correlationId))
     ecuReports.futureValue shouldBe expectedEcuReports
@@ -71,7 +71,7 @@ class DeviceInstallationReportListenerSpec
     listener.apply(message).futureValue shouldBe (())
 
     val deviceReportsAgain =
-      db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
+      db.run(InstallationReportRepository.fetchDeviceInstallationResultByCorrelationId(deviceUuid, correlationId))
     deviceReportsAgain.futureValue shouldBe expectedDeviceReports
     val ecuReportsAgain =
       db.run(InstallationReportRepository.fetchEcuInstallationReport(deviceUuid, correlationId))
@@ -90,7 +90,7 @@ class DeviceInstallationReportListenerSpec
     listener.apply(messageFailed).futureValue shouldBe (())
 
     val expectedDeviceReportsFailed =
-      Seq(
+      Option(
         DeviceInstallationResult(
           correlationId,
           messageFailed.result.code,
@@ -101,7 +101,7 @@ class DeviceInstallationReportListenerSpec
         )
       )
     val expectedDeviceReportsSuccess =
-      Seq(
+      Option(
         DeviceInstallationResult(
           correlationId,
           messageSuccess.result.code,
@@ -113,13 +113,13 @@ class DeviceInstallationReportListenerSpec
       )
 
     val deviceReports =
-      db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
+      db.run(InstallationReportRepository.fetchDeviceInstallationResultByCorrelationId(deviceUuid, correlationId))
     deviceReports.futureValue shouldBe expectedDeviceReportsFailed
 
     listener.apply(messageSuccess).futureValue shouldBe (())
 
     val deviceReportsAgain =
-      db.run(InstallationReportRepository.fetchDeviceInstallationResult(correlationId))
+      db.run(InstallationReportRepository.fetchDeviceInstallationResultByCorrelationId(deviceUuid, correlationId))
     deviceReportsAgain.futureValue shouldBe expectedDeviceReportsSuccess
 
   }
