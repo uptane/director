@@ -966,16 +966,17 @@ protected class DeviceManifestRepository()(implicit db: Database, ec: ExecutionC
 
     val deleteSql =
       sql"""
-         DELETE FROM device_manifests
-         WHERE (device_id, checksum) IN (
+         DELETE dm1
+         FROM device_manifests AS dm1
+         JOIN (
            SELECT device_id, checksum
            FROM (
              SELECT device_id, checksum, ROW_NUMBER() OVER (PARTITION BY device_id ORDER BY received_at DESC) as row_num
              FROM device_manifests
              WHERE device_id IN (#$deviceIdStr)
            ) ranked
-          WHERE row_num > 200
-        )
+          WHERE ranked.row_num > 200
+        ) AS dm2 USING (device_id, checksum)
         """.asUpdate
 
     Schema.deviceManifests
