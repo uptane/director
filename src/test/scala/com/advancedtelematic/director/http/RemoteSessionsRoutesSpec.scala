@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.http
 
 import eu.timepit.refined.auto.*
-import akka.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.Generators
@@ -21,7 +21,7 @@ import com.advancedtelematic.libtuf.data.ClientDataType.{
 }
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{RoleType, SignedPayload}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import io.circe.syntax.*
 
 import java.time.Instant

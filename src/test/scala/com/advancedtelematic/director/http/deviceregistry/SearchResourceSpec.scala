@@ -1,8 +1,8 @@
 package com.advancedtelematic.director.http.deviceregistry
 
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.StatusCodes.*
-import akka.http.scaladsl.model.Uri.Query
+import org.apache.pekko.http.scaladsl.model.HttpRequest
+import org.apache.pekko.http.scaladsl.model.StatusCodes.*
+import org.apache.pekko.http.scaladsl.model.Uri.Query
 import cats.syntax.option.*
 import com.advancedtelematic.director.data.Generators.GenHardwareIdentifier
 import com.advancedtelematic.director.db.deviceregistry.TaggedDeviceRepository
@@ -21,7 +21,7 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.{ErrorCodes, ErrorRepresentation, PaginationResult}
 import com.advancedtelematic.libats.http.HttpOps.HttpRequestOps
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 
 

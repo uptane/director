@@ -9,15 +9,15 @@
 package com.advancedtelematic.director.http.deviceregistry
 
 import com.advancedtelematic.libats.codecs.CirceRefined.*
-import akka.http.scaladsl.model.*
-import akka.http.scaladsl.model.headers.*
-import akka.http.scaladsl.server.*
-import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
-import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
-import akka.stream.Materializer
-import akka.stream.alpakka.csv.scaladsl.{CsvParsing, CsvToMap}
-import akka.stream.scaladsl.{Sink, Source}
-import akka.util.ByteString
+import org.apache.pekko.http.scaladsl.model.*
+import org.apache.pekko.http.scaladsl.model.headers.*
+import org.apache.pekko.http.scaladsl.server.*
+import org.apache.pekko.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
+import org.apache.pekko.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.connectors.csv.scaladsl.{CsvParsing, CsvToMap}
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.util.ByteString
 import cats.syntax.either.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.db.deviceregistry.*
@@ -39,7 +39,7 @@ import com.advancedtelematic.director.http.deviceregistry.Errors.{Codes, Missing
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace, ResultCode}
 import com.advancedtelematic.libats.http.Errors.JsonError
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
-import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+import com.advancedtelematic.libats.http.UUIDKeyPekko.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, Event, EventType}
@@ -62,7 +62,7 @@ import scala.util.Failure
 import com.advancedtelematic.libats.data.PaginationResult.*
 
 object DevicesResource {
-  import akka.http.scaladsl.server.PathMatchers.Segment
+  import org.apache.pekko.http.scaladsl.server.PathMatchers.Segment
 
   type EventPayload = (DeviceId, Instant) => Event
 
@@ -144,7 +144,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
   import Directives.*
   import StatusCodes.*
   import com.advancedtelematic.libats.http.AnyvalMarshallingSupport.*
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+  import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 
   val extractPackageId: Directive1[PackageId] =
     pathPrefix(Segment / Segment).as(PackageId.apply)

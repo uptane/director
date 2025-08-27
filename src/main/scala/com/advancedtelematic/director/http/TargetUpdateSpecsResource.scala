@@ -1,11 +1,11 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.*
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.server.*
 import com.advancedtelematic.director.data.AdminDataType.TargetUpdateSpec
 import slick.jdbc.MySQLProfile.api.Database
-import com.advancedtelematic.libats.http.UUIDKeyAkka.*
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.advancedtelematic.libats.http.UUIDKeyPekko.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.TargetSpecId
 import com.advancedtelematic.director.db.TargetUpdateSpecs

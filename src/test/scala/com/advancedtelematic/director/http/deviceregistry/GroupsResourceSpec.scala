@@ -9,9 +9,9 @@
 package com.advancedtelematic.director.http.deviceregistry
 
 import com.advancedtelematic.libats.data.PaginationResult.*
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.StatusCodes.*
-import akka.http.scaladsl.model.Uri.Query
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes.*
+import org.apache.pekko.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
@@ -45,7 +45,7 @@ class GroupsResourceSpec
     with ResourceSpec
     with RegistryDeviceRequests
     with GroupRequests {
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+  import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 
   private val limit = 30
 

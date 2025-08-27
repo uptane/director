@@ -3,7 +3,7 @@ package com.advancedtelematic.director.http
 import com.advancedtelematic.libats.data.PaginationResult.*
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import akka.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.ClientDataType
@@ -24,7 +24,7 @@ import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.{RootRole, TargetsRole}
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload, TargetFilename, TufKey, TufKeyPair}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import org.scalactic.source.Position
 import org.scalatest.Assertion
 import io.circe.syntax.*

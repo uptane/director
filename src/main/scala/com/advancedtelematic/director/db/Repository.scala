@@ -15,7 +15,7 @@ import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import slick.jdbc.MySQLProfile.api.*
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import cats.data.NonEmptyList
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update, UpdateId}
 import com.advancedtelematic.director.db.AdminRolesRepository.{Deleted, FindLatestResult, NotDeleted}

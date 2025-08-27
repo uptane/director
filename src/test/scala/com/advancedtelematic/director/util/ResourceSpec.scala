@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.util
 
-import akka.http.scaladsl.server.*
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import org.apache.pekko.http.scaladsl.server.*
+import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 import com.advancedtelematic.director.client.FakeKeyserverClient
 import com.advancedtelematic.director.http.DirectorRoutes
 import com.advancedtelematic.libats.data.DataType.Namespace

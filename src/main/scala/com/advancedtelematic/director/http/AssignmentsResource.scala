@@ -1,23 +1,24 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.*
-import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
+import org.apache.pekko.http.scaladsl.marshalling.ToResponseMarshallable
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.server.*
+import org.apache.pekko.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
 import cats.implicits.*
 import com.advancedtelematic.director.data.AdminDataType.AssignUpdateRequest
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.TargetSpecId
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
 import com.advancedtelematic.libats.data.DataType.Namespace
-import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+import com.advancedtelematic.libats.http.UUIDKeyPekko.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceUpdateAssigned,
   DeviceUpdateEvent
 }
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
+import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshaller
 import slick.jdbc.MySQLProfile.api.Database
 
 import java.time.Instant
@@ -48,14 +49,12 @@ class AssignmentsResource(extractNamespace: Directive1[Namespace])(
     }
   }
 
-  private implicit val TargetSpecIdUnmarshaller
-    : akka.http.scaladsl.unmarshalling.Unmarshaller[String, TargetSpecId] =
+  private implicit val TargetSpecIdUnmarshaller: Unmarshaller[String, TargetSpecId] =
     TargetSpecId.unmarshaller
 
-  private implicit val deviceIdUnmarshaller: akka.http.scaladsl.unmarshalling.Unmarshaller[
-    String,
-    com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-  ] = DeviceId.unmarshaller
+  private implicit val deviceIdUnmarshaller
+    : Unmarshaller[String, com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId] =
+    DeviceId.unmarshaller
 
   val route = extractNamespace { ns =>
     pathPrefix("assignments") {

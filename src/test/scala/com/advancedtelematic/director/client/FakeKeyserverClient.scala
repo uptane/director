@@ -5,7 +5,7 @@ import io.circe.Codec
 import java.security.PublicKey
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import com.advancedtelematic.libtuf.crypt.TufCrypto
 import com.advancedtelematic.libtuf.data.ClientCodecs._
 import com.advancedtelematic.libtuf.data.ClientDataType.{RoleKeys, RootRole, TufRole}

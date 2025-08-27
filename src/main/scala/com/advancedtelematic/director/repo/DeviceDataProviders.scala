@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.repo
 
-import akka.http.scaladsl.model.Uri
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.model.Uri
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import cats.implicits._
 import com.advancedtelematic.director.data.Codecs._
 import com.advancedtelematic.director.data.DataType.{

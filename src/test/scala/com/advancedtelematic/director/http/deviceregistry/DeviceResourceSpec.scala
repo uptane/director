@@ -8,9 +8,9 @@
 
 package com.advancedtelematic.director.http.deviceregistry
 
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.StatusCodes.*
-import akka.http.scaladsl.model.Uri.Query
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes.*
+import org.apache.pekko.http.scaladsl.model.Uri.Query
 import cats.syntax.either.*
 import cats.syntax.option.*
 import cats.syntax.show.*
@@ -65,7 +65,7 @@ class DeviceResourceSpec
 
   import Device.*
   import com.advancedtelematic.director.deviceregistry.data.GeneratorOps.*
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+  import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 
   private implicit val exec: scala.concurrent.ExecutionContextExecutor = system.dispatcher
 

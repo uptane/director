@@ -1,9 +1,9 @@
 package com.advancedtelematic.director.http
 
 import com.advancedtelematic.libats.data.PaginationResult.*
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.*
-import akka.http.scaladsl.server.Directives.*
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.server.*
+import org.apache.pekko.http.scaladsl.server.Directives.*
 import cats.syntax.option.*
 import com.advancedtelematic.director.data.AdminDataType.{FindImageCount, RegisterDevice}
 import com.advancedtelematic.director.data.ClientDataType.*
@@ -17,7 +17,7 @@ import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
 import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
-import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+import com.advancedtelematic.libats.http.UUIDKeyPekko.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, ValidEcuIdentifier}
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
@@ -38,7 +38,7 @@ import com.advancedtelematic.libtuf.data.TufDataType.{
 }
 import com.advancedtelematic.libtuf_server.data.Marshalling.jsonSignedPayloadMarshaller
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant

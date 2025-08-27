@@ -1,12 +1,12 @@
 package com.advancedtelematic.director.daemon
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.kafka.CommitterSettings
-import akka.kafka.ConsumerMessage.{CommittableMessage, CommittableOffsetBatch}
-import akka.kafka.scaladsl.Committer
-import akka.stream.scaladsl.{Flow, RestartSource, Sink}
-import akka.stream.{Attributes, RestartSettings}
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.kafka.CommitterSettings
+import org.apache.pekko.kafka.ConsumerMessage.{CommittableMessage, CommittableOffsetBatch}
+import org.apache.pekko.kafka.scaladsl.Committer
+import org.apache.pekko.stream.scaladsl.{Flow, RestartSource, Sink}
+import org.apache.pekko.stream.{Attributes, RestartSettings}
 import com.advancedtelematic.director.VersionInfo
 import com.advancedtelematic.director.data.Messages
 import com.advancedtelematic.director.data.Messages.{

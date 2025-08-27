@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.Show
 import cats.data.{NonEmptyList, NonEmptySet}
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, UpdateId}

@@ -11,7 +11,7 @@ package com.advancedtelematic.director.db.deviceregistry
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import akka.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
 import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, MultiTargetUpdateCorrelationId, TargetSpecCorrelationId}
@@ -30,7 +30,7 @@ import io.circe.{Decoder, Json}
 import org.scalacheck.{Arbitrary, Gen, Shrink}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.SpanSugar.*
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import org.scalatest.time.{Millis, Seconds, Span}
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.*
 import eu.timepit.refined.refineMV

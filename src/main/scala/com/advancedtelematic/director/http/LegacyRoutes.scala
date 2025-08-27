@@ -1,18 +1,18 @@
 package com.advancedtelematic.director.http
 
 import java.time.Instant
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives.*
-import akka.http.scaladsl.server.{Directive1, Route}
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.server.Directives.*
+import org.apache.pekko.http.scaladsl.server.{Directive1, Route}
 import com.advancedtelematic.director.data.DataType.TargetSpecId
 import com.advancedtelematic.director.db.{EcuRepositorySupport, ProvisionedDeviceRepositorySupport}
 import com.advancedtelematic.director.http.PaginationParametersDirectives.*
 import com.advancedtelematic.libats.data.DataType.{MultiTargetUpdateCorrelationId, Namespace}
-import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+import com.advancedtelematic.libats.http.UUIDKeyPekko.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateAssigned, DeviceUpdateEvent}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import slick.jdbc.MySQLProfile.api.*
 
 import scala.concurrent.{ExecutionContext, Future}

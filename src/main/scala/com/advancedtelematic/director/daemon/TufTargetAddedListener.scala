@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.daemon
 
-import akka.http.scaladsl.model.Uri
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.model.Uri
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, EcuTarget, EcuTargetId}
 import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, AutoUpdateDefinitionRepositorySupport, EcuTargetsRepositorySupport, ProvisionedDeviceRepositorySupport}
 import com.advancedtelematic.libats.data.DataType.{AutoUpdateId, Namespace}
