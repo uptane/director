@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.db
 
-import akka.http.scaladsl.model.Uri
+import org.apache.pekko.http.scaladsl.model.Uri
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update, UpdateId}
 import com.advancedtelematic.director.data.DbDataType.*
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, Namespace}

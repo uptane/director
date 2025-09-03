@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.AdminDataType.{TargetUpdateRequest, TargetUpdateSpec}
@@ -35,7 +35,7 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceUpdateCompleted,
   DeviceUpdateEvent
 }
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import io.circe.syntax.*
 import org.scalatest.EitherValues.*

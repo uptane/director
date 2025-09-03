@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.daemon
 
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.{Flow, Sink, Source}
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*

@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.AdminDataType.TargetUpdateSpec
 import com.advancedtelematic.director.data.Codecs.*
@@ -12,7 +12,7 @@ import com.advancedtelematic.director.util.{DirectorSpec, NamespacedTests, Resou
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import org.scalactic.source.Position
 
 import java.time.Instant

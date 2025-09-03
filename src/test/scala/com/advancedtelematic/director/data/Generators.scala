@@ -2,7 +2,7 @@ package com.advancedtelematic.director.data
 
 import org.scalacheck.Gen
 import GeneratorOps.*
-import akka.http.scaladsl.model.Uri
+import org.apache.pekko.http.scaladsl.model.Uri
 import com.advancedtelematic.director.data.AdminDataType.{RegisterEcu, TargetUpdate, TargetUpdateRequest, TargetUpdateSpec}
 import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationItem, InstallationReport, MissingInstallationReport}
 import com.advancedtelematic.director.data.UptaneDataType.*

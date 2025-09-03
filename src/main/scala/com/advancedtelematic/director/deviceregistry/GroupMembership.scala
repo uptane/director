@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.deviceregistry
 
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import com.advancedtelematic.director.db.deviceregistry.{GroupInfoRepository, GroupMemberRepository, SearchDBIO}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult

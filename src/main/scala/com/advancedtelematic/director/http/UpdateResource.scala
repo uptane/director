@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.{Directive1, Route}
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.server.{Directive1, Route}
 import cats.implicits.*
 import com.advancedtelematic.director.data.AdminDataType.{TargetUpdateRequest, TargetUpdateSpec}
 import com.advancedtelematic.director.data.Codecs.*
@@ -10,7 +10,7 @@ import com.advancedtelematic.director.db.UpdatesDBIO
 import com.advancedtelematic.director.http.PaginationParametersDirectives.PaginationParameters
 import com.advancedtelematic.libats.data.DataType.{Namespace, ResultCode}
 import com.advancedtelematic.libats.data.ErrorRepresentation
-import com.advancedtelematic.libats.http.UUIDKeyAkka.UUIDKeyPathOp
+import com.advancedtelematic.libats.http.UUIDKeyPekko.UUIDKeyPathOp
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, EventType}
 import com.advancedtelematic.libats.messaging_datatype.Messages.{
@@ -19,7 +19,7 @@ import com.advancedtelematic.libats.messaging_datatype.Messages.{
   DeviceUpdateEvent
 }
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, TargetFilename}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant
@@ -68,7 +68,7 @@ class UpdateResource(extractNamespace: Directive1[Namespace])(
   val ec: ExecutionContext,
   val messageBusPublisher: MessageBusPublisher) {
 
-  import akka.http.scaladsl.server.Directives.*
+  import org.apache.pekko.http.scaladsl.server.Directives.*
 
   private val updates = new UpdatesDBIO()
 

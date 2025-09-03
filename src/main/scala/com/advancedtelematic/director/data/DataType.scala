@@ -3,8 +3,8 @@ package com.advancedtelematic.director.data
 import java.security.PublicKey
 import java.time.{Duration, Instant}
 import java.util.UUID
-import akka.http.scaladsl.model.Uri
-import akka.http.scaladsl.server.PathMatcher
+import org.apache.pekko.http.scaladsl.model.Uri
+import org.apache.pekko.http.scaladsl.server.PathMatcher
 import cats.implicits.*
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update}
 import com.advancedtelematic.director.data.DbDataType.Ecu

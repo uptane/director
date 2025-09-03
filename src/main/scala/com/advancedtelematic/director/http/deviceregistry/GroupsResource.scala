@@ -8,15 +8,15 @@
 
 package com.advancedtelematic.director.http.deviceregistry
 
-import akka.http.scaladsl.marshalling.Marshaller.*
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.*
-import akka.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
-import akka.http.scaladsl.util.FastFuture
-import akka.stream.Materializer
-import akka.stream.scaladsl.Framing.FramingException
-import akka.stream.scaladsl.{Framing, Sink, Source}
-import akka.util.ByteString
+import org.apache.pekko.http.scaladsl.marshalling.Marshaller.*
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.server.*
+import org.apache.pekko.http.scaladsl.unmarshalling.{FromStringUnmarshaller, Unmarshaller}
+import org.apache.pekko.http.scaladsl.util.FastFuture
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Framing.FramingException
+import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
+import org.apache.pekko.util.ByteString
 import cats.syntax.either.*
 import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, GroupInfoRepository, GroupMemberRepository}
 import com.advancedtelematic.director.deviceregistry.data.*
@@ -32,7 +32,7 @@ import com.advancedtelematic.director.http.PaginationParametersDirectives.Pagina
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import io.circe.{Codec, Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
 import slick.jdbc.MySQLProfile.api.*
 
@@ -62,8 +62,8 @@ object DeviceGroupStats {
 
 }
 
-import akka.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
-import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+import org.apache.pekko.http.scaladsl.unmarshalling.PredefinedFromStringUnmarshallers.CsvSeq
+import com.advancedtelematic.libats.http.UUIDKeyPekko.*
 import GroupId.*
 import io.circe.syntax.*
 

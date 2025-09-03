@@ -3,7 +3,7 @@ package com.advancedtelematic.director.http
 import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDeviceT
 import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
 import org.scalatest.LoneElement.*
-import akka.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.AdminDataType.*
@@ -23,7 +23,7 @@ import com.advancedtelematic.libtuf.data.ClientCodecs.*
 import com.advancedtelematic.libtuf.data.ClientDataType.TargetsRole
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, SignedPayload}
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import org.scalactic.source.Position
 import org.scalatest.Inspectors
 import org.scalatest.OptionValues.*

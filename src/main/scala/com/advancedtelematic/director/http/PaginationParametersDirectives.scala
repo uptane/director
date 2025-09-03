@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.server.{Directive, MalformedQueryParamRejection}
-import akka.http.scaladsl.server.Directives.*
+import org.apache.pekko.http.scaladsl.server.{Directive, MalformedQueryParamRejection}
+import org.apache.pekko.http.scaladsl.server.Directives.*
 import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 
 object PaginationParametersDirectives {

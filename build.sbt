@@ -21,26 +21,26 @@ resolvers += "maven-snapshots"at "https://central.sonatype.com/repository/maven-
 Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
-  val akkaV = "2.8.5"
-  val akkaHttpV = "10.5.2"
-  val tufV = "3.2.13"
+  val pekkoV = "1.1.5"
+  val pekkoHttpV = "1.2.0"
+  val tufV = "5.0.0"
   val scalaTestV = "3.2.19"
   val bouncyCastleV = "1.80"
-  val libatsV = "4.0.0"
+  val libatsV = "5.0.0"
 
   Seq(
-    "com.typesafe.akka" %% "akka-actor" % akkaV,
-    "com.typesafe.akka" %% "akka-stream" % akkaV,
-    "com.typesafe.akka" %% "akka-http" % akkaHttpV,
-    "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpV,
-    "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
-    "com.typesafe.akka" %% "akka-slf4j" % akkaV,
+    "org.apache.pekko" %% "pekko-actor" % pekkoV,
+    "org.apache.pekko" %% "pekko-stream" % pekkoV,
+    "org.apache.pekko" %% "pekko-http" % pekkoHttpV,
+    "org.apache.pekko" %% "pekko-http-testkit" % pekkoHttpV,
+    "org.apache.pekko" %% "pekko-stream-testkit" % pekkoV,
+    "org.apache.pekko" %% "pekko-slf4j" % pekkoV,
     "org.scalatest" %% "scalatest" % scalaTestV % Test,
     "org.scalacheck" %% "scalacheck" % "1.18.1" % Test,
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
     "io.github.uptane" %% "libats-messaging-datatype" % libatsV,
-    "io.github.uptane" %% "libats-metrics-akka" % libatsV,
+    "io.github.uptane" %% "libats-metrics-pekko" % libatsV,
     "io.github.uptane" %% "libats-metrics-prometheus" % libatsV,
     "io.github.uptane" %% "libats-http-tracing" % libatsV,
     "io.github.uptane" %% "libats-slick" % libatsV,
@@ -56,7 +56,7 @@ libraryDependencies ++= {
     "com.beachape" %% "enumeratum-circe" % "1.7.5",
 
     // Device registry specific dependencies
-    "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "2.0.0",
+    "org.apache.pekko" %% "pekko-connectors-csv" % "1.0.0",
     "io.circe" %% "circe-testing" % "0.14.13",
     "tech.sparse" %% "toml-scala" % "0.2.2",
     "org.tpolecat" %% "atto-core" % "0.9.5",

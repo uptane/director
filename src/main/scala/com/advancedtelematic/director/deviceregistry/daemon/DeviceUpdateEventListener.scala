@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.deviceregistry.daemon
 
 import java.time.Instant
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import com.advancedtelematic.director.db.deviceregistry.{
   DeviceRepository,
   InstallationReportRepository

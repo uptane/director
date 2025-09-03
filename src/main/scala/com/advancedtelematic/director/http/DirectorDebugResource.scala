@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.server.{Directives, Route}
+import org.apache.pekko.http.scaladsl.server.{Directives, Route}
 import com.advancedtelematic.director.data.DeviceRequest.DeviceManifest
 import com.advancedtelematic.director.db.{
   CompiledManifestExecutor,
@@ -21,12 +21,12 @@ class DirectorDebugResource()(implicit val db: Database, val ec: ExecutionContex
     extends DeviceManifestRepositorySupport {
 
   import com.advancedtelematic.libats.debug.DebugDatatype.*
-  import com.advancedtelematic.libats.http.UUIDKeyAkka.*
+  import com.advancedtelematic.libats.http.UUIDKeyPekko.*
 
   val debug = new DirectorDbDebug()
 
   import Directives.*
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+  import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 
   val route: Route = DebugRoutes.routes {
     Directives.concat(

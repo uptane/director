@@ -1,10 +1,10 @@
 package com.advancedtelematic.director.daemon
 
-import akka.Done
-import akka.actor.ActorSystem
-import akka.kafka.ConsumerMessage.CommittableMessage
-import akka.stream.scaladsl.{Sink, Source}
-import akka.testkit.TestKitBase
+import org.apache.pekko.Done
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.kafka.ConsumerMessage.CommittableMessage
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.testkit.TestKitBase
 import cats.implicits.toShow
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.GeneratorOps.*

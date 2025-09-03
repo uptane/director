@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.http
 
-import akka.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.AdminDataType.{TargetUpdateSpec, TargetUpdateRequest}
 import com.advancedtelematic.director.data.Codecs.*
@@ -12,7 +12,7 @@ import com.advancedtelematic.libats.codecs.CirceCodecs.*
 import com.advancedtelematic.libats.data.ErrorCodes.MissingEntity
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalatest.OptionValues.*
 

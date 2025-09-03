@@ -1,6 +1,6 @@
 package com.advancedtelematic.director.db
 
-import akka.http.scaladsl.util.FastFuture
+import org.apache.pekko.http.scaladsl.util.FastFuture
 import cats.implicits.toShow
 import com.advancedtelematic.director.data.AdminDataType.{EcuInfoImage, EcuInfoResponse, RegisterEcu}
 import com.advancedtelematic.director.data.UptaneDataType.Hashes

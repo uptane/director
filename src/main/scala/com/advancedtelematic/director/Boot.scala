@@ -1,11 +1,11 @@
 package com.advancedtelematic.director
 
 import com.advancedtelematic.director.http.deviceregistry.TomlSupport.`application/toml`
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.server.{Directives, Route}
-import akka.http.scaladsl.settings.{ParserSettings, ServerSettings}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.http.scaladsl.Http.ServerBinding
+import org.apache.pekko.http.scaladsl.server.{Directives, Route}
+import org.apache.pekko.http.scaladsl.settings.{ParserSettings, ServerSettings}
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository
 import com.advancedtelematic.director.deviceregistry.AllowUUIDPath
 import com.advancedtelematic.director.http.DirectorRoutes
@@ -24,7 +24,7 @@ import com.advancedtelematic.libats.slick.db.{CheckMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.{DatabaseMetrics, DbHealthResource}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverHttpClient
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
-import com.advancedtelematic.metrics.{AkkaHttpConnectionMetrics, AkkaHttpRequestMetrics, MetricsSupport}
+import com.advancedtelematic.metrics.{PekkoHttpConnectionMetrics, PekkoHttpRequestMetrics, MetricsSupport}
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -44,8 +44,8 @@ class DirectorBoot(override val globalConfig: Config,
     with DatabaseSupport
     with MetricsSupport
     with DatabaseMetrics
-    with AkkaHttpRequestMetrics
-    with AkkaHttpConnectionMetrics
+    with PekkoHttpRequestMetrics
+    with PekkoHttpConnectionMetrics
     with PrometheusMetricsSupport
     with CheckMigrations {
 
