@@ -36,7 +36,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaV,
     "com.typesafe.akka" %% "akka-slf4j" % akkaV,
     "org.scalatest" %% "scalatest" % scalaTestV % Test,
-    "org.scalacheck" %% "scalacheck" % "1.18.1" % Test,
+    "org.scalacheck" %% "scalacheck" % "1.19.0" % Test,
     "io.github.uptane" %% "libats" % libatsV,
     "io.github.uptane" %% "libats-messaging" % libatsV,
     "io.github.uptane" %% "libats-messaging-datatype" % libatsV,
