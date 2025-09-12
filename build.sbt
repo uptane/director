@@ -51,7 +51,7 @@ libraryDependencies ++= {
     "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleV,
     "org.scala-lang.modules" %% "scala-async" % "1.0.1",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
-    "org.mariadb.jdbc" % "mariadb-java-client" % "3.5.5",
+    "org.mariadb.jdbc" % "mariadb-java-client" % "3.5.6",
     "com.beachape" %% "enumeratum" % "1.9.0",
     "com.beachape" %% "enumeratum-circe" % "1.9.0",
 
