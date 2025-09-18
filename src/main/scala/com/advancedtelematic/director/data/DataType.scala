@@ -9,6 +9,8 @@ import cats.implicits.*
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update}
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.UptaneDataType.{Hashes, TargetImage}
+import com.advancedtelematic.director.deviceregistry.data.DataType.UpdateTagValue
+import com.advancedtelematic.director.deviceregistry.data.TagId
 import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, Namespace, UpdateCorrelationId, ValidChecksum}
 import com.advancedtelematic.libats.data.UUIDKey.{UUIDKey, UUIDKeyObj, UuidKeyObjTimeBased}
 import com.advancedtelematic.libats.data.PaginationResult
@@ -28,7 +30,7 @@ import com.advancedtelematic.libats.data.RefinedUtils.*
 import com.advancedtelematic.libtuf.data.TufCodecs
 import enumeratum.EnumEntry.Camelcase
 import eu.timepit.refined.boolean.And
-import eu.timepit.refined.collection.Size
+import eu.timepit.refined.collection.{NonEmpty, Size}
 import eu.timepit.refined.generic.Equal
 import eu.timepit.refined.refineV
 import eu.timepit.refined.string.{HexStringSpec, MatchesRegex}
@@ -435,4 +437,14 @@ object ClientDataType {
                                           TargetSpecId: TargetSpecId,
                                           scheduledFor: Instant)
 
+  type ValidTagSearchParam = MatchesRegex["[\\w\\-_]{1,20}+=[\\w\\-_/ ]{1,254}"]
+  type TagSearchParam = Refined[String, ValidTagSearchParam]
+
+  implicit class TagSearchOps(value: TagSearchParam) {
+    // (0) safe because Refined checks Regex
+    def tagId: TagId = TagId(value.value.split("=")(0))
+
+    // (1) safe because Refined checks Regex
+    def tagValue: String = value.value.split("=")(1)
+  }
 }

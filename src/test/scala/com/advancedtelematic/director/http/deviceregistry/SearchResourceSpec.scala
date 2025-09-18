@@ -500,4 +500,43 @@ class SearchResourceSpec
     }
   }
 
+  test("can search by device tag") {
+    val ns = Namespace("search_tag_device")
+
+    val count = 3
+    val deviceTs = genConflictFreeDeviceTs(count).sample.get
+    val ids = deviceTs.map {
+      createDeviceInNamespaceOk(_, ns)
+    }
+
+    val first = deviceTs.head
+    val firstId = ids.head
+    val second = deviceTs(1)
+
+    val csvRows = Seq(
+      Seq(first.deviceId.underlying, "Germany", "Premium"),
+      Seq(second.deviceId.underlying, "China", "Deluxe")
+    )
+
+    postDeviceTags(csvRows, ns = ns) ~> routes ~> check {
+      status shouldBe NoContent
+    }
+
+    val query = Query("tags" -> "market=Germany,trim=pt/not-premium", "sortBy" -> "activatedAt")
+
+    Get(DeviceRegistryResourceUri.uri(api).withQuery(query)).withNs(ns) ~> routes ~> check {
+      status shouldBe OK
+      val result = responseAs[PaginationResult[Device]]
+
+      result.total shouldBe 1
+      result.values.length shouldBe 1
+
+      val firstIndex = result.values.indexWhere(_.uuid == firstId)
+      result.values(firstIndex).attributes shouldEqual Map(
+        TagId("market") -> "Germany",
+        TagId("trim") -> "Premium"
+      )
+    }
+  }
+
 }
