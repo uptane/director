@@ -130,18 +130,9 @@ class SearchResourceSpec
         DeviceRegistryResourceUri.uri("devices"),
         DevicesQuery(Some(deviceOemIds), None)
       ) ~> routes ~> check {
-        status shouldBe NotFound
-        val errResponse = responseAs[ErrorRepresentation]
-        errResponse.code shouldBe Codes.MissingDevice
-        errResponse.cause shouldBe defined
-        val errMap = errResponse.cause
-          .getOrElse(Json.fromString("{}"))
-          .as[Map[String, String]]
-          .getOrElse(Map.empty[String, String])
-        errMap.keys should contain("missingDeviceUuids")
-        errMap.keys should contain("missingOemIds")
-        errMap("missingOemIds") should not be empty
-        errMap("missingDeviceUuids") shouldBe empty
+        status shouldBe OK
+        val resp = responseAs[List[Device]]
+        resp.map(_.deviceId) shouldNot contain(DeviceOemId("not-real-deviceId"))
       }
     }
   }
@@ -161,18 +152,9 @@ class SearchResourceSpec
         DeviceRegistryResourceUri.uri("devices"),
         DevicesQuery(None, Some(deviceUuids))
       ) ~> routes ~> check {
-        status shouldBe NotFound
-        val errResponse = responseAs[ErrorRepresentation]
-        errResponse.code shouldBe Codes.MissingDevice
-        errResponse.cause shouldBe defined
-        val errMap = errResponse.cause
-          .getOrElse(Json.fromString("{}"))
-          .as[Map[String, String]]
-          .getOrElse(Map.empty[String, String])
-        errMap.keys should contain("missingDeviceUuids")
-        errMap.keys should contain("missingOemIds")
-        errMap("missingOemIds") shouldBe empty
-        errMap("missingDeviceUuids") should not be empty
+        status shouldBe OK
+        val resp = responseAs[List[Device]].map(_.deviceId)
+        resp.length shouldBe devices.length
       }
     }
   }
@@ -193,19 +175,10 @@ class SearchResourceSpec
         DeviceRegistryResourceUri.uri("devices"),
         DevicesQuery(Some(deviceOemIds), Some(deviceUuids))
       ) ~> routes ~> check {
-        status shouldBe NotFound
-        val errResponse = responseAs[ErrorRepresentation]
-        errResponse.code shouldBe Codes.MissingDevice
-        errResponse.cause shouldBe defined
-
-        val errMap = errResponse.cause
-          .getOrElse(Json.fromString("{}"))
-          .as[Map[String, String]]
-          .getOrElse(Map.empty[String, String])
-        errMap.keys should contain("missingDeviceUuids")
-        errMap.keys should contain("missingOemIds")
-        errMap("missingOemIds") should not be empty
-        errMap("missingDeviceUuids") should not be empty
+        status shouldBe OK
+        val resp = responseAs[List[Device]].map(_.deviceId)
+        resp.length shouldBe devices.length
+        resp shouldNot contain(DeviceOemId("not-real-deviceId"))
       }
     }
   }
