@@ -288,21 +288,8 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     for {
       foundOemDevices <- db.run(DeviceRepository.findByOemIds(ns, oemDevices))
       foundUuidDevices <- db.run(DeviceRepository.findByDeviceUuids(ns, uuidDevices))
-    } yield {
-      val foundDevices = (foundOemDevices ++ foundUuidDevices).toSet.toList
-      val missingOemDevices =
-        oemDevices.filterNot(expected => foundOemDevices.map(_.deviceId).contains(expected))
-      val missingUuidDevices =
-        uuidDevices.filterNot(expected => foundUuidDevices.map(_.uuid).contains(expected))
-      if (missingOemDevices.nonEmpty || missingUuidDevices.nonEmpty) {
-        val msg = Map(
-          "missingOemIds" -> missingOemDevices.map(_.underlying).mkString(","),
-          "missingDeviceUuids" -> missingUuidDevices.map(_.uuid).mkString(",")
-        )
-        throw JsonError(Codes.MissingDevice, StatusCodes.NotFound, msg.asJson, "Devices not found")
-      }
-      foundDevices.map(DeviceDB.toDevice(_))
-    }
+      foundDevices = (foundOemDevices ++ foundUuidDevices).toSet.toList
+    } yield foundDevices.map(DeviceDB.toDevice(_))
   }
 
   def countDynamicGroupCandidates(ns: Namespace, expression: GroupExpression): Route =
