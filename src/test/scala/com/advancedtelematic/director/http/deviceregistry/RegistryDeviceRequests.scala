@@ -284,6 +284,10 @@ trait RegistryDeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =
     require(tags.map(_.length == headers.length).reduce(_ && _))
 
     val csv = (headers +: tags).map(_.mkString(";")).mkString("\n")
+
+    println(csv)
+
+
     val multipartForm = Multipart.FormData(
       Multipart.FormData.BodyPart.Strict(
         "custom-device-fields",

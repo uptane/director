@@ -20,6 +20,7 @@ import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.apache.pekko.util.ByteString
 import cats.syntax.either.*
 import cats.syntax.show.*
+import com.advancedtelematic.director.data.ClientDataType.TagSearchParam
 import com.advancedtelematic.director.db.deviceregistry.*
 import com.advancedtelematic.director.db.deviceregistry.DbOps.*
 import com.advancedtelematic.director.deviceregistry.data.*
@@ -180,6 +181,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
       Symbol("createdAtStart").as[Instant].?,
       Symbol("createdAtEnd").as[Instant].?,
       Symbol("hardwareIds").as(CsvSeq[HardwareIdentifier]).?,
+      Symbol("tags").as(CsvSeq[TagSearchParam]).?,
       Symbol("sortBy").as[DeviceSortBy].?,
       Symbol("sortDirection").as[SortDirection].?,
     ) & PaginationParameters).as(
@@ -198,6 +200,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
        createdAtStart,
        createdAtEnd,
        hardwareId: Option[Seq[HardwareIdentifier]],
+       tags: Option[Seq[TagSearchParam]],
        sortBy,
        sortDirection,
        offset,
@@ -218,6 +221,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
           createdAtStart,
           createdAtEnd,
           hardwareId.getOrElse(Seq.empty),
+          tags.map(_.toSet).getOrElse(Set.empty),
           sortBy,
           sortDirection,
           offset,

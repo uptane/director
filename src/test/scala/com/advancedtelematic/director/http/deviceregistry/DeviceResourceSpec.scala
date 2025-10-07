@@ -1468,7 +1468,7 @@ class DeviceResourceSpec
     val expression = GroupExpression.from("tag(colour) contains ue").valueOr(throw _)
     val groupId = createDynamicGroupOk(expression = expression)
     val tagId = TagId.from("colour").valueOr(throw _)
-    val newTagId = TagId.from("chromatic spectrum").valueOr(throw _)
+    val newTagId = TagId.from("chromatic-spectrum").valueOr(throw _)
 
     val csvRows = Seq(Seq(deviceT.deviceId.underlying, "Blue"))
 
