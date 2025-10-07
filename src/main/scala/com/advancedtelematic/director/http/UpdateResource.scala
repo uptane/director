@@ -61,6 +61,7 @@ case class UpdateEventResponse(deviceId: DeviceId,
                                eventType: EventType,
                                deviceTime: Instant,
                                receivedAt: Instant,
+                               success: Option[Boolean],
                                ecu: Option[EcuIdentifier])
 
 class UpdateResource(extractNamespace: Directive1[Namespace])(
