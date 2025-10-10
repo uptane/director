@@ -1,5 +1,7 @@
 package com.advancedtelematic.director.db.deviceregistry
 
+import cats.implicits.toShow
+
 import java.time.Instant
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, ResultCode}
 import com.advancedtelematic.libats.data.PaginationResult
@@ -13,7 +15,9 @@ import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.*
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
+import com.advancedtelematic.libats.slick.db.SlickUrnMapper
 import com.advancedtelematic.libats.slick.db.SlickUrnMapper.correlationIdMapper
+import slick.jdbc.GetResult
 import slick.lifted.AbstractTable
 
 import scala.concurrent.ExecutionContext
@@ -61,7 +65,7 @@ object InstallationReportRepository {
       (correlationId, resultCode, deviceUuid, ecuId, success, description) <>
         ((EcuInstallationResult.apply _).tupled, EcuInstallationResult.unapply)
 
-    def pk = primaryKey("pk_ecu_report", (deviceUuid, ecuId))
+    def pk = primaryKey("pk_ecu_report", (correlationId, deviceUuid, ecuId))
   }
 
   private val ecuInstallationResults = TableQuery[EcuInstallationResultTable]
@@ -121,32 +125,62 @@ object InstallationReportRepository {
     implicit ec: ExecutionContext): DBIO[Seq[InstallationStat]] =
     statsQuery(ecuInstallationResults, correlationId)
 
-  def fetchDeviceInstallationResult(
-    correlationId: CorrelationId): DBIO[Seq[DeviceInstallationResult]] =
-    deviceInstallationResults.filter(_.correlationId === correlationId).result
+//  def fetchDeviceInstallationResult(
+//    correlationId: CorrelationId): DBIO[Seq[DeviceInstallationResult]] =
+//    deviceInstallationResults.filter(_.correlationId === correlationId).result
 
-  def fetchDeviceInstallationResultFor(
-    deviceId: DeviceId,
-    correlationId: CorrelationId): DBIO[Seq[DeviceInstallationResult]] =
+  import cats.syntax.either.*
+
+  def fetchManyDevicesInstallationResults(ids: Set[(DeviceId, CorrelationId)]): DBIO[Vector[DeviceInstallationResult]] =  {
+    val idsStr = ids.map { case (d, c) => s"(${d.show}, ${c.toString})"}.mkString(",")
+
+    implicit val getDeviceInstallationResult: GetResult[DeviceInstallationResult] = GetResult { r =>
+      DeviceInstallationResult(
+        correlationId = CorrelationId.fromString(r.nextString()).valueOr(err => throw new IllegalArgumentException(err)),
+        resultCode = ResultCode(r.nextString()),
+        deviceId = DeviceId(java.util.UUID.fromString(r.nextString())),
+        success = r.nextBoolean(),
+        receivedAt = r.nextTimestamp().toInstant,
+        installationReport = io.circe.parser.parse(r.nextString()).getOrElse(Json.Null)
+      )
+    }
+
+    sql"""SELECT correlation_id, result_code, device_uuid, success, received_at FROM #${deviceInstallationResults.baseTableRow.tableName}
+           WHERE (device_id, correlation_id) IN (#$idsStr)
+      """.as[DeviceInstallationResult]
+  }
+
+  def fetchManyByDevice(deviceId: DeviceId, correlationIds: Set[CorrelationId]): DBIO[Seq[DeviceInstallationResult]] =
+    deviceInstallationResults
+      .filter(_.deviceUuid === deviceId)
+      .filter(_.correlationId.inSet(correlationIds))
+      .result
+
+  def fetchDeviceInstallationResultByCorrelationId(deviceId: DeviceId,
+                                                   correlationId: CorrelationId): DBIO[Option[DeviceInstallationResult]] =
     deviceInstallationResults
       .filter(_.deviceUuid === deviceId)
       .filter(_.correlationId === correlationId)
       .result
+      .headOption
 
-  def fetchEcuInstallationReport(deviceId: DeviceId,
-                                 correlationId: CorrelationId): DBIO[Seq[EcuInstallationResult]] =
+  def fetchEcuInstallationReport(deviceId: DeviceId, correlationId: CorrelationId)(
+    implicit ec: ExecutionContext): DBIO[Map[EcuIdentifier, EcuInstallationResult]] =
     ecuInstallationResults
       .filter(_.deviceUuid === deviceId)
       .filter(_.correlationId === correlationId)
       .result
+      .map { seq =>
+        seq.map { res =>
+          res.ecuId -> res
+        }.toMap
+      }
 
   private[db] def queryInstallationHistory(deviceId: DeviceId): Query[Rep[Json], Json, Seq] =
     deviceInstallationResults
       .filter(_.deviceUuid === deviceId)
       .sortBy(_.receivedAt.desc)
-      .map(
-        _.installationReport
-      )
+      .map(_.installationReport)
   // TODO: Returning or even storing an installationReport here doesn't make sense, since it just contains
   // the same as ecuInstallationResults. installationReport is just the serialized form of the DeviceUpdateEvent
   // that originated this deviceInstallationResult

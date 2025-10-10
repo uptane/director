@@ -79,7 +79,13 @@ object DataType {
                                             deviceId: DeviceId,
                                             success: Boolean,
                                             receivedAt: Instant,
-                                            installationReport: Json)
+                                            installationReport: Json) {
+
+    // TODO: parse this when writing to db (migrate old rows)
+    def description: Option[String] =
+      installationReport.hcursor.downField("result").downField("description").as[String].toOption
+
+  }
 
   final case class EcuInstallationResult(correlationId: CorrelationId,
                                          resultCode: ResultCode,

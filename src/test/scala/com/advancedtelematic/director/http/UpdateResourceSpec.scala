@@ -173,7 +173,7 @@ class UpdateResourceSpec
     updateDetail.updateId shouldBe updateId
     updateDetail.status shouldBe Update.Status.Assigned
     updateDetail.packages should contain(device.primary.hardwareId -> targetUpdate.to.target)
-    updateDetail.results shouldBe empty
+    updateDetail.ecuResults shouldBe empty
   }
 
   testWithRepo("update details include results when update is completed") { implicit ns =>
@@ -216,12 +216,12 @@ class UpdateResourceSpec
     updateDetail.status shouldBe Update.Status.Completed
     updateDetail.completedAt shouldNot be(empty)
 
-    val resultForPrimaryEcu = updateDetail.results.get(device.primary.ecuSerial).value
+    val resultForPrimaryEcu = updateDetail.ecuResults.get(device.primary.ecuSerial).value
     resultForPrimaryEcu.success shouldBe true
     resultForPrimaryEcu.hardwareId shouldBe hardwareId
     resultForPrimaryEcu.id shouldBe targetUpdate.to.target
 
-    val ecuReport = resultForPrimaryEcu.reports.loneElement
+    val ecuReport = resultForPrimaryEcu.result.value
     ecuReport.success shouldBe true
     ecuReport.description shouldBe defined
     ecuReport.description.value shouldBe installationReport.result.description.value
@@ -272,18 +272,18 @@ class UpdateResourceSpec
     updateDetail.updateId shouldBe updateId
     updateDetail.status shouldBe Update.Status.PartiallyCompleted
 
-    val resultForPrimaryEcu = updateDetail.results.get(device.primary.ecuSerial).value
+    val resultForPrimaryEcu = updateDetail.ecuResults.get(device.primary.ecuSerial).value
     resultForPrimaryEcu.success shouldBe true
     resultForPrimaryEcu.hardwareId shouldBe primaryHwId
     resultForPrimaryEcu.id shouldBe primaryTarget.to.target
 
-    val ecuReport = resultForPrimaryEcu.reports.loneElement
+    val ecuReport = resultForPrimaryEcu.result.value
     ecuReport.success shouldBe true
     ecuReport.resultCode shouldBe installationReport.result.code
     ecuReport.description.value shouldBe installationReport.result.description.value
 
     // Secondary ECU should not have a result yet
-    (updateDetail.results shouldNot contain).key(device.secondaries.keys.head)
+    (updateDetail.ecuResults shouldNot contain).key(device.secondaries.keys.head)
   }
 
   testWithRepo("returns 404 when update ID doesn't exist") { implicit ns =>
