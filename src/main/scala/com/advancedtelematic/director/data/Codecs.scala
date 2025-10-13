@@ -17,7 +17,7 @@ import com.advancedtelematic.director.http.{
   RemoteCommandRequest,
   RemoteSessionRequest,
   UpdateDetailResponse,
-  UpdateEcuResult,
+  UpdateReportedResult,
   UpdateEventResponse,
   UpdateResponse,
   UpdateResultResponse
@@ -188,7 +188,7 @@ object Codecs {
 
   implicit val createDeviceUpdateRequestCodec: Codec[CreateDeviceUpdateRequest] = deriveCodec
 
-  implicit val updateEcuResultCodec: Codec[UpdateEcuResult] = deriveCodec[UpdateEcuResult]
+  implicit val updateEcuResultCodec: Codec[UpdateReportedResult] = deriveCodec[UpdateReportedResult]
 
   implicit val updateDetailResponseCodec: Codec[UpdateDetailResponse] =
     deriveCodec[UpdateDetailResponse]
