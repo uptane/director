@@ -363,6 +363,8 @@ object DataType {
 
       case object Assigned extends Status
 
+      case object Seen extends Status
+
       case object PartiallyCompleted extends Status
 
       case object Cancelled extends Status

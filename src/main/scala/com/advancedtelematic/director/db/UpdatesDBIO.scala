@@ -54,7 +54,12 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
              deviceId: DeviceId,
              allowInFlightCancellation: Boolean): Future[CorrelationId] = {
     val io = for {
-      ids <- updatesRepository.cancelUpdateAction(ns, updateId, Option(deviceId))
+      ids <- updatesRepository.cancelUpdateAction(
+        ns,
+        updateId,
+        Option(deviceId),
+        allowInFlightCancellation
+      )
       assignmentsToCancelQuery = Schema.assignments
         .filter(_.deviceId === deviceId)
         .filter(_.correlationId.inSet(ids.map(_._1).toList.toSet))
@@ -131,7 +136,12 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
   def cancelAll(ns: Namespace,
                 updateId: UpdateId): Future[NonEmptyList[(CorrelationId, DeviceId)]] = {
     val io = for {
-      updatesCorrelationIds <- updatesRepository.cancelUpdateAction(ns, updateId, deviceId = None)
+      updatesCorrelationIds <- updatesRepository.cancelUpdateAction(
+        ns,
+        updateId,
+        deviceId = None,
+        allowInFlightCancellation = false
+      )
       query = Schema.assignments
         .filter(_.deviceId.inSet(updatesCorrelationIds.map(_._2).toList.toSet))
         .filter(_.correlationId.inSet(updatesCorrelationIds.map(_._1).toList.toSet))
@@ -303,7 +313,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         .filter(_.namespace === ns)
         .distinctOn(_.id)
         .paginateResult(offset, limit)
-      ids = updates.values.map { u => u.deviceId -> u.correlationId }.toSet
+      ids = updates.values.map(u => u.deviceId -> u.correlationId).toSet
       deviceResults <- InstallationReportRepository.fetchManyDevicesInstallationResults(ids)
       updateTargets <- findUpdateEcuTargets(updates)
     } yield updateTargets.map { case (update, targets) =>
