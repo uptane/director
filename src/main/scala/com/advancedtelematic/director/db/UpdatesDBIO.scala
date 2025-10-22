@@ -17,7 +17,7 @@ import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateRes
 import com.advancedtelematic.director.http.{
   Errors,
   UpdateDetailResponse,
-  UpdateEcuResult,
+  UpdateReportedResult,
   UpdateEventResponse,
   UpdateResponse,
   UpdateResultResponse
@@ -203,6 +203,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
       scheduledFor = update.scheduledFor,
       packages = targets.view.mapValues(_.filename).toMap,
       completedAt = update.completedAt,
+      deviceResult = deviceInstallationReport.map { r => UpdateReportedResult(r.resultCode, r.success, r.description) },
       ecuResults = targets.flatMap { case (hwId, ecuTarget) =>
         val processedAssignment = processedAssignments.find(a => a.ecuTargetId == ecuTarget.id)
 
@@ -224,7 +225,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
               val ecuReportOnDeviceReport =
                 ecuReportsOnDeviceReport.get(er.ecuId).map(_.result.description.value)
               val desc = er.description.orElse(ecuReportOnDeviceReport)
-              UpdateEcuResult(er.resultCode, er.success, desc)
+              UpdateReportedResult(er.resultCode, er.success, desc)
             }
 
           pa.ecuId -> UpdateResultResponse(
@@ -315,7 +316,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         completedAt = update.completedAt,
         deviceResult = deviceResults
           .find(r => r.deviceId == update.deviceId && r.correlationId == update.correlationId)
-          .map { r => UpdateEcuResult(r.resultCode, r.success, r.description) }
+          .map { r => UpdateReportedResult(r.resultCode, r.success, r.description) }
       )
     }
 
@@ -352,7 +353,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         completedAt = update.completedAt,
         deviceResult = deviceResults
           .find(r => r.deviceId == update.deviceId && r.correlationId == update.correlationId)
-          .map { r => UpdateEcuResult(r.resultCode, r.success, r.description) }
+          .map { r => UpdateReportedResult(r.resultCode, r.success, r.description) }
       )
     }
 
