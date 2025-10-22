@@ -115,6 +115,30 @@ class UpdateResourceSpec
     targetItemCustom.get.ecuIdentifiers.keys.head shouldBe device.ecus.keys.head
   }
 
+  testWithRepo("update moves to Seen when devices sees the update in targets.json") { implicit ns =>
+    val device = registerAdminDeviceOk()
+    val hardwareId = device.primary.hardwareId
+    val targetUpdate = GenTargetUpdate.generate
+    val targetRequest = TargetUpdateRequest(None, targetUpdate)
+    val createRequest = CreateUpdateRequest(
+      targets = Map(hardwareId -> targetRequest),
+      devices = Seq(device.deviceId)
+    )
+
+    createManyUpdates(createRequest) {
+      status shouldBe StatusCodes.OK
+    }
+
+    val targets = getTargetsOk(device.deviceId)
+    targets.signed.targets should not be empty
+
+    val updates = listUpdatesOK(device.deviceId)
+    val update = updates.values.loneElement
+
+    update.status shouldBe Update.Status.Seen
+  }
+
+
   testWithRepo("update is marked as completed when device reports successful installation") {
     implicit ns =>
       val device = registerAdminDeviceOk()
@@ -572,7 +596,7 @@ class UpdateResourceSpec
       ).namespaced ~> routes ~> check {
         status shouldBe StatusCodes.Conflict
         val error = responseAs[ErrorRepresentation]
-        error.code.code shouldBe "assignment_in_flight_devices"
+        error.code.code shouldBe "update_cannot_be_cancelled"
       }
 
       Patch(apiUri(s"updates/devices/${device.deviceId.show}/${updateId.show}"))
