@@ -17,8 +17,8 @@ import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateRes
 import com.advancedtelematic.director.http.{
   Errors,
   UpdateDetailResponse,
-  UpdateReportedResult,
   UpdateEventResponse,
+  UpdateReportedResult,
   UpdateResponse,
   UpdateResultResponse
 }
@@ -196,6 +196,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
       _ <- assignmentsRepository.findByCorrelationIdsAction(ns, Set(update.correlationId))
       processedAssignments <- assignmentsRepository.findAllProcessedByCorrelatioIds(
         ns,
+        deviceId,
         Set(update.correlationId)
       )
       ecuReports <- InstallationReportRepository.fetchEcuInstallationReport(
@@ -204,8 +205,6 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
       )
       deviceInstallationReport <- InstallationReportRepository
         .fetchDeviceInstallationResultByCorrelationId(deviceId, update.correlationId)
-        .map(_.headOption)
-
     } yield UpdateDetailResponse(
       update.id,
       update.status,
@@ -213,9 +212,13 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
       scheduledFor = update.scheduledFor,
       packages = targets.view.mapValues(_.filename).toMap,
       completedAt = update.completedAt,
-      deviceResult = deviceInstallationReport.map { r => UpdateReportedResult(r.resultCode, r.success, r.description) },
+      deviceResult = deviceInstallationReport.map { r =>
+        UpdateReportedResult(r.resultCode, r.success, r.description)
+      },
       ecuResults = targets.flatMap { case (hwId, ecuTarget) =>
-        val processedAssignment = processedAssignments.find(a => a.ecuTargetId == ecuTarget.id)
+        val processedAssignment = processedAssignments.find(a =>
+          a.correlationId == update.correlationId && a.ecuTargetId == ecuTarget.id
+        )
 
         // `.description` is only in ecuReport for newer updates, so we need to fetch it from
         // deviceInstallationReport.installationReport.ecuReports[ecuId].result.description
@@ -326,7 +329,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         completedAt = update.completedAt,
         deviceResult = deviceResults
           .find(r => r.deviceId == update.deviceId && r.correlationId == update.correlationId)
-          .map { r => UpdateReportedResult(r.resultCode, r.success, r.description) }
+          .map(r => UpdateReportedResult(r.resultCode, r.success, r.description))
       )
     }
 
@@ -363,7 +366,7 @@ class UpdatesDBIO()(implicit val db: Database, val ec: ExecutionContext)
         completedAt = update.completedAt,
         deviceResult = deviceResults
           .find(r => r.deviceId == update.deviceId && r.correlationId == update.correlationId)
-          .map { r => UpdateReportedResult(r.resultCode, r.success, r.description) }
+          .map(r => UpdateReportedResult(r.resultCode, r.success, r.description))
       )
     }
 

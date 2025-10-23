@@ -554,9 +554,11 @@ protected class AssignmentsRepository()(implicit val db: Database, val ec: Execu
 
   protected[db] def findAllProcessedByCorrelatioIds(
     ns: Namespace,
+    deviceId: DeviceId,
     correlationIds: Set[CorrelationId]): DBIO[Seq[ProcessedAssignment]] =
     Schema.processedAssignments
       .filter(_.namespace === ns)
+      .filter(_.deviceId === deviceId)
       .filter(_.correlationId.inSet(correlationIds))
       .result
 
