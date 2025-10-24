@@ -1,10 +1,5 @@
 package com.advancedtelematic.director.daemon
 
-import org.apache.pekko.Done
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.kafka.ConsumerMessage.CommittableMessage
-import org.apache.pekko.stream.scaladsl.{Sink, Source}
-import org.apache.pekko.testkit.TestKitBase
 import cats.implicits.toShow
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.GeneratorOps.*
@@ -14,18 +9,25 @@ import com.advancedtelematic.director.data.Messages.DeviceManifestReported
 import com.advancedtelematic.director.db.DeviceManifestRepositorySupport
 import com.advancedtelematic.director.util.DirectorSpec
 import com.advancedtelematic.libats.data.DataType
+import com.advancedtelematic.libats.data.PaginationResult.LongAsParam
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.test.MysqlDatabaseSpec
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import com.typesafe.config.ConfigFactory
+import io.circe.Json
 import io.circe.syntax.*
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.pekko.Done
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.kafka.ConsumerMessage.CommittableMessage
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.testkit.TestKitBase
+import org.scalatest.LoneElement.convertToCollectionLoneElementWrapper
 import org.scalatest.OptionValues.*
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.{ExecutionContext, Future}
-import com.advancedtelematic.libats.data.PaginationResult.LongAsParam
 
 class DeviceManifestReportedListenerSpec
     extends DirectorSpec
@@ -129,7 +131,8 @@ class DeviceManifestReportedListenerSpec
 
     runListener(manifests).futureValue
 
-    val savedManifests = deviceManifestRepository.findAll(device, 0L.toOffset, 1000L.toLimit).futureValue.values
+    val savedManifests =
+      deviceManifestRepository.findAll(device, 0L.toOffset, 1000L.toLimit).futureValue.values
     val lastManifests = manifests.map(_.manifest.json).takeRight(200)
 
     savedManifests should have size 200
@@ -151,7 +154,8 @@ class DeviceManifestReportedListenerSpec
     runListener(manifests).futureValue
 
     devices.foreach { device =>
-      val savedManifests = deviceManifestRepository.findAll(device, 0.toOffset, 1000.toLimit).futureValue.values
+      val savedManifests =
+        deviceManifestRepository.findAll(device, 0.toOffset, 1000.toLimit).futureValue.values
       val deviceManifests =
         manifests.filter(_.deviceId == device).map(_.manifest.json).takeRight(200)
 
@@ -200,5 +204,60 @@ class DeviceManifestReportedListenerSpec
     saved.head._2 shouldBe firstTime
   }
 
+  test("manifests with identical content but different signatures have the same checksum") {
+    val device = DeviceId.generate()
+    val manifest = GenDeviceManifest.generate
+
+    def setSignatures(json: Json, newValue: String): Json = json.arrayOrObject(
+      json,
+      jsonArray = arr => Json.fromValues(arr.map(setSignatures(_, newValue))),
+      jsonObject = obj =>
+        obj.toMap.map {
+          case ("signatures", _) =>
+            "signatures" -> Json.arr(Json.obj("sig" -> Json.fromString(newValue)))
+          case (key, value) =>
+            key -> setSignatures(value, newValue)
+        }.asJson
+    )
+
+    val manifest1 = setSignatures(manifest.asJson, "sig1")
+    val signedManifest1 = SignedPayload(Seq.empty, manifest1, manifest1)
+
+    val manifest2 = setSignatures(manifest.asJson, "sig2")
+    val signedManifest2 = SignedPayload(Seq.empty, manifest2, manifest2)
+
+    val msg1 = DeviceManifestReported(defaultNs, device, signedManifest1, Instant.now())
+    runListener(msg1).futureValue
+
+    val manifests1 = deviceManifestRepository.findAll(device).futureValue
+    manifests1.values.size shouldBe 1
+    val (storedManifest1, storedTs1) = manifests1.values.loneElement
+
+    val msg2 =
+      DeviceManifestReported(defaultNs, device, signedManifest2, Instant.now().plusSeconds(10))
+    runListener(msg2).futureValue
+
+    val manifests2 = deviceManifestRepository.findAll(device).futureValue
+    manifests2.values.size shouldBe 1
+
+    val (storedManifest2, storedTs2) = manifests2.values.loneElement
+    setSignatures(storedManifest2, "") shouldBe setSignatures(storedManifest1, "")
+    storedTs2.isAfter(storedTs1) shouldBe true
+
+    val differentManifest = GenDeviceManifest.generate
+    val signedDifferentManifest =
+      SignedPayload(Seq.empty, differentManifest.asJson, differentManifest.asJson)
+
+    val msg3 = DeviceManifestReported(
+      defaultNs,
+      device,
+      signedDifferentManifest,
+      Instant.now().plusSeconds(20)
+    )
+    runListener(msg3).futureValue
+
+    val manifests3 = deviceManifestRepository.findAll(device).futureValue
+    manifests3.values.size shouldBe 2
+  }
 
 }

@@ -4,48 +4,19 @@ import cats.Show
 import cats.data.NonEmptyList
 import cats.syntax.show.*
 import com.advancedtelematic.director.data.DataType.{AdminRoleName, TargetSpecId, Update, UpdateId}
-import com.advancedtelematic.director.data.DbDataType.{
-  Assignment,
-  AutoUpdateDefinition,
-  AutoUpdateDefinitionId,
-  DbAdminRole,
-  DbDeviceRole,
-  Device,
-  Ecu,
-  EcuTarget,
-  EcuTargetId,
-  HardwareUpdate,
-  ProcessedAssignment,
-  ValidMurmurHash3Checksum
-}
-import com.advancedtelematic.director.db.AdminRolesRepository.{
-  Deleted,
-  FindLatestResult,
-  NotDeleted
-}
+import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, AutoUpdateDefinitionId, DbAdminRole, DbDeviceRole, Device, Ecu, EcuTarget, EcuTargetId, HardwareUpdate, MurmurHash3Checksum, ProcessedAssignment, ValidMurmurHash3Checksum}
+import com.advancedtelematic.director.db.AdminRolesRepository.{Deleted, FindLatestResult, NotDeleted}
 import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
-import com.advancedtelematic.director.db.Schema.{adminRoles, notDeletedAdminRoles, AssignmentsTable}
+import com.advancedtelematic.director.db.Schema.{AssignmentsTable, adminRoles, notDeletedAdminRoles}
 import com.advancedtelematic.director.db.SlickMapping.*
 import com.advancedtelematic.director.http.Errors
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, Namespace}
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.data.PaginationResult.{Limit, LongAsParam, Offset}
 import com.advancedtelematic.libats.data.RefinedUtils.*
-import com.advancedtelematic.libats.http.Errors.{
-  EntityAlreadyExists,
-  MissingEntity,
-  MissingEntityId
-}
-import com.advancedtelematic.libats.messaging_datatype.DataType.{
-  DeviceId,
-  EcuIdentifier,
-  ValidEcuIdentifier
-}
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  EcuAndHardwareId,
-  EcuReplaced,
-  EcuReplacement
-}
+import com.advancedtelematic.libats.http.Errors.{EntityAlreadyExists, MissingEntity, MissingEntityId}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, ValidEcuIdentifier}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement}
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.*
 import com.advancedtelematic.libats.slick.db.SlickAnyVal.*
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
@@ -55,13 +26,7 @@ import com.advancedtelematic.libats.slick.db.SlickUrnMapper.*
 import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
 import com.advancedtelematic.libtuf.data.ClientDataType.TufRole
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
-import com.advancedtelematic.libtuf.data.TufDataType.{
-  HardwareIdentifier,
-  RepoId,
-  RoleType,
-  TargetFilename,
-  TargetName
-}
+import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, RepoId, RoleType, TargetFilename, TargetName}
 import com.advancedtelematic.libtuf_server.data.TufSlickMappings.*
 import io.circe.syntax.EncoderOps
 import io.circe.{Encoder, Json}
@@ -987,13 +952,24 @@ protected class DeviceManifestRepository()(implicit db: Database, ec: ExecutionC
       .paginateResult(offset, limit)
   }
 
+  // Calculate checksum after removing signatures
+  private def calculateJsonChecksum(json: Json): MurmurHash3Checksum = {
+    def removeSignaturesRecursively(json: Json): Json = json.arrayOrObject(json,
+      jsonArray = arr => Json.fromValues(arr.map(removeSignaturesRecursively)),
+      jsonObject = obj => Json.fromJsonObject(
+        obj.remove("signatures").mapValues(removeSignaturesRecursively)
+      )
+    )
+    
+    f"${MurmurHash3.bytesHash(removeSignaturesRecursively(json).canonical.getBytes)}%08x"
+      .refineTry[ValidMurmurHash3Checksum]
+      .get
+  }
+
   def createOrUpdate(manifests: Seq[(DeviceId, Json, Instant)]): Future[Unit] = db.run {
     val items = manifests
       .map { case (deviceId, json, receivedAt) =>
-        val checksum = f"${MurmurHash3.bytesHash(json.canonical.getBytes)}%08x"
-          .refineTry[ValidMurmurHash3Checksum]
-          .get
-
+        val checksum = calculateJsonChecksum(json)
         (deviceId, json, checksum, receivedAt)
       }
       .sortBy(_._4)
