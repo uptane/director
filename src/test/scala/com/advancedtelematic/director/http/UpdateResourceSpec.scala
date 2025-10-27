@@ -751,6 +751,7 @@ class UpdateResourceSpec
     }
   }
 
+
   testWithRepo("can cancel all updates and assignments for all devices with a given update") {
     implicit ns =>
       val device1 = registerAdminDeviceOk()
