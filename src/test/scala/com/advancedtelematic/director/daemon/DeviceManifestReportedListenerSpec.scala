@@ -28,6 +28,7 @@ import org.scalatest.OptionValues.*
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Random
 
 class DeviceManifestReportedListenerSpec
     extends DirectorSpec
@@ -204,7 +205,9 @@ class DeviceManifestReportedListenerSpec
     saved.head._2 shouldBe firstTime
   }
 
-  test("manifests with identical content but different signatures have the same checksum") {
+  test(
+    "manifests with identical content but different signatures and report counters have the same checksum"
+  ) {
     val device = DeviceId.generate()
     val manifest = GenDeviceManifest.generate
 
@@ -213,8 +216,12 @@ class DeviceManifestReportedListenerSpec
       jsonArray = arr => Json.fromValues(arr.map(setSignatures(_, newValue))),
       jsonObject = obj =>
         obj.toMap.map {
+          case ("signed", signed) =>
+            "signed" -> signed.deepMerge(
+              Json.obj("report_counter" -> newValue.asJson)
+            )
           case ("signatures", _) =>
-            "signatures" -> Json.arr(Json.obj("sig" -> Json.fromString(newValue)))
+            "signatures" -> Json.arr(Json.obj("sig" -> newValue.asJson))
           case (key, value) =>
             key -> setSignatures(value, newValue)
         }.asJson
