@@ -1,6 +1,7 @@
 package com.advancedtelematic.director.http
 
 import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.util.ByteString
 import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.daemon.UpdateSchedulerDaemon
@@ -27,11 +28,14 @@ import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, Insta
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.*
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{RootRole, SnapshotRole, TargetsRole, TimestampRole, TufRole}
+import com.advancedtelematic.libtuf.data.ClientDataType.{RemoteSessionsPayload, RootRole, SnapshotRole, SshSessionProperties, TargetsRole, TimestampRole, TufRole}
+import com.advancedtelematic.director.http.RemoteSessionRequest
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
 import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import io.circe.Json
+import io.circe.parser.parse
+import com.advancedtelematic.libtuf.crypt.CanonicalJson._
 import org.scalatest.Inspectors
 import org.scalatest.LoneElement.*
 import org.scalatest.OptionValues.*
@@ -670,6 +674,91 @@ class DeviceResourceSpec
 
     if (firstTargets.json.canonical != secondTargets.json.canonical)
       fail(s"targets.json $firstTargets is not the same as $secondTargets")
+  }
+
+  testWithRepo("returns canonicalized targets.json") { implicit ns =>
+    val regDev = registerAdminDeviceOk()
+    val targetUpdate = GenTargetUpdateRequest.generate
+    createDeviceAssignmentOk(regDev.deviceId, regDev.primary.hardwareId, targetUpdate.some)
+
+    val responseBody =
+      Get(apiUri(s"device/${regDev.deviceId.show}/targets.json")).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[ByteString].utf8String
+      }
+
+    val parsedJson = parse(responseBody).fold(
+      error => fail(s"Failed to parse targets.json response: ${error.getMessage}"),
+      identity
+    )
+
+    val canonicalForm = parsedJson.canonical
+    responseBody shouldBe canonicalForm
+  }
+
+  testWithRepo("returns canonicalized root.json") { implicit ns =>
+    val deviceId = registerDeviceOk()
+
+    val responseBody =
+      Get(apiUri(s"device/${deviceId.show}/root.json")).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[ByteString].utf8String
+      }
+
+    val parsedJson = parse(responseBody).fold(
+      error => fail(s"Failed to parse root.json response: ${error.getMessage}"),
+      identity
+    )
+
+    val canonicalForm = parsedJson.canonical
+    responseBody shouldBe canonicalForm
+  }
+
+  testWithRepo("returns canonicalized n.root.json") { implicit ns =>
+    val deviceId = registerDeviceOk()
+
+    val responseBody =
+      Get(apiUri(s"device/${deviceId.show}/1.root.json")).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[ByteString].utf8String
+      }
+
+    val parsedJson = parse(responseBody).fold(
+      error => fail(s"Failed to parse 1.root.json response: ${error.getMessage}"),
+      identity
+    )
+
+    val canonicalForm = parsedJson.canonical
+    responseBody shouldBe canonicalForm
+  }
+
+  testWithRepo("returns canonicalized remote-sessions.json") { implicit ns =>
+    val regDev = registerAdminDeviceOk()
+    val deviceId = regDev.deviceId
+
+    // Create a remote session first so the endpoint has something to return
+    val session = RemoteSessionsPayload(
+      SshSessionProperties("someapiversion", Map.empty, Vector.empty, Vector.empty),
+      "someapiversion"
+    )
+    val body = RemoteSessionRequest(session)
+    Post(apiUri(s"admin/remote-sessions"), body).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+    }
+
+    val responseBody =
+      Get(apiUri(s"device/${deviceId.show}/remote-sessions.json")).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[ByteString].utf8String
+      }
+
+    val parsedJson = parse(responseBody).fold(
+      error => fail(s"Failed to parse remote-sessions.json response: ${error.getMessage}"),
+      identity
+    )
+
+    val canonicalForm = parsedJson.canonical
+    responseBody shouldBe canonicalForm
   }
 
   testWithRepo("returns a refreshed version of targets if it expires") { implicit ns =>
