@@ -8,9 +8,10 @@
 
 package com.advancedtelematic.director.http.deviceregistry
 
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.StatusCodes.*
-import akka.http.scaladsl.model.Uri.Query
+import com.advancedtelematic.libats.data.PaginationResult.*
+import org.apache.pekko.http.scaladsl.model.StatusCodes
+import org.apache.pekko.http.scaladsl.model.StatusCodes.*
+import org.apache.pekko.http.scaladsl.model.Uri.Query
 import cats.implicits.toShow
 import com.advancedtelematic.director.deviceregistry.GroupMembership
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
@@ -52,7 +53,7 @@ class GroupsResourceSpec
     with ResourceSpec
     with RegistryDeviceRequests
     with GroupRequests {
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport.*
+  import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 
   private val limit = 30
 
@@ -363,7 +364,7 @@ class GroupsResourceSpec
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
-        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .listDevices(groupId, 0L.toOffset, deviceTs.size.toLimit)
         .futureValue
         .values
       uuidsInGroup should contain allElementsOf uuidsCreated
@@ -381,7 +382,7 @@ class GroupsResourceSpec
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
-        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .listDevices(groupId, 0L.toOffset, deviceTs.size.toLimit)
         .futureValue
         .values
       uuidsInGroup should contain allElementsOf uuidsCreated
@@ -396,7 +397,7 @@ class GroupsResourceSpec
       status shouldEqual Created
       val groupId = responseAs[GroupId]
       val uuidsInGroup = new GroupMembership()
-        .listDevices(groupId, Some(0L), Some(deviceTs.size.toLong))
+        .listDevices(groupId, 0L.toOffset, deviceTs.size.toLimit)
         .futureValue
         .values
       uuidsInGroup shouldBe empty
