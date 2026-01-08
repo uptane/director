@@ -16,12 +16,12 @@ scalacOptions := Seq(
 )
 
 resolvers += Resolver.mavenCentral
-resolvers += "maven-snapshots"at "https://central.sonatype.com/repository/maven-snapshots"
+resolvers += "maven-snapshots".at("https://central.sonatype.com/repository/maven-snapshots")
 
 Global / bloopAggregateSourceDependencies := true
 
 libraryDependencies ++= {
-  val pekkoV = "1.1.5"
+  val pekkoV = "1.4.0"
   val pekkoHttpV = "1.2.0"
   val tufV = "5.0.0"
   val scalaTestV = "3.2.19"
