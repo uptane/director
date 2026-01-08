@@ -16,7 +16,7 @@ scalacOptions := Seq(
 )
 
 resolvers += Resolver.mavenCentral
-resolvers += "maven-snapshots"at "https://central.sonatype.com/repository/maven-snapshots"
+resolvers += "maven-snapshots".at("https://central.sonatype.com/repository/maven-snapshots")
 
 Global / bloopAggregateSourceDependencies := true
 
@@ -56,7 +56,7 @@ libraryDependencies ++= {
     "com.beachape" %% "enumeratum-circe" % "1.9.0",
 
     // Device registry specific dependencies
-    "org.apache.pekko" %% "pekko-connectors-csv" % "1.0.0",
+    "org.apache.pekko" %% "pekko-connectors-csv" % "1.0.2",
     "io.circe" %% "circe-testing" % "0.14.13",
     "tech.sparse" %% "toml-scala" % "0.2.2",
     "org.tpolecat" %% "atto-core" % "0.9.5",
