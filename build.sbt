@@ -53,7 +53,7 @@ libraryDependencies ++= {
     "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
     "org.mariadb.jdbc" % "mariadb-java-client" % "3.5.7",
     "com.beachape" %% "enumeratum" % "1.9.0",
-    "com.beachape" %% "enumeratum-circe" % "1.9.0",
+    "com.beachape" %% "enumeratum-circe" % "1.9.1",
 
     // Device registry specific dependencies
     "org.apache.pekko" %% "pekko-connectors-csv" % "1.2.0",
