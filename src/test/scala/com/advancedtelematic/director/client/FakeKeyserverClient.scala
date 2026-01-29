@@ -103,10 +103,11 @@ class FakeKeyserverClient extends KeyserverClient {
     }.flatMap { role =>
       val expireNotBefore = _expireNotBefore.getOrElse(role.expires)
 
-      val role2 = if(role.expires.isBefore(expireNotBefore))
-        role.copy(expires = expireNotBefore)
-      else
-        role
+      val role2 =
+        if (role.expires.isBefore(expireNotBefore))
+          role.copy(expires = expireNotBefore)
+        else
+          role
 
       sign(repoId, role2).map { jsonSigned =>
         SignedPayload(jsonSigned.signatures, role2, jsonSigned.json)

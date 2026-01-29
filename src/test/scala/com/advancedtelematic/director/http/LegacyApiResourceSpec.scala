@@ -1,7 +1,7 @@
 package com.advancedtelematic.director.http
 
 import org.apache.pekko.http.scaladsl.model.StatusCodes
-import com.advancedtelematic.director.data.AdminDataType.{TargetUpdateSpec, QueueResponse}
+import com.advancedtelematic.director.data.AdminDataType.{QueueResponse, TargetUpdateSpec}
 import com.advancedtelematic.director.util.{DirectorSpec, RepositorySpec, ResourceSpec}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.director.data.Generators.*

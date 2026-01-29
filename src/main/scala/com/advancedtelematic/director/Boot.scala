@@ -17,14 +17,23 @@ import com.advancedtelematic.libats.http.VersionDirectives.versionHeaders
 import com.advancedtelematic.libats.http.monitoring.ServiceHealthCheck
 import com.advancedtelematic.libats.http.tracing.Tracing
 import com.advancedtelematic.libats.http.tracing.Tracing.ServerRequestTracing
-import com.advancedtelematic.libats.http.{BootApp, BootAppDatabaseConfig, BootAppDefaultConfig, NamespaceDirectives}
+import com.advancedtelematic.libats.http.{
+  BootApp,
+  BootAppDatabaseConfig,
+  BootAppDefaultConfig,
+  NamespaceDirectives
+}
 import com.advancedtelematic.libats.messaging.{MessageBus, MessageBusPublisher}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
 import com.advancedtelematic.libats.slick.db.{CheckMigrations, DatabaseSupport}
 import com.advancedtelematic.libats.slick.monitoring.{DatabaseMetrics, DbHealthResource}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverHttpClient
 import com.advancedtelematic.metrics.prometheus.PrometheusMetricsSupport
-import com.advancedtelematic.metrics.{PekkoHttpConnectionMetrics, PekkoHttpRequestMetrics, MetricsSupport}
+import com.advancedtelematic.metrics.{
+  MetricsSupport,
+  PekkoHttpConnectionMetrics,
+  PekkoHttpRequestMetrics
+}
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.config.Config
 import org.bouncycastle.jce.provider.BouncyCastleProvider

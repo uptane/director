@@ -146,17 +146,14 @@ object DataType {
                                 createdAtStart: Option[Instant],
                                 createdAtEnd: Option[Instant],
                                 hardwareId: Seq[HardwareIdentifier],
-                                deviceTags:  Set[TagSearchParam],
+                                deviceTags: Set[TagSearchParam],
                                 sortBy: Option[DeviceSortBy],
                                 sortDirection: Option[SortDirection],
                                 offset: Offset,
                                 limit: Limit) {
 
-    if(deviceTags.nonEmpty) {
-      require(
-        oemId.isEmpty,
-        "Invalid parameters: oemId must be empty when searching by deviceTags"
-      )
+    if (deviceTags.nonEmpty) {
+      require(oemId.isEmpty, "Invalid parameters: oemId must be empty when searching by deviceTags")
 
       require(
         nameContains.isEmpty,

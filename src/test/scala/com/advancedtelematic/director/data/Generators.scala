@@ -3,12 +3,47 @@ package com.advancedtelematic.director.data
 import org.scalacheck.Gen
 import GeneratorOps.*
 import org.apache.pekko.http.scaladsl.model.Uri
-import com.advancedtelematic.director.data.AdminDataType.{RegisterEcu, TargetUpdate, TargetUpdateRequest, TargetUpdateSpec}
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationItem, InstallationReport, MissingInstallationReport}
+import com.advancedtelematic.director.data.AdminDataType.{
+  RegisterEcu,
+  TargetUpdate,
+  TargetUpdateRequest,
+  TargetUpdateSpec
+}
+import com.advancedtelematic.director.data.DeviceRequest.{
+  DeviceManifest,
+  EcuManifest,
+  InstallationItem,
+  InstallationReport,
+  MissingInstallationReport
+}
 import com.advancedtelematic.director.data.UptaneDataType.*
-import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, MultiTargetUpdateCorrelationId, OfflineUpdateId, ResultCode, ResultDescription, ValidChecksum, ValidLockboxHash}
-import com.advancedtelematic.libats.messaging_datatype.DataType.{EcuIdentifier, InstallationResult, ValidEcuIdentifier}
-import com.advancedtelematic.libtuf.data.TufDataType.{Ed25519KeyType, HardwareIdentifier, KeyType, RsaKeyType, SignedPayload, TargetFilename, TufKey, TufKeyPair, ValidTargetFilename}
+import com.advancedtelematic.libats.data.DataType.{
+  Checksum,
+  CorrelationId,
+  HashMethod,
+  MultiTargetUpdateCorrelationId,
+  OfflineUpdateId,
+  ResultCode,
+  ResultDescription,
+  ValidChecksum,
+  ValidLockboxHash
+}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{
+  EcuIdentifier,
+  InstallationResult,
+  ValidEcuIdentifier
+}
+import com.advancedtelematic.libtuf.data.TufDataType.{
+  Ed25519KeyType,
+  HardwareIdentifier,
+  KeyType,
+  RsaKeyType,
+  SignedPayload,
+  TargetFilename,
+  TufKey,
+  TufKeyPair,
+  ValidTargetFilename
+}
 import eu.timepit.refined.api.{RefType, Refined}
 import io.circe.Json
 import Codecs.*

@@ -6,10 +6,24 @@ import cats.syntax.option.*
 import cats.syntax.show.*
 import com.advancedtelematic.director.daemon.UpdateSchedulerDaemon
 import com.advancedtelematic.director.data.AdminDataType
-import com.advancedtelematic.director.data.AdminDataType.{EcuInfoResponse, QueueResponse, RegisterDevice, TargetUpdate, TargetUpdateSpec}
+import com.advancedtelematic.director.data.AdminDataType.{
+  EcuInfoResponse,
+  QueueResponse,
+  RegisterDevice,
+  TargetUpdate,
+  TargetUpdateSpec
+}
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.*
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, EcuManifestCustom, InstallationReport, InstallationReportEntity, MissingInstallationReport, OperationResult}
+import com.advancedtelematic.director.data.DeviceRequest.{
+  DeviceManifest,
+  EcuManifest,
+  EcuManifestCustom,
+  InstallationReport,
+  InstallationReportEntity,
+  MissingInstallationReport,
+  OperationResult
+}
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.data.Messages.DeviceManifestReported
@@ -25,14 +39,30 @@ import com.advancedtelematic.director.deviceregistry.data.DeviceGenerators.genDe
 import com.advancedtelematic.director.http.deviceregistry.RegistryDeviceRequests
 import com.advancedtelematic.director.manifest.ResultCodes
 import com.advancedtelematic.director.util.*
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, HashMethod, MultiTargetUpdateCorrelationId, Namespace, ResultCode, ResultDescription, UpdateCorrelationId}
+import com.advancedtelematic.libats.data.DataType.{
+  CorrelationId,
+  HashMethod,
+  MultiTargetUpdateCorrelationId,
+  Namespace,
+  ResultCode,
+  ResultDescription,
+  UpdateCorrelationId
+}
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, InstallationResult}
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.*
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{RemoteSessionsPayload, RootRole, SnapshotRole, SshSessionProperties, TargetsRole, TimestampRole, TufRole}
+import com.advancedtelematic.libtuf.data.ClientDataType.{
+  RemoteSessionsPayload,
+  RootRole,
+  SnapshotRole,
+  SshSessionProperties,
+  TargetsRole,
+  TimestampRole,
+  TufRole
+}
 import com.advancedtelematic.director.http.RemoteSessionRequest
 import com.advancedtelematic.libtuf.data.TufCodecs.*
 import com.advancedtelematic.libtuf.data.TufDataType.SignedPayload
@@ -1674,44 +1704,46 @@ class DeviceResourceSpec
       }
   }
 
-  testWithRepo(
-    "installing assignments created via a scheduled update updates update status"
-  ) { implicit ns =>
-    val dev = registerAdminDeviceWithSecondariesOk()
-    val currentUpdate = GenTargetUpdateRequest.generate
-    val newUpdate = GenTargetUpdateRequest.generate
-    val secondarySerial = dev.secondaries.keys.head
-    val secondaryKey = dev.secondaryKeys(secondarySerial)
+  testWithRepo("installing assignments created via a scheduled update updates update status") {
+    implicit ns =>
+      val dev = registerAdminDeviceWithSecondariesOk()
+      val currentUpdate = GenTargetUpdateRequest.generate
+      val newUpdate = GenTargetUpdateRequest.generate
+      val secondarySerial = dev.secondaries.keys.head
+      val secondaryKey = dev.secondaryKeys(secondarySerial)
 
-    val deviceManifest = buildSecondaryManifest(
-      dev.primary.ecuSerial,
-      dev.primaryKey,
-      secondarySerial,
-      secondaryKey,
-      Map(dev.primary.ecuSerial -> currentUpdate.to, secondarySerial -> currentUpdate.to)
-    )
-    putManifestOk(dev.deviceId, deviceManifest)
+      val deviceManifest = buildSecondaryManifest(
+        dev.primary.ecuSerial,
+        dev.primaryKey,
+        secondarySerial,
+        secondaryKey,
+        Map(dev.primary.ecuSerial -> currentUpdate.to, secondarySerial -> currentUpdate.to)
+      )
+      putManifestOk(dev.deviceId, deviceManifest)
 
-    val mtu = TargetUpdateSpec(
-      Map(dev.secondaries.values.head.hardwareId -> newUpdate, dev.primary.hardwareId -> newUpdate)
-    )
+      val mtu = TargetUpdateSpec(
+        Map(
+          dev.secondaries.values.head.hardwareId -> newUpdate,
+          dev.primary.hardwareId -> newUpdate
+        )
+      )
 
-    createUpdateOk(dev.deviceId, mtu)
+      createUpdateOk(dev.deviceId, mtu)
 
-    updateSchedulerIO.run().futureValue
+      updateSchedulerIO.run().futureValue
 
-    val newManifest = buildSecondaryManifest(
-      dev.primary.ecuSerial,
-      dev.primaryKey,
-      secondarySerial,
-      secondaryKey,
-      Map(dev.primary.ecuSerial -> newUpdate.to, secondarySerial -> newUpdate.to)
-    )
+      val newManifest = buildSecondaryManifest(
+        dev.primary.ecuSerial,
+        dev.primaryKey,
+        secondarySerial,
+        secondaryKey,
+        Map(dev.primary.ecuSerial -> newUpdate.to, secondarySerial -> newUpdate.to)
+      )
 
-    putManifestOk(dev.deviceId, newManifest)
+      putManifestOk(dev.deviceId, newManifest)
 
-    val scheduledUpdate = listUpdatesOK(dev.deviceId).values.loneElement
-    scheduledUpdate.status shouldBe Update.Status.Completed
+      val scheduledUpdate = listUpdatesOK(dev.deviceId).values.loneElement
+      scheduledUpdate.status shouldBe Update.Status.Completed
   }
 
   testWithRepo(

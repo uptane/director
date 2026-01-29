@@ -11,7 +11,10 @@ import com.advancedtelematic.libats.data.DataType.{MultiTargetUpdateCorrelationI
 import com.advancedtelematic.libats.http.UUIDKeyPekko.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateAssigned, DeviceUpdateEvent}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeviceUpdateAssigned,
+  DeviceUpdateEvent
+}
 import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import slick.jdbc.MySQLProfile.api.*
 

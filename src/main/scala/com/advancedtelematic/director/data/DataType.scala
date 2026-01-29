@@ -11,17 +11,41 @@ import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.UptaneDataType.{Hashes, TargetImage}
 import com.advancedtelematic.director.deviceregistry.data.DataType.UpdateTagValue
 import com.advancedtelematic.director.deviceregistry.data.TagId
-import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, HashMethod, Namespace, UpdateCorrelationId, ValidChecksum}
+import com.advancedtelematic.libats.data.DataType.{
+  Checksum,
+  CorrelationId,
+  HashMethod,
+  Namespace,
+  UpdateCorrelationId,
+  ValidChecksum
+}
 import com.advancedtelematic.libats.data.UUIDKey.{UUIDKey, UUIDKeyObj, UuidKeyObjTimeBased}
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier}
 import com.advancedtelematic.libats.messaging_datatype.MessageLike
 import com.advancedtelematic.libats.messaging_datatype.Messages.EcuAndHardwareId
 import com.advancedtelematic.libtuf.crypt.CanonicalJson.*
-import com.advancedtelematic.libtuf.data.ClientDataType.{ClientHashes, MetaPath, TufRole, ValidMetaPath}
+import com.advancedtelematic.libtuf.data.ClientDataType.{
+  ClientHashes,
+  MetaPath,
+  TufRole,
+  ValidMetaPath
+}
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
-import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, JsonSignedPayload, KeyType, RepoId, SignedPayload, TargetFilename, TargetName, TufKey}
-import com.advancedtelematic.libtuf.data.ValidatedString.{ValidatedString, ValidatedStringValidation}
+import com.advancedtelematic.libtuf.data.TufDataType.{
+  HardwareIdentifier,
+  JsonSignedPayload,
+  KeyType,
+  RepoId,
+  SignedPayload,
+  TargetFilename,
+  TargetName,
+  TufKey
+}
+import com.advancedtelematic.libtuf.data.ValidatedString.{
+  ValidatedString,
+  ValidatedStringValidation
+}
 import com.advancedtelematic.libtuf_server.crypto.Sha256Digest
 import com.advancedtelematic.libtuf_server.repo.server.DataType.SignedRole
 import eu.timepit.refined.api.Refined
@@ -47,18 +71,17 @@ object DbDataType {
                                         ecuId: EcuIdentifier,
                                         targetName: TargetName)
 
-  final case class DeviceKnownState(
-                                     deviceId: DeviceId,
-                                     primaryEcu: EcuIdentifier,
-                                     ecuStatus: Map[EcuIdentifier, Option[EcuTargetId]],
-                                     ecuTargets: Map[EcuTargetId, EcuTarget],
-                                     currentAssignments: Set[Assignment],
-                                     processedAssignments: Set[ProcessedAssignment],
-                                     //    scheduledUpdates: Set[ScheduledUpdate],
-                                     //    scheduledUpdatesEcuTargetIds: Map[TargetSpecId, Seq[EcuTargetId]],
-                                     updates: Set[Update],
-                                     updatesTargetIds: Map[TargetSpecId, Seq[EcuTargetId]],
-                                     generatedMetadataOutdated: Boolean)
+  final case class DeviceKnownState(deviceId: DeviceId,
+                                    primaryEcu: EcuIdentifier,
+                                    ecuStatus: Map[EcuIdentifier, Option[EcuTargetId]],
+                                    ecuTargets: Map[EcuTargetId, EcuTarget],
+                                    currentAssignments: Set[Assignment],
+                                    processedAssignments: Set[ProcessedAssignment],
+                                    //    scheduledUpdates: Set[ScheduledUpdate],
+                                    //    scheduledUpdatesEcuTargetIds: Map[TargetSpecId, Seq[EcuTargetId]],
+                                    updates: Set[Update],
+                                    updatesTargetIds: Map[TargetSpecId, Seq[EcuTargetId]],
+                                    generatedMetadataOutdated: Boolean)
 
   final case class Device(ns: Namespace,
                           id: DeviceId,
@@ -299,7 +322,7 @@ object Messages {
 
 object DataType {
   import enumeratum.*
-  
+
   final case class TargetItemCustomEcuData(hardwareId: HardwareIdentifier)
 
   final case class TargetItemCustom(uri: Option[Uri],
@@ -349,8 +372,7 @@ object DataType {
                     createdAt: Instant,
                     scheduledFor: Option[Instant],
                     status: Update.Status,
-                    completedAt: Option[Instant] = None,
-                   )
+                    completedAt: Option[Instant] = None)
 
   object Update {
 
@@ -449,4 +471,5 @@ object ClientDataType {
     // (1) safe because Refined checks Regex
     def tagValue: String = value.value.split("=")(1)
   }
+
 }

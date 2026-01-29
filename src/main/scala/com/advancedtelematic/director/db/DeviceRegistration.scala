@@ -2,7 +2,11 @@ package com.advancedtelematic.director.db
 
 import org.apache.pekko.http.scaladsl.util.FastFuture
 import cats.implicits.toShow
-import com.advancedtelematic.director.data.AdminDataType.{EcuInfoImage, EcuInfoResponse, RegisterEcu}
+import com.advancedtelematic.director.data.AdminDataType.{
+  EcuInfoImage,
+  EcuInfoResponse,
+  RegisterEcu
+}
 import com.advancedtelematic.director.data.UptaneDataType.Hashes
 import com.advancedtelematic.director.db.ProvisionedDeviceRepository.DeviceCreateResult
 import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, EcuReplacementRepository}

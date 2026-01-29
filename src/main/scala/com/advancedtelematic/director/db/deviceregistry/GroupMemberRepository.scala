@@ -17,7 +17,14 @@ import com.advancedtelematic.libats.slick.db.SlickUUIDKey.*
 import com.advancedtelematic.director.http.deviceregistry.Errors.MemberAlreadyExists
 import com.advancedtelematic.director.deviceregistry.data.DataType.HibernationStatus
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
-import com.advancedtelematic.director.deviceregistry.data.{Device, DeviceDB, GroupExpression, GroupExpressionAST, GroupType, TagId}
+import com.advancedtelematic.director.deviceregistry.data.{
+  Device,
+  DeviceDB,
+  GroupExpression,
+  GroupExpressionAST,
+  GroupType,
+  TagId
+}
 import DbOps.*
 import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}

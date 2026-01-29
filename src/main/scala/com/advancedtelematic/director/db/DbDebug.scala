@@ -118,7 +118,8 @@ class DirectorDbDebug()(implicit val db: Database, ec: ExecutionContext) {
         "device_manifests",
         readTable(
           "device_manifests",
-          id => sql"""select * from device_manifests where device_id = $id order by received_at desc limit 20"""
+          id =>
+            sql"""select * from device_manifests where device_id = $id order by received_at desc limit 20"""
         )
       )
     )

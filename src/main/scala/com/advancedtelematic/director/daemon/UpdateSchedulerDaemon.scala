@@ -3,13 +3,16 @@ package com.advancedtelematic.director.daemon
 import cats.implicits.*
 import com.advancedtelematic.director.db.UpdateSchedulerDBIO
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateAssigned, DeviceUpdateEvent}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeviceUpdateAssigned,
+  DeviceUpdateEvent
+}
 import org.slf4j.LoggerFactory
 import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant
 import scala.concurrent.duration.*
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{blocking, ExecutionContext, Future}
 
 class UpdateSchedulerDaemon()(
   implicit db: Database,

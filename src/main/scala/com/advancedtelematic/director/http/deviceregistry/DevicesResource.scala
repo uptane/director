@@ -26,7 +26,18 @@ import com.advancedtelematic.director.db.deviceregistry.DbOps.*
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.InstallationStatsLevel.InstallationStatsLevel
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceCountParams, DeviceT, DevicesQuery, InstallationStatsLevel, RenameTagId, SearchParams, SetDevice, UpdateDevice, UpdateHibernationStatusRequest, UpdateTagValue}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceCountParams,
+  DeviceT,
+  DevicesQuery,
+  InstallationStatsLevel,
+  RenameTagId,
+  SearchParams,
+  SetDevice,
+  UpdateDevice,
+  UpdateHibernationStatusRequest,
+  UpdateTagValue
+}
 import com.advancedtelematic.director.deviceregistry.data.Device.{ActiveDeviceCount, DeviceOemId}
 import com.advancedtelematic.director.deviceregistry.data.DeviceSortBy.DeviceSortBy
 import com.advancedtelematic.director.deviceregistry.data.DeviceStatus.DeviceStatus
@@ -43,9 +54,17 @@ import com.advancedtelematic.libats.http.RefinedMarshallingSupport.*
 import com.advancedtelematic.libats.http.UUIDKeyPekko.*
 import com.advancedtelematic.libats.messaging.MessageBusPublisher
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId.*
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, Event, EventType}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{
+  DeviceId,
+  EcuIdentifier,
+  Event,
+  EventType
+}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeleteDeviceRequest, DeviceEventMessage}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeleteDeviceRequest,
+  DeviceEventMessage
+}
 import com.advancedtelematic.libats.slick.db.SlickExtensions.*
 import com.advancedtelematic.libtuf.data.TufDataType.HardwareIdentifier
 import io.circe.Json
@@ -183,7 +202,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
       Symbol("hardwareIds").as(CsvSeq[HardwareIdentifier]).?,
       Symbol("tags").as(CsvSeq[TagSearchParam]).?,
       Symbol("sortBy").as[DeviceSortBy].?,
-      Symbol("sortDirection").as[SortDirection].?,
+      Symbol("sortDirection").as[SortDirection].?
     ) & PaginationParameters).as(
       (oemId,
        grouped,
@@ -225,7 +244,7 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
           sortBy,
           sortDirection,
           offset,
-          limit,
+          limit
         )
     ) { params =>
       complete(for {
@@ -300,9 +319,8 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     complete(db.run(SearchDBIO.countDevicesForExpression(ns, expression)))
 
   def getGroupsForDevice(uuid: DeviceId): Route =
-    PaginationParameters {
-      (offset, limit) =>
-        complete(db.run(GroupMemberRepository.listGroupsForDevice(uuid, offset, limit)))
+    PaginationParameters { (offset, limit) =>
+      complete(db.run(GroupMemberRepository.listGroupsForDevice(uuid, offset, limit)))
     }
 
   def updateInstalledSoftware(device: DeviceId): Route =
@@ -315,10 +333,9 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     complete(db.run(InstalledPackages.getDevicesCount(pkg, ns)))
 
   def listPackagesOnDevice(device: DeviceId): Route =
-    (parameters(
-      Symbol("nameContains").as[String].?
-    ) & PaginationParameters) { (nameContains, offset, limit) =>
-      complete(db.run(InstalledPackages.installedOn(device, nameContains, offset, limit)))
+    (parameters(Symbol("nameContains").as[String].?) & PaginationParameters) {
+      (nameContains, offset, limit) =>
+        complete(db.run(InstalledPackages.installedOn(device, nameContains, offset, limit)))
     }
 
   implicit def offsetDateTimeUnmarshaller: FromStringUnmarshaller[OffsetDateTime] =
@@ -337,9 +354,8 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     }
 
   def getDistinctPackages(ns: Namespace): Route =
-    PaginationParameters {
-      (offset, limit) =>
-        complete(db.run(InstalledPackages.getInstalledForAllDevices(ns, offset, limit)))
+    PaginationParameters { (offset, limit) =>
+      complete(db.run(InstalledPackages.getInstalledForAllDevices(ns, offset, limit)))
     }
 
   def findAffected(ns: Namespace): Route =
@@ -351,15 +367,12 @@ class DevicesResource(namespaceExtractor: Directive1[Namespace],
     }
 
   def getPackageStats(ns: Namespace, name: PackageId.Name): Route =
-    PaginationParameters {
-      (offset, limit) =>
-        val f = db.run(InstalledPackages.listAllWithPackageByName(ns, name, offset, limit))
-        complete(f)
+    PaginationParameters { (offset, limit) =>
+      val f = db.run(InstalledPackages.listAllWithPackageByName(ns, name, offset, limit))
+      complete(f)
     }
 
-  def fetchInstallationHistory(deviceId: DeviceId,
-                               offset: Offset,
-                               limit: Limit): Route =
+  def fetchInstallationHistory(deviceId: DeviceId, offset: Offset, limit: Limit): Route =
     complete(
       db.run(
         EcuReplacementRepository

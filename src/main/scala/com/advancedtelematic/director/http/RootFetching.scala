@@ -6,7 +6,7 @@ import com.advancedtelematic.director.db.{
 }
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libtuf.data.ClientCodecs.*
-import com.advancedtelematic.libtuf.data.TufDataType.{RepoId, JsonSignedPayload}
+import com.advancedtelematic.libtuf.data.TufDataType.{JsonSignedPayload, RepoId}
 import com.advancedtelematic.libtuf_server.keyserver.KeyserverClient
 import io.circe.syntax.*
 

@@ -34,7 +34,9 @@ case class CreateUpdateRequest(targets: Map[HardwareIdentifier, TargetUpdateRequ
 case class CreateUpdateResult(affected: Seq[DeviceId],
                               notAffected: Map[DeviceId, Map[EcuIdentifier, ErrorRepresentation]])
 
-case class UpdateReportedResult(resultCode: ResultCode, success: Boolean, description: Option[String])
+case class UpdateReportedResult(resultCode: ResultCode,
+                                success: Boolean,
+                                description: Option[String])
 
 case class UpdateResultResponse(hardwareId: HardwareIdentifier,
                                 id: TargetFilename,

@@ -7,7 +7,14 @@ import com.advancedtelematic.libats.data.DataType.{Checksum, CorrelationId, Name
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier}
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper.jsonMapper
 import com.advancedtelematic.libtuf.data.TufDataType.RoleType.RoleType
-import com.advancedtelematic.libtuf.data.TufDataType.{HardwareIdentifier, JsonSignedPayload, RepoId, TargetFilename, TargetName, TufKey}
+import com.advancedtelematic.libtuf.data.TufDataType.{
+  HardwareIdentifier,
+  JsonSignedPayload,
+  RepoId,
+  TargetFilename,
+  TargetName,
+  TufKey
+}
 import io.circe.Json
 import slick.jdbc.MySQLProfile.api.*
 import SlickMapping.*

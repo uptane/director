@@ -244,4 +244,5 @@ object Errors {
       StatusCodes.Conflict,
       s"The assignment cannot be cancelled using the assignments API because it belongs to an update. Use the updates API"
     )
+
 }

@@ -14,8 +14,16 @@ import java.util.UUID
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.option.*
 import com.advancedtelematic.libats.codecs.CirceCodecs.*
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, MultiTargetUpdateCorrelationId, TargetSpecCorrelationId}
-import com.advancedtelematic.libats.messaging_datatype.DataType.{Event, EventType, ValidEcuIdentifier}
+import com.advancedtelematic.libats.data.DataType.{
+  CorrelationId,
+  MultiTargetUpdateCorrelationId,
+  TargetSpecCorrelationId
+}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{
+  Event,
+  EventType,
+  ValidEcuIdentifier
+}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.*
 import com.advancedtelematic.libats.messaging_datatype.Messages.DeviceEventMessage
 import EventJournalSpec.EventPayload
@@ -83,7 +91,9 @@ class EventJournalSpec
     } yield EventType(id, ver)
 
   val genCorrelationId: Gen[CorrelationId] =
-    Gen.uuid.flatMap(uuid => Gen.oneOf(TargetSpecCorrelationId(uuid), MultiTargetUpdateCorrelationId(uuid)))
+    Gen.uuid.flatMap(uuid =>
+      Gen.oneOf(TargetSpecCorrelationId(uuid), MultiTargetUpdateCorrelationId(uuid))
+    )
 
   implicit val EventGen: org.scalacheck.Gen[EventJournalSpec.EventPayload] = for {
     id <- Gen.uuid
@@ -117,7 +127,15 @@ class EventJournalSpec
 
       events
         .map(ep =>
-          Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, refineMV[ValidEcuIdentifier]("ecuId").some, ep.event)
+          Event(
+            deviceUuid,
+            ep.id.toString,
+            ep.eventType,
+            ep.deviceTime,
+            Instant.now,
+            refineMV[ValidEcuIdentifier]("ecuId").some,
+            ep.event
+          )
         )
         .map(DeviceEventMessage(defaultNs, _))
         .map(listener.apply)
@@ -141,7 +159,15 @@ class EventJournalSpec
 
     List(event0, event1)
       .map(ep =>
-        Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, refineMV[ValidEcuIdentifier]("ecuId").some, ep.event)
+        Event(
+          deviceUuid,
+          ep.id.toString,
+          ep.eventType,
+          ep.deviceTime,
+          Instant.now,
+          refineMV[ValidEcuIdentifier]("ecuId").some,
+          ep.event
+        )
       )
       .map(DeviceEventMessage(defaultNs, _))
       .map(listener.apply)
@@ -165,7 +191,15 @@ class EventJournalSpec
 
     List(event0, event1)
       .map(ep =>
-        Event(deviceUuid, ep.id.toString, ep.eventType, ep.deviceTime, Instant.now, refineMV[ValidEcuIdentifier]("ecuId").some, ep.event)
+        Event(
+          deviceUuid,
+          ep.id.toString,
+          ep.eventType,
+          ep.deviceTime,
+          Instant.now,
+          refineMV[ValidEcuIdentifier]("ecuId").some,
+          ep.event
+        )
       )
       .map(DeviceEventMessage(defaultNs, _))
       .map(listener.apply)
@@ -182,7 +216,15 @@ class EventJournalSpec
   test("DELETE device archives its indexed events") {
     val uuid = createDeviceOk(genDeviceT.generate)
     val (e, _) = installCompleteEventGen.generate
-    val event = Event(uuid, e.id.toString, e.eventType, e.deviceTime, Instant.now, refineMV[ValidEcuIdentifier]("ecuId").some, e.event)
+    val event = Event(
+      uuid,
+      e.id.toString,
+      e.eventType,
+      e.deviceTime,
+      Instant.now,
+      refineMV[ValidEcuIdentifier]("ecuId").some,
+      e.event
+    )
     val deviceEventMessage = DeviceEventMessage(defaultNs, event)
     val journal = new EventJournal()
 

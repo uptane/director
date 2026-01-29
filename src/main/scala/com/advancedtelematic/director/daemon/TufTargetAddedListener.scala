@@ -2,8 +2,18 @@ package com.advancedtelematic.director.daemon
 
 import org.apache.pekko.http.scaladsl.model.Uri
 import org.apache.pekko.http.scaladsl.util.FastFuture
-import com.advancedtelematic.director.data.DbDataType.{Assignment, AutoUpdateDefinition, EcuTarget, EcuTargetId}
-import com.advancedtelematic.director.db.{AssignmentsRepositorySupport, AutoUpdateDefinitionRepositorySupport, EcuTargetsRepositorySupport, ProvisionedDeviceRepositorySupport}
+import com.advancedtelematic.director.data.DbDataType.{
+  Assignment,
+  AutoUpdateDefinition,
+  EcuTarget,
+  EcuTargetId
+}
+import com.advancedtelematic.director.db.{
+  AssignmentsRepositorySupport,
+  AutoUpdateDefinitionRepositorySupport,
+  EcuTargetsRepositorySupport,
+  ProvisionedDeviceRepositorySupport
+}
 import com.advancedtelematic.libats.data.DataType.{AutoUpdateId, Namespace}
 import com.advancedtelematic.libats.messaging.MsgOperation.MsgOperation
 import com.advancedtelematic.libtuf_server.data.Messages.TufTargetAdded
