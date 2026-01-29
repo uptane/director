@@ -18,7 +18,11 @@ import org.apache.pekko.stream.scaladsl.Framing.FramingException
 import org.apache.pekko.stream.scaladsl.{Framing, Sink, Source}
 import org.apache.pekko.util.ByteString
 import cats.syntax.either.*
-import com.advancedtelematic.director.db.deviceregistry.{DeviceRepository, GroupInfoRepository, GroupMemberRepository}
+import com.advancedtelematic.director.db.deviceregistry.{
+  DeviceRepository,
+  GroupInfoRepository,
+  GroupMemberRepository
+}
 import com.advancedtelematic.director.deviceregistry.data.*
 import com.advancedtelematic.director.deviceregistry.data.Codecs.*
 import com.advancedtelematic.director.deviceregistry.data.DataType.UpdateHibernationStatusRequest
@@ -103,9 +107,8 @@ class GroupsResource(namespaceExtractor: Directive1[Namespace],
   val groupMembership = new GroupMembership()
 
   def getDevicesInGroup(groupId: GroupId): Route =
-    PaginationParameters {
-      (offset, limit) =>
-        complete(groupMembership.listDevices(groupId, offset, limit))
+    PaginationParameters { (offset, limit) =>
+      complete(groupMembership.listDevices(groupId, offset, limit))
     }
 
   def listGroups(ns: Namespace,

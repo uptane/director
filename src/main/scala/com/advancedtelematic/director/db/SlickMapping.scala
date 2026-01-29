@@ -7,7 +7,10 @@ import com.advancedtelematic.libats.data.DataType.HashMethod
 import com.advancedtelematic.libats.data.DataType.HashMethod.HashMethod
 import com.advancedtelematic.libats.slick.codecs.SlickEnumeratum.enumeratumMapper
 import com.advancedtelematic.libats.slick.db.SlickCirceMapper
-import com.advancedtelematic.libtuf.data.ValidatedString.{ValidatedString, ValidatedStringValidation}
+import com.advancedtelematic.libtuf.data.ValidatedString.{
+  ValidatedString,
+  ValidatedStringValidation
+}
 import slick.jdbc.MySQLProfile.api.*
 
 import java.time.Instant

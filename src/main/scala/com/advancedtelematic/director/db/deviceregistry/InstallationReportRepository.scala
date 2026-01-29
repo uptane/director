@@ -5,8 +5,16 @@ import cats.implicits.toShow
 import java.time.Instant
 import com.advancedtelematic.libats.data.DataType.{CorrelationId, ResultCode}
 import com.advancedtelematic.libats.data.PaginationResult
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, EcuInstallationReport}
-import com.advancedtelematic.director.deviceregistry.data.DataType.{DeviceInstallationResult, EcuInstallationResult, InstallationStat}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{
+  DeviceId,
+  EcuIdentifier,
+  EcuInstallationReport
+}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  DeviceInstallationResult,
+  EcuInstallationResult,
+  InstallationStat
+}
 import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import io.circe.Json
 import slick.jdbc.MySQLProfile.api.*
@@ -131,12 +139,15 @@ object InstallationReportRepository {
 
   import cats.syntax.either.*
 
-  def fetchManyDevicesInstallationResults(ids: Set[(DeviceId, CorrelationId)]): DBIO[Vector[DeviceInstallationResult]] =  {
-    val idsStr = ids.map { case (d, c) => s"(${d.show}, ${c.toString})"}.mkString(",")
+  def fetchManyDevicesInstallationResults(
+    ids: Set[(DeviceId, CorrelationId)]): DBIO[Vector[DeviceInstallationResult]] = {
+    val idsStr = ids.map { case (d, c) => s"(${d.show}, ${c.toString})" }.mkString(",")
 
     implicit val getDeviceInstallationResult: GetResult[DeviceInstallationResult] = GetResult { r =>
       DeviceInstallationResult(
-        correlationId = CorrelationId.fromString(r.nextString()).valueOr(err => throw new IllegalArgumentException(err)),
+        correlationId = CorrelationId
+          .fromString(r.nextString())
+          .valueOr(err => throw new IllegalArgumentException(err)),
         resultCode = ResultCode(r.nextString()),
         deviceId = DeviceId(java.util.UUID.fromString(r.nextString())),
         success = r.nextBoolean(),
@@ -150,14 +161,16 @@ object InstallationReportRepository {
       """.as[DeviceInstallationResult]
   }
 
-  def fetchManyByDevice(deviceId: DeviceId, correlationIds: Set[CorrelationId]): DBIO[Seq[DeviceInstallationResult]] =
+  def fetchManyByDevice(deviceId: DeviceId,
+                        correlationIds: Set[CorrelationId]): DBIO[Seq[DeviceInstallationResult]] =
     deviceInstallationResults
       .filter(_.deviceUuid === deviceId)
       .filter(_.correlationId.inSet(correlationIds))
       .result
 
-  def fetchDeviceInstallationResultByCorrelationId(deviceId: DeviceId,
-                                                   correlationId: CorrelationId): DBIO[Option[DeviceInstallationResult]] =
+  def fetchDeviceInstallationResultByCorrelationId(
+    deviceId: DeviceId,
+    correlationId: CorrelationId): DBIO[Option[DeviceInstallationResult]] =
     deviceInstallationResults
       .filter(_.deviceUuid === deviceId)
       .filter(_.correlationId === correlationId)

@@ -152,13 +152,17 @@ object SortDirection {
 }
 
 object DeviceSortBy {
+
   sealed abstract class DeviceSortBy(column: DeviceTable => Rep[?]) {
+
     def columnName: String =
       column(TableQuery[Schema.DeviceTable].baseTableRow).toNode match {
         case Select(_, FieldSymbol(name)) => name
         case col => throw new IllegalArgumentException(s"$col cannot be used as device sort column")
       }
+
   }
+
   case object Name extends DeviceSortBy(_.deviceName)
   case object CreatedAt extends DeviceSortBy(_.createdAt)
   case object DeviceId extends DeviceSortBy(_.oemId)

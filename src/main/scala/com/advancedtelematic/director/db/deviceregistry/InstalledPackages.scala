@@ -77,10 +77,7 @@ object InstalledPackages {
       )
       .transactionally
 
-  def installedOn(device: DeviceId,
-                  nameContains: Option[String],
-                  offset: Offset,
-                  limit: Limit)(
+  def installedOn(device: DeviceId, nameContains: Option[String], offset: Offset, limit: Limit)(
     implicit ec: ExecutionContext): DBIO[PaginationResult[InstalledPackage]] =
     installedPackages
       .filter(_.device === device)
@@ -162,10 +159,7 @@ object InstalledPackages {
       .map(r => (r._1.device, LiftedPackageId(r._1.name, r._1.version)))
       .result
 
-  def listAllWithPackageByName(ns: Namespace,
-                               name: Name,
-                               offset: Offset,
-                               limit: Limit)(
+  def listAllWithPackageByName(ns: Namespace, name: Name, offset: Offset, limit: Limit)(
     implicit ec: ExecutionContext): DBIO[PaginationResult[PackageStat]] = {
     val query = installedPackages
       .filter(_.name === name)

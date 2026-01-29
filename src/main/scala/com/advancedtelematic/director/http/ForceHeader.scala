@@ -1,6 +1,9 @@
 package com.advancedtelematic.director.http
 
-import org.apache.pekko.http.scaladsl.model.headers.{ModeledCustomHeader, ModeledCustomHeaderCompanion}
+import org.apache.pekko.http.scaladsl.model.headers.{
+  ModeledCustomHeader,
+  ModeledCustomHeaderCompanion
+}
 
 import scala.util.Try
 

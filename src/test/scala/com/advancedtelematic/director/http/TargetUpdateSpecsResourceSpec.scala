@@ -2,7 +2,7 @@ package com.advancedtelematic.director.http
 
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import cats.syntax.show.*
-import com.advancedtelematic.director.data.AdminDataType.{TargetUpdateSpec, TargetUpdateRequest}
+import com.advancedtelematic.director.data.AdminDataType.{TargetUpdateRequest, TargetUpdateSpec}
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.TargetSpecId
 import com.advancedtelematic.director.data.GeneratorOps.GenSample

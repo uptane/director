@@ -80,16 +80,19 @@ class DeviceUpdateEventListener(messageBus: MessageBusPublisher)(
 
   private def wasCompleted(deviceId: DeviceId, correlationId: CorrelationId): Future[Boolean] = {
     val existingReport =
-      db.run(InstallationReportRepository.fetchDeviceInstallationResultByCorrelationId(deviceId, correlationId))
+      db.run(
+        InstallationReportRepository
+          .fetchDeviceInstallationResultByCorrelationId(deviceId, correlationId)
+      )
     existingReport.map(_.exists(_.success)) // if we handle success event - other should be ignored
   }
 
   private def handleEvent(event: DeviceUpdateEvent): Future[DeviceStatus] = event match {
     case msg: DeviceUpdateAssigned if msg.scheduledFor.isEmpty =>
       FastFuture.successful(DeviceStatus.Outdated)
-    case _: DeviceUpdateAssigned => FastFuture.successful(DeviceStatus.UpdateScheduled)
-    case _: DeviceUpdateCanceled => FastFuture.successful(DeviceStatus.UpToDate)
-    case _: DeviceUpdateInFlight => FastFuture.successful(DeviceStatus.UpdatePending)
+    case _: DeviceUpdateAssigned    => FastFuture.successful(DeviceStatus.UpdateScheduled)
+    case _: DeviceUpdateCanceled    => FastFuture.successful(DeviceStatus.UpToDate)
+    case _: DeviceUpdateInFlight    => FastFuture.successful(DeviceStatus.UpdatePending)
     case msg: DeviceUpdateCompleted =>
       db.run {
         InstallationReportRepository

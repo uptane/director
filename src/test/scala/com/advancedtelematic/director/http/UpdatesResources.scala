@@ -57,26 +57,27 @@ trait UpdatesResources {
       status shouldBe StatusCodes.NoContent
     }
 
-  def getUpdateDetailOK(
-    deviceId: DeviceId,
-    updateId: UpdateId)(implicit ns: Namespace, pos: Position): UpdateDetailResponse =
-    Get(apiUri(s"updates/devices/${deviceId.show}/${updateId.show}")).namespaced ~> routes ~> check {
+  def getUpdateDetailOK(deviceId: DeviceId, updateId: UpdateId)(
+    implicit ns: Namespace,
+    pos: Position): UpdateDetailResponse =
+    Get(
+      apiUri(s"updates/devices/${deviceId.show}/${updateId.show}")
+    ).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.OK
       responseAs[UpdateDetailResponse]
     }
 
-  def cancelAllUpdatesOK(updateId: UpdateId)(implicit ns: Namespace, pos: Position): Unit = {
+  def cancelAllUpdatesOK(updateId: UpdateId)(implicit ns: Namespace, pos: Position): Unit =
     Patch(apiUri(s"updates/${updateId.show}")).namespaced ~> routes ~> check {
       status shouldBe StatusCodes.NoContent
     }
-  }
 
-  def listAllUpdatesOK(limit: Long = 100, offset: Long = 0)
-                      (implicit ns: Namespace, pos: Position): PaginationResult[UpdateResponse] =
-    Get(apiUri(s"updates?limit=${limit}&offset=${offset}"))
-      .namespaced ~> routes ~> check {
-        status shouldBe StatusCodes.OK
-        responseAs[PaginationResult[UpdateResponse]]
-      }
+  def listAllUpdatesOK(limit: Long = 100, offset: Long = 0)(
+    implicit ns: Namespace,
+    pos: Position): PaginationResult[UpdateResponse] =
+    Get(apiUri(s"updates?limit=${limit}&offset=${offset}")).namespaced ~> routes ~> check {
+      status shouldBe StatusCodes.OK
+      responseAs[PaginationResult[UpdateResponse]]
+    }
 
 }

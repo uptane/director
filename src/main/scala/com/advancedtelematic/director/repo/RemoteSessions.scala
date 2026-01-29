@@ -70,7 +70,7 @@ class RemoteSessions(keyserverClient: KeyserverClient)(
       case Some(rs) =>
         rs.copy(remote_commands = Some(remoteCommands))
       case None =>
-        RemoteSessionsRole (
+        RemoteSessionsRole(
           remote_sessions = RemoteSessionsPayload.empty,
           remote_commands = Some(remoteCommands),
           version = 1,

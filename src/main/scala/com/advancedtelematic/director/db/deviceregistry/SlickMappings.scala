@@ -10,9 +10,18 @@ package com.advancedtelematic.director.db.deviceregistry
 
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.slick.codecs.{SlickEnumMapper, SlickEnumeratum}
-import com.advancedtelematic.director.deviceregistry.data.DataType.{IndexedEventType, MqttStatus, PackageListItemCount}
+import com.advancedtelematic.director.deviceregistry.data.DataType.{
+  IndexedEventType,
+  MqttStatus,
+  PackageListItemCount
+}
 import com.advancedtelematic.director.deviceregistry.data.Device.DeviceType
-import com.advancedtelematic.director.deviceregistry.data.{CredentialsType, DeviceStatus, GroupType, PackageId}
+import com.advancedtelematic.director.deviceregistry.data.{
+  CredentialsType,
+  DeviceStatus,
+  GroupType,
+  PackageId
+}
 import slick.jdbc.MySQLProfile.api.*
 
 object SlickMappings {
@@ -59,4 +68,5 @@ object SlickMappings {
   // values from the enum
   implicit val deviceTypeMaper: slick.jdbc.MySQLProfile.BaseColumnType[DeviceType.Value] =
     MappedColumnType.base[DeviceType.Value, Int](_.id, DeviceType.apply)
+
 }

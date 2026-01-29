@@ -14,7 +14,13 @@ import com.advancedtelematic.director.data.AdminDataType.TargetUpdate
 import com.advancedtelematic.director.data.UptaneDataType.*
 import com.advancedtelematic.director.data.DbDataType.Ecu
 import com.advancedtelematic.director.data.DeviceRequest
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, InstallationReport, InstallationReportEntity, MissingInstallationReport}
+import com.advancedtelematic.director.data.DeviceRequest.{
+  DeviceManifest,
+  EcuManifest,
+  InstallationReport,
+  InstallationReportEntity,
+  MissingInstallationReport
+}
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.UptaneDataType.Image
 import com.advancedtelematic.director.db.deviceregistry.DeviceRepository

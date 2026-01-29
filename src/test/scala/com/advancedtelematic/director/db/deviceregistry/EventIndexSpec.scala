@@ -38,15 +38,7 @@ class EventIndexSpec extends DirectorSpec {
     eventType = EventType("", 0)
     ecu <- Gen.option(GenEcuIdentifier)
     json = Json.obj()
-  } yield Event(
-    device,
-    eventId,
-    eventType,
-    Instant.now,
-    Instant.now,
-    ecu,
-    json
-  )
+  } yield Event(device, eventId, eventType, Instant.now, Instant.now, ecu, json)
 
   val downloadCompleteEventGen: Gen[Event] =
     eventGen.map(_.copy(eventType = EventType("DownloadComplete", 0)))

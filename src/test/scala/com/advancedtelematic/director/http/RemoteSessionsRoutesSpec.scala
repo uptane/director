@@ -185,10 +185,7 @@ class RemoteSessionsRoutesSpec
       responseAs[SignedPayload[RemoteSessionsRole]].signed
     }
 
-    val payload02 = RemoteCommandsPayload(
-      Map(Reboot -> CommandParameters(List.empty)),
-      "v1alpha"
-    )
+    val payload02 = RemoteCommandsPayload(Map(Reboot -> CommandParameters(List.empty)), "v1alpha")
 
     val remoteSessionsRole = RemoteSessionsRole(
       currentRole.remote_sessions,

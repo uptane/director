@@ -19,10 +19,7 @@ import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.{
   deviceUpdateCompletedCodec,
   ecuReplacementCodec
 }
-import com.advancedtelematic.libats.messaging_datatype.Messages.{
-  DeviceUpdateCompleted,
-  EcuReplaced
-}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateCompleted, EcuReplaced}
 import com.github.pjfanning.pekkohttpcirce.FailFastCirceSupport.*
 import io.circe.Json
 import org.scalacheck.Gen

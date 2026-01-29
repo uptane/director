@@ -7,7 +7,7 @@ import com.advancedtelematic.director.deviceregistry.data.{DeviceSortBy, GroupSo
 import com.advancedtelematic.director.deviceregistry.data.SortDirection.SortDirection
 import Schema.DeviceTable
 import GroupInfoRepository.GroupInfoTable
-import com.advancedtelematic.libats.data.PaginationResult.{Offset, Limit}
+import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import slick.ast.Ordering
 import slick.jdbc.MySQLProfile.api.*
 import slick.lifted.ColumnOrdered

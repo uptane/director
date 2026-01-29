@@ -1,10 +1,29 @@
 package com.advancedtelematic.director.deviceregistry.data
 
 import java.time.Instant
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, MultiTargetUpdateCorrelationId, Namespace, ResultCode, ResultDescription, TargetSpecCorrelationId}
+import com.advancedtelematic.libats.data.DataType.{
+  CorrelationId,
+  MultiTargetUpdateCorrelationId,
+  Namespace,
+  ResultCode,
+  ResultDescription,
+  TargetSpecCorrelationId
+}
 import com.advancedtelematic.libats.data.RefinedUtils.RefineTry
-import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier, EcuInstallationReport, InstallationResult, ValidEcuIdentifier}
-import com.advancedtelematic.libats.messaging_datatype.Messages.{DeviceUpdateCompleted, EcuAndHardwareId, EcuReplaced, EcuReplacement, EcuReplacementFailed}
+import com.advancedtelematic.libats.messaging_datatype.DataType.{
+  DeviceId,
+  EcuIdentifier,
+  EcuInstallationReport,
+  InstallationResult,
+  ValidEcuIdentifier
+}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  DeviceUpdateCompleted,
+  EcuAndHardwareId,
+  EcuReplaced,
+  EcuReplacement,
+  EcuReplacementFailed
+}
 import org.scalacheck.Gen
 
 import scala.util.{Success, Try}
@@ -13,7 +32,9 @@ object InstallationReportGenerators {
   import DeviceGenerators.*
 
   val genCorrelationId: Gen[CorrelationId] =
-    Gen.uuid.flatMap(uuid => Gen.oneOf(TargetSpecCorrelationId(uuid), MultiTargetUpdateCorrelationId(uuid)))
+    Gen.uuid.flatMap(uuid =>
+      Gen.oneOf(TargetSpecCorrelationId(uuid), MultiTargetUpdateCorrelationId(uuid))
+    )
 
   val genEcuIdentifier: Gen[EcuIdentifier] =
     Gen

@@ -287,7 +287,6 @@ trait RegistryDeviceRequests { self: DefaultPatience & ResourceSpec & Matchers =
 
     println(csv)
 
-
     val multipartForm = Multipart.FormData(
       Multipart.FormData.BodyPart.Strict(
         "custom-device-fields",

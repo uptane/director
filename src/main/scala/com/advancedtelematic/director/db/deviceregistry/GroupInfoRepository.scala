@@ -8,7 +8,13 @@
 
 package com.advancedtelematic.director.db.deviceregistry
 
-import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupType, TagId}
+import com.advancedtelematic.director.deviceregistry.data.{
+  Group,
+  GroupExpression,
+  GroupName,
+  GroupType,
+  TagId
+}
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupSortBy.GroupSortBy
 

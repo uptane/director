@@ -4,8 +4,17 @@ import cats.implicits.catsSyntaxOptionId
 import com.advancedtelematic.director.data.AdminDataType.TargetUpdate
 import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.{TargetSpecId, Update, UpdateId}
-import com.advancedtelematic.director.data.DbDataType.{Assignment, DeviceKnownState, EcuTarget, EcuTargetId}
-import com.advancedtelematic.director.data.DeviceRequest.{DeviceManifest, EcuManifest, MissingInstallationReport}
+import com.advancedtelematic.director.data.DbDataType.{
+  Assignment,
+  DeviceKnownState,
+  EcuTarget,
+  EcuTargetId
+}
+import com.advancedtelematic.director.data.DeviceRequest.{
+  DeviceManifest,
+  EcuManifest,
+  MissingInstallationReport
+}
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
 import com.advancedtelematic.director.data.UptaneDataType.*

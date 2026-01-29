@@ -304,7 +304,7 @@ class AdminResource(extractNamespace: Directive1[Namespace], val keyserverClient
                   },
                   path("hardware_identifiers") {
                     PaginationParameters { (offset, limit) =>
-                      val f = ecuRepository. findAllHardwareIdentifiers(ns, offset, limit)
+                      val f = ecuRepository.findAllHardwareIdentifiers(ns, offset, limit)
                       complete(f)
                     }
                   },

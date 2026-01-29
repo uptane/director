@@ -217,9 +217,7 @@ class DeviceManifestReportedListenerSpec
       jsonObject = obj =>
         obj.toMap.map {
           case ("signed", signed) =>
-            "signed" -> signed.deepMerge(
-              Json.obj("report_counter" -> newValue.asJson)
-            )
+            "signed" -> signed.deepMerge(Json.obj("report_counter" -> newValue.asJson))
           case ("signatures", _) =>
             "signatures" -> Json.arr(Json.obj("sig" -> newValue.asJson))
           case (key, value) =>

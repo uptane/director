@@ -11,10 +11,18 @@ import com.advancedtelematic.director.data.Codecs.*
 import com.advancedtelematic.director.data.DataType.{TargetItemCustom, TargetSpecId}
 import com.advancedtelematic.director.data.GeneratorOps.*
 import com.advancedtelematic.director.data.Generators.*
-import com.advancedtelematic.director.db.{DbDeviceRoleRepositorySupport, RepoNamespaceRepositorySupport, UpdatesDBIO}
+import com.advancedtelematic.director.db.{
+  DbDeviceRoleRepositorySupport,
+  RepoNamespaceRepositorySupport,
+  UpdatesDBIO
+}
 import com.advancedtelematic.director.http.DeviceAssignments.AssignmentCreateResult
 import com.advancedtelematic.director.util.*
-import com.advancedtelematic.libats.data.DataType.{CorrelationId, MultiTargetUpdateCorrelationId, Namespace}
+import com.advancedtelematic.libats.data.DataType.{
+  CorrelationId,
+  MultiTargetUpdateCorrelationId,
+  Namespace
+}
 import com.advancedtelematic.libats.data.ErrorRepresentation
 import com.advancedtelematic.libats.messaging.test.MockMessageBus
 import com.advancedtelematic.libats.messaging_datatype.DataType.DeviceId
@@ -578,40 +586,40 @@ class AssignmentsResourceSpec
       }
   }
 
+  testWithRepo("PATCH assignments cannot cancel an assignment that belongs to an update") {
+    implicit ns =>
+      val regDev = registerAdminDeviceOk()
+      val hardwareId = regDev.primary.hardwareId
+      val targetUpdate = GenTargetUpdateRequest.generate
+      val createRequest = CreateUpdateRequest(
+        targets = Map(hardwareId -> targetUpdate),
+        devices = Seq(regDev.deviceId)
+      )
 
-  testWithRepo("PATCH assignments cannot cancel an assignment that belongs to an update") { implicit ns =>
-    val regDev = registerAdminDeviceOk()
-    val hardwareId = regDev.primary.hardwareId
-    val targetUpdate = GenTargetUpdateRequest.generate
-    val createRequest = CreateUpdateRequest(
-      targets = Map(hardwareId -> targetUpdate),
-      devices = Seq(regDev.deviceId)
-    )
+      createManyUpdates(createRequest) {
+        status shouldBe StatusCodes.OK
+        val result = responseAs[CreateUpdateResult]
+        result.affected should contain(regDev.deviceId)
+      }
 
-    createManyUpdates(createRequest) {
-      status shouldBe StatusCodes.OK
-      val result = responseAs[CreateUpdateResult]
-      result.affected should contain(regDev.deviceId)
-    }
+      val queue = getDeviceAssignmentOk(regDev.deviceId)
+      queue shouldNot be(empty)
 
-    val queue = getDeviceAssignmentOk(regDev.deviceId)
-    queue shouldNot be(empty)
-
-    Patch(apiUri(s"assignments"), Seq(regDev.deviceId)).namespaced ~> routes ~> check {
-      status shouldBe StatusCodes.Conflict
-      val error = responseAs[ErrorRepresentation]
-      error.code shouldBe ErrorCodes.AssignmentBelongsToUpdate
-    }
+      Patch(apiUri(s"assignments"), Seq(regDev.deviceId)).namespaced ~> routes ~> check {
+        status shouldBe StatusCodes.Conflict
+        val error = responseAs[ErrorRepresentation]
+        error.code shouldBe ErrorCodes.AssignmentBelongsToUpdate
+      }
   }
 
-  testWithRepo("PATCH on assignments/device-id cannot cancel an assignment that belongs to an update") { implicit ns =>
+  testWithRepo(
+    "PATCH on assignments/device-id cannot cancel an assignment that belongs to an update"
+  ) { implicit ns =>
     val regDev = registerAdminDeviceOk()
     val hardwareId = regDev.primary.hardwareId
     val targetUpdate = GenTargetUpdateRequest.generate
-    val createRequest = CreateUpdateRequest(
-      targets = Map(hardwareId -> targetUpdate),
-      devices = Seq(regDev.deviceId)
-    )
+    val createRequest =
+      CreateUpdateRequest(targets = Map(hardwareId -> targetUpdate), devices = Seq(regDev.deviceId))
 
     createManyUpdates(createRequest) {
       status shouldBe StatusCodes.OK

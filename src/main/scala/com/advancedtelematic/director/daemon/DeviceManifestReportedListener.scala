@@ -98,13 +98,13 @@ class DeviceManifestReportedListener(globalConfig: Config)(
             Attributes
               .logLevels(onFinish = Attributes.logLevelWarning)
           )
-          .wireTap(batch => batch.offsets.size )
+          .wireTap(batch => batch.offsets.size)
           .via(committerFlow)
       }
       .watchTermination() { (_, done) =>
-        done
-          .failed
-          .map { err => failureCount.inc()
+        done.failed
+          .map { err =>
+            failureCount.inc()
             log.error("device-manifest-reported-listener failed", err)
           }
         NotUsed

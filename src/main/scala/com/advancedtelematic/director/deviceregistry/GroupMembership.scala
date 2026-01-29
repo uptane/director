@@ -1,12 +1,21 @@
 package com.advancedtelematic.director.deviceregistry
 
 import org.apache.pekko.http.scaladsl.util.FastFuture
-import com.advancedtelematic.director.db.deviceregistry.{GroupInfoRepository, GroupMemberRepository, SearchDBIO}
+import com.advancedtelematic.director.db.deviceregistry.{
+  GroupInfoRepository,
+  GroupMemberRepository,
+  SearchDBIO
+}
 import com.advancedtelematic.libats.data.DataType.Namespace
 import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.director.deviceregistry.data.Group.GroupId
 import com.advancedtelematic.director.deviceregistry.data.GroupType.GroupType
-import com.advancedtelematic.director.deviceregistry.data.{Group, GroupExpression, GroupName, GroupType}
+import com.advancedtelematic.director.deviceregistry.data.{
+  Group,
+  GroupExpression,
+  GroupName,
+  GroupType
+}
 import com.advancedtelematic.director.http.deviceregistry.Errors
 import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import slick.jdbc.MySQLProfile.api.*

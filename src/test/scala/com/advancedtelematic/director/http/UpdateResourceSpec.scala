@@ -138,7 +138,6 @@ class UpdateResourceSpec
     update.status shouldBe Update.Status.Seen
   }
 
-
   testWithRepo("update is marked as completed when device reports successful installation") {
     implicit ns =>
       val device = registerAdminDeviceOk()
@@ -751,7 +750,6 @@ class UpdateResourceSpec
     }
   }
 
-
   testWithRepo("can cancel all updates and assignments for all devices with a given update") {
     implicit ns =>
       val device1 = registerAdminDeviceOk()
@@ -787,36 +785,37 @@ class UpdateResourceSpec
       cancelledUpdates2.values.loneElement.status shouldBe Update.Status.Cancelled
   }
 
-  testWithRepo("cancelling scheduled updates sends messages when the update is not yet assigned") { implicit ns =>
-    val device = registerAdminDeviceOk()
-    val hardwareId = device.primary.hardwareId
-    val targetUpdate = GenTargetUpdate.generate
-    val targetRequest = TargetUpdateRequest(None, targetUpdate)
+  testWithRepo("cancelling scheduled updates sends messages when the update is not yet assigned") {
+    implicit ns =>
+      val device = registerAdminDeviceOk()
+      val hardwareId = device.primary.hardwareId
+      val targetUpdate = GenTargetUpdate.generate
+      val targetRequest = TargetUpdateRequest(None, targetUpdate)
 
-    createUpdateOk(
-      device.deviceId,
-      TargetUpdateSpec(Map(hardwareId -> targetRequest)),
-      Instant.now.minusSeconds(60).some
-    )
+      createUpdateOk(
+        device.deviceId,
+        TargetUpdateSpec(Map(hardwareId -> targetRequest)),
+        Instant.now.minusSeconds(60).some
+      )
 
-    val updates = listUpdatesOK(device.deviceId)
-    val update = updates.values.loneElement
-    update.status shouldBe Update.Status.Scheduled
-    val updateId = update.updateId
+      val updates = listUpdatesOK(device.deviceId)
+      val update = updates.values.loneElement
+      update.status shouldBe Update.Status.Scheduled
+      val updateId = update.updateId
 
-    cancelAllUpdatesOK(updateId)
+      cancelAllUpdatesOK(updateId)
 
-    val cancelledUpdates = listUpdatesOK(device.deviceId)
-    cancelledUpdates.values should have size 1
-    cancelledUpdates.values.head.status shouldBe Update.Status.Cancelled
+      val cancelledUpdates = listUpdatesOK(device.deviceId)
+      cancelledUpdates.values should have size 1
+      cancelledUpdates.values.head.status shouldBe Update.Status.Cancelled
 
-    val msg = msgPub
-      .findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
-        msg.deviceUuid == device.deviceId && msg.correlationId == updateId.toCorrelationId &&
+      val msg = msgPub
+        .findReceived[DeviceUpdateEvent] { (msg: DeviceUpdateEvent) =>
+          msg.deviceUuid == device.deviceId && msg.correlationId == updateId.toCorrelationId &&
           msg.isInstanceOf[DeviceUpdateCanceled]
-      }
+        }
 
-    msg shouldNot be(empty)
+      msg shouldNot be(empty)
   }
 
 }

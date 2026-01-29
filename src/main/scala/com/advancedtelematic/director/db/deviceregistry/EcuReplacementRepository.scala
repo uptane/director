@@ -10,7 +10,12 @@ import com.advancedtelematic.libats.data.PaginationResult
 import com.advancedtelematic.libats.data.PaginationResult.{Limit, Offset}
 import com.advancedtelematic.libats.messaging_datatype.DataType.{DeviceId, EcuIdentifier}
 import com.advancedtelematic.libats.messaging_datatype.MessageCodecs.ecuReplacementCodec
-import com.advancedtelematic.libats.messaging_datatype.Messages.{EcuAndHardwareId, EcuReplaced, EcuReplacement, EcuReplacementFailed}
+import com.advancedtelematic.libats.messaging_datatype.Messages.{
+  EcuAndHardwareId,
+  EcuReplaced,
+  EcuReplacement,
+  EcuReplacementFailed
+}
 import com.advancedtelematic.libats.slick.codecs.SlickRefined.refinedMappedType
 import com.advancedtelematic.libats.slick.db.SlickExtensions.javaInstantMapping
 import com.advancedtelematic.libats.slick.db.SlickResultExtensions.*
