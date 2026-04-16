@@ -25,7 +25,7 @@ libraryDependencies ++= {
   val pekkoHttpV = "1.2.0"
   val tufV = "5.0.0"
   val scalaTestV = "3.2.20"
-  val bouncyCastleV = "1.80"
+  val bouncyCastleV = "1.84"
   val libatsV = "5.0.0"
 
   Seq(
