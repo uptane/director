@@ -26,7 +26,7 @@ libraryDependencies ++= {
   val tufV = "5.0.0"
   val scalaTestV = "3.2.20"
   val bouncyCastleV = "1.84"
-  val libatsV = "5.0.0"
+  val libatsV = "5.0.2"
 
   Seq(
     "org.apache.pekko" %% "pekko-actor" % pekkoV,
