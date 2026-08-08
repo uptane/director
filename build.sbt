@@ -60,7 +60,7 @@ libraryDependencies ++= {
     "io.circe" %% "circe-testing" % "0.14.13",
     "tech.sparse" %% "toml-scala" % "0.2.2",
     "org.tpolecat" %% "atto-core" % "0.9.5",
-    "org.scalatestplus" %% "scalacheck-1-17" % "3.2.18.0" % Test
+    "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
   )
 }
 
