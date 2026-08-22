@@ -57,7 +57,7 @@ libraryDependencies ++= {
 
     // Device registry specific dependencies
     "org.apache.pekko" %% "pekko-connectors-csv" % "1.2.0",
-    "io.circe" %% "circe-testing" % "0.14.13",
+    "io.circe" %% "circe-testing" % "0.14.16",
     "tech.sparse" %% "toml-scala" % "0.2.2",
     "org.tpolecat" %% "atto-core" % "0.9.5",
     "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % Test
