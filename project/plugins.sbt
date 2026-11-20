@@ -1,4 +1,4 @@
-addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.13.2")
+addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.14.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.4.1")
 addSbtPlugin("com.github.sbt" % "sbt-git" % "3.0.0")
 addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "2.1.3")
